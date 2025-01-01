@@ -461,6 +461,147 @@ def get_multi_region_chat(models, selected):
     )        
     return chat
 
+def print_doc(i, doc):
+    if len(doc.page_content)>=100:
+        text = doc.page_content[:100]
+    else:
+        text = doc.page_content
+            
+    print(f"{i}: {text}, metadata:{doc.metadata}")
+
+reference_docs = []
+# api key to get weather information in agent
+secretsmanager = boto3.client(
+    service_name='secretsmanager',
+    region_name=bedrock_region
+)
+try:
+    get_weather_api_secret = secretsmanager.get_secret_value(
+        SecretId=f"openweathermap-{projectName}"
+    )
+    #print('get_weather_api_secret: ', get_weather_api_secret)
+    if get_weather_api_secret['SecretString']:
+        secret = json.loads(get_weather_api_secret['SecretString'])
+        #print('secret: ', secret)
+        weather_api_key = secret['weather_api_key']
+    else:
+        print('No secret found for weather api')
+
+except Exception as e:
+    raise e
+
+# api key to use LangSmith
+langsmith_api_key = ""
+try:
+    get_langsmith_api_secret = secretsmanager.get_secret_value(
+        SecretId=f"langsmithapikey-{projectName}"
+    )
+    #print('get_langsmith_api_secret: ', get_langsmith_api_secret)
+    if get_langsmith_api_secret['SecretString']:
+        secret = json.loads(get_langsmith_api_secret['SecretString'])
+        #print('secret: ', secret)
+        langsmith_api_key = secret['langsmith_api_key']
+        langchain_project = secret['langchain_project']
+    else:
+        print('No secret found for lengsmith api')
+except Exception as e:
+    raise e
+
+if langsmith_api_key:
+    os.environ["LANGCHAIN_API_KEY"] = langsmith_api_key
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_PROJECT"] = langchain_project
+
+# api key to use Tavily Search
+tavily_api_key = []
+tavily_key = ""
+try:
+    get_tavily_api_secret = secretsmanager.get_secret_value(
+        SecretId=f"tavilyapikey-{projectName}"
+    )
+    #print('get_tavily_api_secret: ', get_tavily_api_secret)
+    if get_tavily_api_secret['SecretString']:
+        secret = json.loads(get_tavily_api_secret['SecretString'])
+        #print('secret: ', secret)
+        tavily_key = secret['tavily_api_key']
+        #print('tavily_api_key: ', tavily_api_key)
+    else:
+        print('No secret found for tavily api')
+except Exception as e: 
+    raise e
+
+if tavily_key:
+    os.environ["TAVILY_API_KEY"] = tavily_key
+
+def tavily_search(query, k):
+    docs = []    
+    try:
+        tavily_client = TavilyClient(api_key=tavily_key)
+        response = tavily_client.search(query, max_results=k)
+        # print('tavily response: ', response)
+            
+        for r in response["results"]:
+            name = r.get("title")
+            if name is None:
+                name = 'WWW'
+            
+            docs.append(
+                Document(
+                    page_content=r.get("content"),
+                    metadata={
+                        'name': name,
+                        'url': r.get("url"),
+                        'from': 'tavily'
+                    },
+                )
+            )                   
+    except Exception as e:
+        print('Exception: ', e)
+
+    return docs
+
+def isKorean(text):
+    # check korean
+    pattern_hangul = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')
+    word_kor = pattern_hangul.search(str(text))
+    # print('word_kor: ', word_kor)
+
+    if word_kor and word_kor != 'None':
+        print('Korean: ', word_kor)
+        return True
+    else:
+        print('Not Korean: ', word_kor)
+        return False
+    
+def traslation(chat, text, input_language, output_language):
+    system = (
+        "You are a helpful assistant that translates {input_language} to {output_language} in <article> tags." 
+        "Put it in <result> tags."
+    )
+    human = "<article>{text}</article>"
+    
+    prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
+    # print('prompt: ', prompt)
+    
+    chain = prompt | chat    
+    try: 
+        result = chain.invoke(
+            {
+                "input_language": input_language,
+                "output_language": output_language,
+                "text": text,
+            }
+        )
+        
+        msg = result.content
+        # print('translated text: ', msg)
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)          
+        raise Exception ("Not able to request to LLM")
+
+    return msg[msg.find('<result>')+8:len(msg)-9] # remove <result> tag
+
 def general_conversation(query):
     chat = get_chat()
 
@@ -497,14 +638,6 @@ def general_conversation(query):
         raise Exception ("Not able to request to LLM: "+err_msg)
         
     return stream
-
-def print_doc(i, doc):
-    if len(doc.page_content)>=100:
-        text = doc.page_content[:100]
-    else:
-        text = doc.page_content
-            
-    print(f"{i}: {text}, metadata:{doc.metadata}")
 
 def get_docs_from_knowledge_base(documents):        
     relevant_docs = []
@@ -595,111 +728,6 @@ def grade_documents_using_parallel_processing(question, documents):
     
     #print('filtered_docs: ', filtered_docs)
     return filtered_docs
-
-def init_enhanced_search():
-    chat = get_chat() 
-
-    model = chat.bind_tools(tools)
-
-    class State(TypedDict):
-        messages: Annotated[list, add_messages]
-
-    tool_node = ToolNode(tools)
-
-    def should_continue(state: State) -> Literal["continue", "end"]:
-        messages = state["messages"]    
-        # print('(should_continue) messages: ', messages)
-            
-        last_message = messages[-1]
-        if not last_message.tool_calls:
-            return "end"
-        else:                
-            return "continue"
-
-    def call_model(state: State, config):
-        print('##### call_model #####')
-
-        messages = state["messages"]
-        # print('messages: ', messages)
-
-        last_message = messages[-1]
-        print('last_message: ', last_message)
-        if isinstance(last_message, ToolMessage) and last_message.content=="":  
-            print('last_message is empty')      
-            print('question: ', state["messages"][0].content)
-            answer = get_basic_answer(state["messages"][0].content)          
-            return {"messages": [AIMessage(content=answer)]}
-            
-        if isKorean(messages[0].content)==True:
-            system = (
-                "당신은 질문에 답변하기 위한 정보를 수집하는 연구원입니다."
-                "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
-                "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-                "최종 답변에는 조사한 내용을 반드시 포함하여야 하고, <result> tag를 붙여주세요."
-            )
-        else: 
-            system = (            
-                "You are a researcher charged with providing information that can be used when making answer."
-                "If you don't know the answer, just say that you don't know, don't try to make up an answer."
-                "You will be acting as a thoughtful advisor."
-                "Put it in <result> tags."
-            )
-                
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", system),
-                MessagesPlaceholder(variable_name="messages"),
-            ]
-        )
-        chain = prompt | model
-                
-        response = chain.invoke(messages)
-        print('call_model response: ', response.tool_calls)
-        
-        # state messag
-        if response.tool_calls:
-            toolinfo = response.tool_calls[-1]            
-            if toolinfo['type'] == 'tool_call':
-                print('tool name: ', toolinfo['name'])                    
-        
-        return {"messages": [response]}
-
-    def buildChatAgent():
-        workflow = StateGraph(State)
-
-        workflow.add_node("agent", call_model)
-        workflow.add_node("action", tool_node)
-            
-        workflow.set_entry_point("agent")
-        workflow.add_conditional_edges(
-            "agent",
-            should_continue,
-            {
-                "continue": "action",
-                "end": END,
-            },
-        )
-        workflow.add_edge("action", "agent")
-        return workflow.compile()
-    
-    return buildChatAgent()
-
-app_enhanced_search = init_enhanced_search()
-
-def enhanced_search(query, config):
-    print("###### enhanced_search ######")
-    inputs = [HumanMessage(content=query)]
-        
-    result = app_enhanced_search.invoke({"messages": inputs}, config)   
-    print('result: ', result)
-            
-    message = result["messages"][-1]
-    print('enhanced_search: ', message)
-
-    if message.content.find('<result>')==-1:
-        return message.content
-    else:
-        return message.content[message.content.find('<result>')+8:message.content.find('</result>')]
 
 class GradeDocuments(BaseModel):
     """Binary score for relevance check on retrieved documents."""
@@ -1065,138 +1093,110 @@ def search_by_tavily(keyword: str) -> str:
 
 tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily]        
 
-reference_docs = []
-# api key to get weather information in agent
-secretsmanager = boto3.client(
-    service_name='secretsmanager',
-    region_name=bedrock_region
-)
-try:
-    get_weather_api_secret = secretsmanager.get_secret_value(
-        SecretId=f"openweathermap-{projectName}"
-    )
-    #print('get_weather_api_secret: ', get_weather_api_secret)
-    if get_weather_api_secret['SecretString']:
-        secret = json.loads(get_weather_api_secret['SecretString'])
-        #print('secret: ', secret)
-        weather_api_key = secret['weather_api_key']
-    else:
-        print('No secret found for weather api')
+def init_enhanced_search():
+    chat = get_chat() 
 
-except Exception as e:
-    raise e
+    model = chat.bind_tools(tools)
 
-# api key to use LangSmith
-langsmith_api_key = ""
-try:
-    get_langsmith_api_secret = secretsmanager.get_secret_value(
-        SecretId=f"langsmithapikey-{projectName}"
-    )
-    #print('get_langsmith_api_secret: ', get_langsmith_api_secret)
-    if get_langsmith_api_secret['SecretString']:
-        secret = json.loads(get_langsmith_api_secret['SecretString'])
-        #print('secret: ', secret)
-        langsmith_api_key = secret['langsmith_api_key']
-        langchain_project = secret['langchain_project']
-    else:
-        print('No secret found for lengsmith api')
-except Exception as e:
-    raise e
+    class State(TypedDict):
+        messages: Annotated[list, add_messages]
 
-if langsmith_api_key:
-    os.environ["LANGCHAIN_API_KEY"] = langsmith_api_key
-    os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    os.environ["LANGCHAIN_PROJECT"] = langchain_project
+    tool_node = ToolNode(tools)
 
-# api key to use Tavily Search
-tavily_api_key = []
-tavily_key = ""
-try:
-    get_tavily_api_secret = secretsmanager.get_secret_value(
-        SecretId=f"tavilyapikey-{projectName}"
-    )
-    #print('get_tavily_api_secret: ', get_tavily_api_secret)
-    if get_tavily_api_secret['SecretString']:
-        secret = json.loads(get_tavily_api_secret['SecretString'])
-        #print('secret: ', secret)
-        tavily_key = secret['tavily_api_key']
-        #print('tavily_api_key: ', tavily_api_key)
-    else:
-        print('No secret found for tavily api')
-except Exception as e: 
-    raise e
-
-if tavily_key:
-    os.environ["TAVILY_API_KEY"] = tavily_key
-
-def tavily_search(query, k):
-    docs = []    
-    try:
-        tavily_client = TavilyClient(api_key=tavily_key)
-        response = tavily_client.search(query, max_results=k)
-        # print('tavily response: ', response)
+    def should_continue(state: State) -> Literal["continue", "end"]:
+        messages = state["messages"]    
+        # print('(should_continue) messages: ', messages)
             
-        for r in response["results"]:
-            name = r.get("title")
-            if name is None:
-                name = 'WWW'
+        last_message = messages[-1]
+        if not last_message.tool_calls:
+            return "end"
+        else:                
+            return "continue"
+
+    def call_model(state: State, config):
+        print('##### call_model #####')
+
+        messages = state["messages"]
+        # print('messages: ', messages)
+
+        last_message = messages[-1]
+        print('last_message: ', last_message)
+        if isinstance(last_message, ToolMessage) and last_message.content=="":  
+            print('last_message is empty')      
+            print('question: ', state["messages"][0].content)
+            answer = get_basic_answer(state["messages"][0].content)          
+            return {"messages": [AIMessage(content=answer)]}
             
-            docs.append(
-                Document(
-                    page_content=r.get("content"),
-                    metadata={
-                        'name': name,
-                        'url': r.get("url"),
-                        'from': 'tavily'
-                    },
-                )
-            )                   
-    except Exception as e:
-        print('Exception: ', e)
-
-    return docs
-
-def isKorean(text):
-    # check korean
-    pattern_hangul = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')
-    word_kor = pattern_hangul.search(str(text))
-    # print('word_kor: ', word_kor)
-
-    if word_kor and word_kor != 'None':
-        print('Korean: ', word_kor)
-        return True
-    else:
-        print('Not Korean: ', word_kor)
-        return False
-    
-def traslation(chat, text, input_language, output_language):
-    system = (
-        "You are a helpful assistant that translates {input_language} to {output_language} in <article> tags." 
-        "Put it in <result> tags."
-    )
-    human = "<article>{text}</article>"
-    
-    prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
-    # print('prompt: ', prompt)
-    
-    chain = prompt | chat    
-    try: 
-        result = chain.invoke(
-            {
-                "input_language": input_language,
-                "output_language": output_language,
-                "text": text,
-            }
+        if isKorean(messages[0].content)==True:
+            system = (
+                "당신은 질문에 답변하기 위한 정보를 수집하는 연구원입니다."
+                "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
+                "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+                "최종 답변에는 조사한 내용을 반드시 포함하여야 하고, <result> tag를 붙여주세요."
+            )
+        else: 
+            system = (            
+                "You are a researcher charged with providing information that can be used when making answer."
+                "If you don't know the answer, just say that you don't know, don't try to make up an answer."
+                "You will be acting as a thoughtful advisor."
+                "Put it in <result> tags."
+            )
+                
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
         )
+        chain = prompt | model
+                
+        response = chain.invoke(messages)
+        print('call_model response: ', response.tool_calls)
         
-        msg = result.content
-        # print('translated text: ', msg)
-    except Exception:
-        err_msg = traceback.format_exc()
-        print('error message: ', err_msg)          
-        raise Exception ("Not able to request to LLM")
+        # state messag
+        if response.tool_calls:
+            toolinfo = response.tool_calls[-1]            
+            if toolinfo['type'] == 'tool_call':
+                print('tool name: ', toolinfo['name'])                    
+        
+        return {"messages": [response]}
 
-    return msg[msg.find('<result>')+8:len(msg)-9] # remove <result> tag
+    def buildChatAgent():
+        workflow = StateGraph(State)
+
+        workflow.add_node("agent", call_model)
+        workflow.add_node("action", tool_node)
+            
+        workflow.set_entry_point("agent")
+        workflow.add_conditional_edges(
+            "agent",
+            should_continue,
+            {
+                "continue": "action",
+                "end": END,
+            },
+        )
+        workflow.add_edge("action", "agent")
+        return workflow.compile()
+    
+    return buildChatAgent()
+
+app_enhanced_search = init_enhanced_search()
+
+def enhanced_search(query, config):
+    print("###### enhanced_search ######")
+    inputs = [HumanMessage(content=query)]
+        
+    result = app_enhanced_search.invoke({"messages": inputs}, config)   
+    print('result: ', result)
+            
+    message = result["messages"][-1]
+    print('enhanced_search: ', message)
+
+    if message.content.find('<result>')==-1:
+        return message.content
+    else:
+        return message.content[message.content.find('<result>')+8:message.content.find('</result>')]
 
 ####################### LangGraph #######################
 # Chat Agent Executor 
