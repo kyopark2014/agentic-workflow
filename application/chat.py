@@ -1025,9 +1025,12 @@ try:
         SecretId=f"openweathermap-{projectName}"
     )
     #print('get_weather_api_secret: ', get_weather_api_secret)
-    secret = json.loads(get_weather_api_secret['SecretString'])
-    #print('secret: ', secret)
-    weather_api_key = secret['weather_api_key']
+    if get_weather_api_secret['SecretString']:
+        secret = json.loads(get_weather_api_secret['SecretString'])
+        #print('secret: ', secret)
+        weather_api_key = secret['weather_api_key']
+    else:
+        print('No secret found for weather api')
 
 except Exception as e:
     raise e
@@ -1039,10 +1042,13 @@ try:
         SecretId=f"langsmithapikey-{projectName}"
     )
     #print('get_langsmith_api_secret: ', get_langsmith_api_secret)
-    secret = json.loads(get_langsmith_api_secret['SecretString'])
-    #print('secret: ', secret)
-    langsmith_api_key = secret['langsmith_api_key']
-    langchain_project = secret['langchain_project']
+    if get_langsmith_api_secret['SecretString']:
+        secret = json.loads(get_langsmith_api_secret['SecretString'])
+        #print('secret: ', secret)
+        langsmith_api_key = secret['langsmith_api_key']
+        langchain_project = secret['langchain_project']
+    else:
+        print('No secret found for lengsmith api')
 except Exception as e:
     raise e
 
@@ -1059,10 +1065,13 @@ try:
         SecretId=f"tavilyapikey-{projectName}"
     )
     #print('get_tavily_api_secret: ', get_tavily_api_secret)
-    secret = json.loads(get_tavily_api_secret['SecretString'])
-    #print('secret: ', secret)
-    tavily_key = secret['tavily_api_key']
-    #print('tavily_api_key: ', tavily_api_key)
+    if get_tavily_api_secret['SecretString']:
+        secret = json.loads(get_tavily_api_secret['SecretString'])
+        #print('secret: ', secret)
+        tavily_key = secret['tavily_api_key']
+        #print('tavily_api_key: ', tavily_api_key)
+    else:
+        print('No secret found for tavily api')
 except Exception as e: 
     raise e
 
