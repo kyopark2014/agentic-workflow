@@ -545,7 +545,6 @@ def general_conversation(query):
         "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
         "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다." 
         "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-        "답변은 markdown 포맷(예: ##)을 사용하지 않습니다."
     )
     
     human = "Question: {input}"
@@ -1827,7 +1826,6 @@ def run_planning(query):
                 "다음의 Reference texts을 이용하여 user의 질문에 답변합니다."
                 "답변의 이유를 풀어서 명확하게 설명합니다."
                 "결과는 <result> tag를 붙여주세요."
-                "답변은 markdown 포맷을 사용하지 않습니다."                            
             )
         else: 
             system = (
@@ -1836,14 +1834,13 @@ def run_planning(query):
                 "Explains clearly the reason for the answer."
                 "If you don't know the answer, just say that you don't know, don't try to make up an answer."
                 "Put it in <result> tags."
-                "You will only answer in text format, using markdown format is not allowed."
             )
     
         human = (
-            "Question: {input}"
-
             "Reference texts:"
             "{context}"
+
+            "Question: {input}"
         )
         
         prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
