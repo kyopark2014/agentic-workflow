@@ -1735,6 +1735,10 @@ def run_planning(query):
     def replan_node(state: State, config):
         print('#### replan ####')
         print('state of replan node: ', state)
+
+        if len(state["plan"]) == 1:
+            print('last plan: ', state["plan"])
+            return {"response":state["info"][-1]}
         
         system = (
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
