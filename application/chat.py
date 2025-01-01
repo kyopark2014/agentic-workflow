@@ -1447,7 +1447,7 @@ def clear_chat_history():
 ####################### LangGraph #######################
 # Planning (Advanced CoT)
 #########################################################
-def run_planning(connectionId, requestId, query):
+def run_planning(query):
     class State(TypedDict):
         input: str
         plan: list[str]
@@ -1506,11 +1506,6 @@ def run_planning(connectionId, requestId, query):
         print('plan: ', plan) 
         
         chat = get_chat()
-
-        requestId = config.get("configurable", {}).get("requestId", "")
-        print('requestId: ', requestId)
-        connectionId = config.get("configurable", {}).get("connectionId", "")
-        print('connectionId: ', connectionId)
 
         # retrieve
         relevant_docs = retrieve_documents_from_knowledge_base(plan[0], top_k=4)
@@ -1699,9 +1694,7 @@ def run_planning(connectionId, requestId, query):
         
     inputs = {"input": query}
     config = {
-        "recursion_limit": 50,
-        "requestId": requestId,
-        "connectionId": connectionId
+        "recursion_limit": 50
     }
     
     for output in app.stream(inputs, config):   
@@ -1715,7 +1708,7 @@ def run_planning(connectionId, requestId, query):
 ####################### LangGraph #######################
 # Reflection (Knowledge Guru)
 #########################################################
-def run_knowledge_guru(connectionId, requestId, query):
+def run_knowledge_guru(query):
     class State(TypedDict):
         messages: Annotated[list, add_messages]
         reflection: list
@@ -1884,9 +1877,7 @@ def run_knowledge_guru(connectionId, requestId, query):
     inputs = [HumanMessage(content=query)]
     config = {
         "recursion_limit": 50,
-        "max_revisions": MAX_REVISIONS,
-        "requestId": requestId,
-        "connectionId": connectionId
+        "max_revisions": MAX_REVISIONS
     }
     
     for output in app.stream({"messages": inputs}, config):   
@@ -1902,7 +1893,7 @@ def run_knowledge_guru(connectionId, requestId, query):
 ####################### LangGraph #######################
 # Multi-agent Collaboration (Long form Writing Agent)
 #########################################################
-def run_long_form_writing_agent(connectionId, requestId, query):
+def run_long_form_writing_agent(query):
     # Workflow - Reflection
     class ReflectionState(TypedDict):
         draft : str
@@ -2417,11 +2408,6 @@ def run_long_form_writing_agent(connectionId, requestId, query):
         
         reflection_app = buildReflection()
         
-        requestId = config.get("configurable", {}).get("requestId", "")
-        print('requestId: ', requestId)
-        connectionId = config.get("configurable", {}).get("connectionId", "")
-        print('connectionId: ', connectionId)
-        
         for idx, draft in enumerate(drafts):
             parent_conn, child_conn = Pipe()
             parent_connections.append(parent_conn)
@@ -2431,8 +2417,6 @@ def run_long_form_writing_agent(connectionId, requestId, query):
             app_config = {
                 "recursion_limit": 50,
                 "max_revisions": MAX_REVISIONS,
-                "requestId":requestId,
-                "connectionId": connectionId,
                 "idx": idx,
                 "parallel_retrieval": "enable"
             }
@@ -2566,12 +2550,7 @@ def run_long_form_writing_agent(connectionId, requestId, query):
                 
             final_doc = ""   
             references = []
-            
-            requestId = config.get("configurable", {}).get("requestId", "")
-            print('requestId: ', requestId)
-            connectionId = config.get("configurable", {}).get("connectionId", "")
-            print('connectionId: ', connectionId)
-            
+                        
             for idx, draft in enumerate(drafts):
                 inputs = {
                     "draft": draft
@@ -2579,8 +2558,6 @@ def run_long_form_writing_agent(connectionId, requestId, query):
                 app_config = {
                     "recursion_limit": 50,
                     "max_revisions": MAX_REVISIONS,
-                    "requestId":requestId,
-                    "connectionId": connectionId,
                     "idx": idx,
                     "parallel_retrieval": "disable"
                 }
@@ -2671,8 +2648,6 @@ def run_long_form_writing_agent(connectionId, requestId, query):
     }    
     config = {
         "recursion_limit": 50,
-        "requestId": requestId,
-        "connectionId": connectionId,
         "parallel_revise": multi_region
     }
     
