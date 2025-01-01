@@ -101,7 +101,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
 
     // OpenSearch Serverless
     const collectionName = vectorIndexName
-    const OpenSearchCollection = new opensearchserverless.CfnCollection(this, `opensearch-correction-for-${projectName}`, {
+    const OpenSearchCollection = new opensearchserverless.CfnCollection(this, `correction-for-${projectName}`, {
       name: collectionName,    
       description: `opensearch correction for ${projectName}`,
       standbyReplicas: 'DISABLED',
@@ -115,7 +115,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
     });
 
     const encPolicyName = `encription-${projectName}-${region}`
-    const encPolicy = new opensearchserverless.CfnSecurityPolicy(this, `opensearch-enc-policy-for-${projectName}`, {
+    const encPolicy = new opensearchserverless.CfnSecurityPolicy(this, `enc-policy-for-${projectName}`, {
       name: encPolicyName,
       type: "encryption",
       description: `opensearch encryption policy for ${projectName}`,
@@ -125,7 +125,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
     OpenSearchCollection.addDependency(encPolicy);
 
     const netPolicyName = `network-${projectName}-${region}`
-    const netPolicy = new opensearchserverless.CfnSecurityPolicy(this, `opensearch-net-policy-for-${projectName}`, {
+    const netPolicy = new opensearchserverless.CfnSecurityPolicy(this, `net-policy-for-${projectName}`, {
       name: netPolicyName,
       type: 'network',    
       description: `opensearch network policy for ${projectName}`,
@@ -150,7 +150,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
 
     const account = new iam.AccountPrincipal(this.account)
     const dataAccessPolicyName = `data-${projectName}`
-    const dataAccessPolicy = new opensearchserverless.CfnAccessPolicy(this, `opensearch-data-collection-policy-for-${projectName}`, {
+    const dataAccessPolicy = new opensearchserverless.CfnAccessPolicy(this, `data-collection-policy-for-${projectName}`, {
       name: dataAccessPolicyName,
       type: "data",
       policy: JSON.stringify([
