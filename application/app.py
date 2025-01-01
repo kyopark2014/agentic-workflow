@@ -130,7 +130,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
         
         elif mode == 'Agent (Reflection)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_agent_executor2(prompt)
+                response = chat.run_knowledge_guru(prompt)
                 st.write(response)
                 print('response: ', response)
 
@@ -146,7 +146,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Agent (Planning)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_agent_executor2(prompt)
+                response = chat.run_planning(prompt)
                 st.write(response)
                 print('response: ', response)
 
@@ -162,7 +162,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Agent (Multi-agent Collaboration)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_agent_executor2(prompt)
+                response = chat.run_long_form_writing_agent(prompt)
                 st.write(response)
                 print('response: ', response)
 
