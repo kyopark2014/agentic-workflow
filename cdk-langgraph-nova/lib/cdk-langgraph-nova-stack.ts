@@ -16,9 +16,6 @@ const accountId = process.env.CDK_DEFAULT_ACCOUNT;
 const targetPort = 8080;
 const bucketName = `storage-for-${projectName}-${accountId}-${region}`; 
 const vectorIndexName = projectName
-const knowledge_base_name = projectName;
-
-const enableHybridSearch = 'true';
 
 export class CdkLanggraphNovaStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {

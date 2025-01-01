@@ -841,6 +841,7 @@ def retrieve_documents_from_knowledge_base(query, top_k):
                 "numberOfResults": top_k,
                 "overrideSearchType": "HYBRID"   # SEMANTIC
             }},
+            region_name=bedrock_region
         )
         
         documents = retriever.invoke(query)
@@ -941,7 +942,7 @@ def run_rag_with_knowledge_base(text):
     # retrieve
     relevant_docs = retrieve_documents_from_knowledge_base(text, top_k)
 
-    # grading   
+    # grade   
     filtered_docs = grade_documents(text, relevant_docs)    
     
     filtered_docs = check_duplication(filtered_docs) # duplication checker
