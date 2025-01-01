@@ -65,6 +65,17 @@ sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-u
 
 본 실습에서는 us-west-2 리전을 사용합니다. [인프라 설치](./deployment.md)에 따라 CDK로 인프라 설치를 진행합니다. 
 
+## 실행 결과
+
+### RAG (Knowledge Base)
+
+메뉴에서 RAG를 선택하고, "AWS의 스토리지 서비스에 대해 설명해주세요."라고 입력 후 결과를 확인합니다.
+
+![image](https://github.com/user-attachments/assets/89dbe5f3-0dd1-4829-af80-a5fc51ad03e7)
+
+이번에는 "Bedrock Agent와 S3를 비교해 주세요."라고 입력후에 결과를 확인합니다. RAG만 적용한 경우에는 사용자의 질문을 그대로 검색하는데, 정확히 관련된 문서가 없으면 적절히 답변할 수 없습니다. 이 문제는 agent를 이용하였을때 query decompostion으로 해결할 수 있습니다. 
+
+![image](https://github.com/user-attachments/assets/a365357a-aaec-4745-ab74-fc3bcb769873)
 
 
 ### Agentic Workflow
@@ -77,6 +88,9 @@ Agentic Workflow(Tool Use) 메뉴를 선택하여 오늘 서울의 날씨에 대
 
 ![image](https://github.com/user-attachments/assets/8f8d2e94-8be1-4b75-8795-4db9a8fa340f)
 
+RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주세요."라고 질문을 하면, 이번에는 좀더 나은 답변을 얻었습니다. 
+
+![noname](https://github.com/user-attachments/assets/969e9b84-5b80-4948-8627-f86bd2af26bc)
 
 
 
