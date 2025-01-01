@@ -28,7 +28,7 @@ EC2는 Private Subnet에 있으므로 SSL로 접속할 수 없습니다. 따라�
 Github에서 app에 대한 코드를 업데이트 하였다면, session manager에 접속하여 아래 명령어로 업데이트 합니다. 
 
 ```text
-sudo runuser -l ec2-user -c 'cd /home/ec2-user/llm-streamlit && git pull'
+sudo runuser -l ec2-user -c 'cd /home/ec2-user/langgraph-nova && git pull'
 ```
 
 Streamlit의 재시작이 필요하다면 아래 명령어로 service를 stop/start 시키고 동작을 확인할 수 있습니다.
@@ -48,7 +48,7 @@ streamlit run application/app.py
 EC2에서 debug을 하면서 개발할때 사용하는 명령어입니다.
 
 ```text
-sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-user/llm-streamlit/application/app.py"
+sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-user/langgraph-nova/application/app.py"
 ```
 
 
