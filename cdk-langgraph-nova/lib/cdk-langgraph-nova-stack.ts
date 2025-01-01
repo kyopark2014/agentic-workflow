@@ -114,7 +114,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       description: 'The endpoint of opensearch correction',
     });
 
-    const encPolicyName = `encription-${projectName}`
+    const encPolicyName = `encription-${projectName}-${region}`
     const encPolicy = new opensearchserverless.CfnSecurityPolicy(this, `opensearch-encription-security-policy-for-${projectName}`, {
       name: encPolicyName,
       type: "encryption",
@@ -124,7 +124,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
     });
     OpenSearchCollection.addDependency(encPolicy);
 
-    const netPolicyName = `network-${projectName}`
+    const netPolicyName = `network-${projectName}-${region}`
     const netPolicy = new opensearchserverless.CfnSecurityPolicy(this, `opensearch-network-security-policy-for-${projectName}`, {
       name: netPolicyName,
       type: 'network',    
