@@ -39,9 +39,14 @@ with st.sidebar:
     mode = st.radio(
         label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)"], index=0
     )   
-    st.info(mode_descriptions[mode][0])
-    
+    st.info(mode_descriptions[mode][0])    
     print('mode: ', mode)
+
+    # debug Mode
+    debugMode = st.selectbox(
+        '🖊️ 디버그 모드를 설정하세요. ',
+        ('Normal', 'Debug')
+    )
 
     st.success("Connected to Nova Pro", icon="💚")
     clear_button = st.button("대화 초기화", key="clear")
@@ -90,7 +95,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
     st.session_state.messages.append({"role": "user", "content": prompt})  # add user message to chat history
     prompt = prompt.replace('"', "").replace("'", "")
-
+    
     with st.chat_message("assistant"):
         if mode == '일상적인 대화':
             stream = chat.general_conversation(prompt)            
@@ -103,7 +108,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'RAG':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_rag_with_knowledge_base(prompt)        
+                response = chat.run_rag_with_knowledge_base(prompt, st, debugMode)        
                 st.write(response)
                 print('response: ', response)
 
@@ -114,7 +119,8 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Agent (Tool Use)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_agent_executor2(prompt)
+                response = chat.run_agent_executor(prompt, st, debugMode)
+                #response = chat.run_agent_executor2(prompt, st, debugMode)
                 st.write(response)
                 print('response: ', response)
 
@@ -124,13 +130,15 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     print('response without tag: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                st.rerun()
+
+                if debugMode != "Debug":
+                    st.rerun()
 
                 chat.save_chat_history(prompt, response)
         
         elif mode == 'Agent (Reflection)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_knowledge_guru(prompt)
+                response = chat.run_knowledge_guru(prompt, st, debugMode)
                 st.write(response)
                 print('response: ', response)
 
@@ -140,13 +148,15 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     print('response without tag: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                st.rerun()
+
+                if debugMode != "Debug":
+                    st.rerun()
 
                 chat.save_chat_history(prompt, response)
 
         elif mode == 'Agent (Planning)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_planning(prompt)
+                response = chat.run_planning(prompt, st, debugMode)
                 st.write(response)
                 print('response: ', response)
 
@@ -156,13 +166,14 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     print('response without tag: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                st.rerun()
+                if debugMode != "Debug":
+                    st.rerun()
 
                 chat.save_chat_history(prompt, response)
 
         elif mode == 'Agent (Multi-agent Collaboration)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_long_form_writing_agent(prompt)
+                response = chat.run_long_form_writing_agent(prompt, st, debugMode)
                 st.write(response)
                 print('response: ', response)
 
@@ -172,7 +183,8 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     print('response without tag: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                st.rerun()
+                if debugMode != "Debug":
+                    st.rerun()
 
                 chat.save_chat_history(prompt, response)
 

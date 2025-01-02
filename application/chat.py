@@ -930,7 +930,7 @@ def generate_answer_using_RAG(chat, context, question):
 
     return msg
 
-def run_rag_with_knowledge_base(text):
+def run_rag_with_knowledge_base(text, st, debugMode):
     global reference_docs
 
     chat = get_chat()
@@ -939,9 +939,15 @@ def run_rag_with_knowledge_base(text):
     top_k = numberOfDocs
     
     # retrieve
+    if debugMode == "Debug":
+        st.info(f"검색을 수행합니다. 검색어: {text}")
+
     relevant_docs = retrieve_documents_from_knowledge_base(text, top_k)
 
     # grade   
+    if debugMode == "Debug":
+        st.info(f"가져온 문서를 평가하고 있습니다.")
+    
     filtered_docs = grade_documents(text, relevant_docs)    
     
     filtered_docs = check_duplication(filtered_docs) # duplication checker
@@ -957,6 +963,9 @@ def run_rag_with_knowledge_base(text):
     print('relevant_context: ', relevant_context)
 
     # generate
+    if debugMode == "Debug":
+        st.info(f"결과를 생성중입니다.")
+
     msg = generate_answer_using_RAG(chat, relevant_context, text)
     
     if len(filtered_docs):
@@ -1115,7 +1124,132 @@ def search_by_tavily(keyword: str) -> str:
 
 tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily]        
 
-def run_agent_executor2(query):        
+####################### LangGraph #######################
+# Chat Agent Executor
+#########################################################
+def run_agent_executor(query, st, debugMode):
+    chatModel = get_chat() 
+    
+    model = chatModel.bind_tools(tools)
+
+    class State(TypedDict):
+        # messages: Annotated[Sequence[BaseMessage], operator.add]
+        messages: Annotated[list, add_messages]
+
+    tool_node = ToolNode(tools)
+
+    def should_continue(state: State) -> Literal["continue", "end"]:
+        print("###### should_continue ######")
+        messages = state["messages"]    
+        print('last_message: ', messages[-1])
+        
+        last_message = messages[-1]
+        if not last_message.tool_calls:
+            return "end"
+        else:                
+            return "continue"
+
+    def call_model(state: State, config):
+        print("###### call_model ######")
+        # print('state: ', state["messages"])
+                
+        if isKorean(state["messages"][0].content)==True:
+            system = (
+                "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
+                "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
+                "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+                "최종 답변에는 조사한 내용을 반드시 포함합니다."
+            )
+        else: 
+            system = (            
+                "You are a conversational AI designed to answer in a friendly way to a question."
+                "If you don't know the answer, just say that you don't know, don't try to make up an answer."
+                "You will be acting as a thoughtful advisor."    
+            )
+                
+        try:
+            prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", system),
+                    MessagesPlaceholder(variable_name="messages"),
+                ]
+            )
+            chain = prompt | model
+                
+            response = chain.invoke(state["messages"])
+            print('call_model response: ', response)
+        
+            for re in response.content:
+                if "type" in re:
+                    if re['type'] == 'text':
+                        print(f"--> {re['type']}: {re['text']}")
+
+                        status = re['text']
+                        if status.find('<thinking>') != -1:
+                            print('Remove <thinking> tag.')
+                            status = status[status.find('<thinking>')+11:status.find('</thinking>')]
+                            print('status without tag: ', status)
+
+                        if debugMode=="Debug":
+                            st.info(status)
+
+                    elif re['type'] == 'tool_use':                
+                        print(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
+
+                        if debugMode=="Debug":
+                            st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
+                    else:
+                        print(re)
+                else: # answer
+                    print(response.content)
+                    break
+        except Exception:
+            response = AIMessage(content="답변을 찾지 못하였습니다.")
+
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg)
+            # raise Exception ("Not able to request to LLM")
+
+        return {"messages": [response]}
+
+    def buildChatAgent():
+        workflow = StateGraph(State)
+
+        workflow.add_node("agent", call_model)
+        workflow.add_node("action", tool_node)
+        workflow.add_edge(START, "agent")
+        workflow.add_conditional_edges(
+            "agent",
+            should_continue,
+            {
+                "continue": "action",
+                "end": END,
+            },
+        )
+        workflow.add_edge("action", "agent")
+
+        return workflow.compile()
+
+    app = buildChatAgent()
+            
+    inputs = [HumanMessage(content=query)]
+    config = {
+        "recursion_limit": 50
+    }
+    
+    message = ""
+    for event in app.stream({"messages": inputs}, config, stream_mode="values"):   
+        # print('event: ', event)
+        
+        message = event["messages"][-1]
+        # print('message: ', message)
+
+    msg = message.content
+
+    #return msg[msg.find('<result>')+8:len(msg)-9]
+    return msg
+
+def run_agent_executor2(query, st, debugMode):        
     class State(TypedDict):
         messages: Annotated[list, add_messages]
         answer: str
@@ -1173,8 +1307,21 @@ def run_agent_executor2(query):
             if "type" in re:
                 if re['type'] == 'text':
                     print(f"--> {re['type']}: {re['text']}")
+
+                    status = re['text']
+                    if status.find('<thinking>') != -1:
+                        print('Remove <thinking> tag.')
+                        status = status[status.find('<thinking>')+11:status.find('</thinking>')]
+                        print('status without tag: ', status)
+
+                    if debugMode=="Debug":
+                        st.info(status)
+
                 elif re['type'] == 'tool_use':                
                     print(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
+
+                    if debugMode=="Debug":
+                        st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
                 else:
                     print(re)
             else: # answer
@@ -1311,7 +1458,7 @@ def get_basic_answer(query):
 # Agentic Workflow: Reflection 
 #########################################################
 
-def init_enhanced_search():
+def init_enhanced_search(st, debugMode):
     chat = get_chat() 
 
     model = chat.bind_tools(tools)
@@ -1339,7 +1486,8 @@ def init_enhanced_search():
 
         last_message = messages[-1]
         print('last_message: ', last_message)
-        if isinstance(last_message, ToolMessage) and last_message.content=="":  
+
+        if isinstance(last_message, ToolMessage) and last_message.content=="":              
             print('last_message is empty')      
             print('question: ', state["messages"][0].content)
             answer = get_basic_answer(state["messages"][0].content)          
@@ -1370,7 +1518,10 @@ def init_enhanced_search():
                 
         response = chain.invoke(messages)
         print('call_model response: ', response.tool_calls)
-        
+
+        if debugMode=="Debug":
+            st.info(f"{response.tool_calls[-1]['name']}: {response.tool_calls[-1]['args']}")
+
         # state messag
         if response.tool_calls:
             toolinfo = response.tool_calls[-1]            
@@ -1399,12 +1550,11 @@ def init_enhanced_search():
     
     return buildChatAgent()
 
-app_enhanced_search = init_enhanced_search()
-
-def enhanced_search(query, config):
+def enhanced_search(query, config, st, debugMode):
     print("###### enhanced_search ######")
     inputs = [HumanMessage(content=query)]
-        
+
+    app_enhanced_search = init_enhanced_search(st, debugMode)        
     result = app_enhanced_search.invoke({"messages": inputs}, config)   
     print('result: ', result)
             
@@ -1416,7 +1566,7 @@ def enhanced_search(query, config):
     else:
         return message.content[message.content.find('<result>')+8:message.content.find('</result>')]
     
-def run_knowledge_guru(query):
+def run_knowledge_guru(query, st, debugMode):
     class State(TypedDict):
         messages: Annotated[list, add_messages]
         reflection: list
@@ -1426,8 +1576,11 @@ def run_knowledge_guru(query):
         print("###### generate ######")
         print('state: ', state["messages"])
         print('task: ', state['messages'][0].content)
+
+        if debugMode=="Debug":
+            st.info(f'검색을 수행합니다. 검색어: {state['messages'][0].content}')
         
-        draft = enhanced_search(state['messages'][0].content, config)  
+        draft = enhanced_search(state['messages'][0].content, config, st, debugMode)  
         print('draft: ', draft)
         
         return {
@@ -1452,6 +1605,9 @@ def run_knowledge_guru(query):
         print('state: ', state["messages"])    
         print('draft: ', state["messages"][-1].content)
         
+        if debugMode=="Debug":
+            st.info('초안을 검토하여 부족하거나 보강할 내용을 찾고, 추가 검색어를 추출합니다.')
+
         reflection = []
         search_queries = []
         for attempt in range(5):
@@ -1468,7 +1624,12 @@ def run_knowledge_guru(query):
                 search_queries = parsed_info.search_queries
                 
                 print('reflection: ', parsed_info.reflection)            
-                print('search_queries: ', search_queries)                
+                print('search_queries: ', search_queries)      
+
+                if debugMode=="Debug":  
+                    st.info(f'개선할 사항: {parsed_info.reflection}')
+                    st.info(f'추가 검색어: {search_queries}')
+        
                 break
         
         return {
@@ -1480,6 +1641,8 @@ def run_knowledge_guru(query):
     def revise_answer(state: State, config):   
         print("###### revise_answer ######")
         
+        if debugMode=="Debug":
+            st.info("개선할 사항을 반영하여 답변을 생성중입니다.")
         human = (
             "Revise your previous answer using the new information."
             "You should use the previous critique to add important information to your answer." 
@@ -1601,7 +1764,7 @@ def run_knowledge_guru(query):
 ####################### LangGraph #######################
 # Agentic Workflow: Planning (Advanced CoT)
 #########################################################
-def run_planning(query):
+def run_planning(query, st, debugMode):
     class State(TypedDict):
         input: str
         plan: list[str]
@@ -1612,6 +1775,9 @@ def run_planning(query):
     def plan_node(state: State, config):
         print("###### plan ######")
         print('input: ', state["input"])
+
+        if debugMode=="Debug":
+            st.info(f"계획을 생성합니다. 요청사항: {state["input"]}")
         
         system = (
             "당신은 user의 question을 해결하기 위해 step by step plan을 생성하는 AI agent입니다."                
@@ -1647,6 +1813,9 @@ def run_planning(query):
         plan = output.strip().replace('\n\n', '\n')
         planning_steps = plan.split('\n')
         print('planning_steps: ', planning_steps)
+
+        if debugMode=="Debug":
+            st.info(f"생성된 계획: {planning_steps}")
         
         return {
             "input": state["input"],
@@ -1658,6 +1827,9 @@ def run_planning(query):
         for document in relevant_docs:
             relevant_context = relevant_context + document.page_content + "\n\n"        
         # print('relevant_context: ', relevant_context)
+
+        if debugMode=="Debug":
+            st.info(f"계획을 수행합니다. 현재 계획 {text}")
 
         # generating
         if isKorean(text)==True:
@@ -1708,6 +1880,9 @@ def run_planning(query):
         
         chat = get_chat()
 
+        if debugMode=="Debug":
+            st.info(f"검색을 수행합니다. 검색어 {plan[0]}")
+        
         # retrieve
         relevant_docs = retrieve_documents_from_knowledge_base(plan[0], top_k=4)
         relevant_docs += retrieve_documents_from_tavily(plan[0], top_k=4)
@@ -1721,6 +1896,9 @@ def run_planning(query):
         
         print('task: ', plan[0])
         print('executor output: ', result)
+
+        if debugMode=="Debug":
+            st.info(f"현 단계의 결과 {result}")
         
         # print('plan: ', state["plan"])
         # print('past_steps: ', task)        
@@ -1738,6 +1916,9 @@ def run_planning(query):
         if len(state["plan"]) == 1:
             print('last plan: ', state["plan"])
             return {"response":state["info"][-1]}
+        
+        if debugMode=="Debug":
+            st.info(f"새로운 계획을 생성합니다.")
         
         system = (
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
@@ -1794,6 +1975,9 @@ def run_planning(query):
             planning_steps = plans.split('\n')
             print('planning_steps: ', planning_steps)
 
+            if debugMode=="Debug":
+                st.info(f"새로운 계획: {planning_steps}")
+
             return {"plan": planning_steps}
         
     def should_end(state: State) -> Literal["continue", "end"]:
@@ -1819,6 +2003,9 @@ def run_planning(query):
         
         query = state['input']
         print('query: ', query)
+
+        if debugMode=="Debug":
+            st.info(f"최종 답변을 생성합니다.")
         
         if isKorean(query)==True:
             system = (
@@ -1912,7 +2099,7 @@ def run_planning(query):
 ####################### LangGraph #######################
 # Agentic Workflow Multi-agent Collaboration 
 #########################################################
-def run_long_form_writing_agent(query):
+def run_long_form_writing_agent(query, st, debugMode):
     # Workflow - Reflection
     class ReflectionState(TypedDict):
         draft : str
@@ -1955,6 +2142,9 @@ def run_long_form_writing_agent(query):
         
         idx = config.get("configurable", {}).get("idx")
         print('reflect_node idx: ', idx)
+
+        if debugMode=="Debug":
+            st.info(f"{idx}: draft에서 개선 사항을 도출합니다.")
     
         reflection = []
         search_queries = []
@@ -1975,6 +2165,9 @@ def run_long_form_writing_agent(query):
                     # print('reflection: ', parsed_info.reflection)                
                     reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
                     search_queries = parsed_info.search_queries
+
+                    if debugMode=="Debug":
+                        st.info(f"{idx}: 개선사항: {reflection}")
                     
                     print('reflection: ', parsed_info.reflection)
                     print('search_queries: ', search_queries)
@@ -1991,6 +2184,9 @@ def run_long_form_writing_agent(query):
                             
                         print('translated_search: ', translated_search)
                         search_queries += translated_search
+
+                    if debugMode=="Debug":
+                        st.info(f"검색어: {search_queries}")
 
                     print('search_queries (mixed): ', search_queries)
                     break
@@ -2011,6 +2207,9 @@ def run_long_form_writing_agent(query):
     def retrieve_for_writing(conn, q, config):
         idx = config.get("configurable", {}).get("idx") 
          
+        if debugMode=="Debug":
+            st.info(f"검색을 수행합니다. 검색어: {q}")
+
         relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
         relevant_docs += retrieve_documents_from_tavily(q, top_k=numberOfDocs)
             
@@ -2059,7 +2258,10 @@ def run_long_form_writing_agent(query):
         if parallel_retrieval == 'enable':
             docs = parallel_retriever(search_queries, config)
         else:
-            for q in search_queries:        
+            for q in search_queries:      
+                if debugMode=="Debug":
+                    st.info(f"검색을 수행합니다. 검색어: {q}")
+
                 relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
                 relevant_docs += retrieve_documents_from_tavily(q, top_k=numberOfDocs)
             
@@ -2081,6 +2283,9 @@ def run_long_form_writing_agent(query):
         print('draft: ', draft)
         print('search_queries: ', search_queries)
         print('reflection: ', reflection)
+
+        if debugMode=="Debug":
+            st.info(f"{idx}: 개선사항을 반영하여 새로운 답변을 생성합니다.")
                             
         idx = config.get("configurable", {}).get("idx")
         print('revise_draft idx: ', idx)
@@ -2225,6 +2430,9 @@ def run_long_form_writing_agent(query):
         print("###### plan ######")
         instruction = state["instruction"]
         print('subject: ', instruction)
+
+        if debugMode=="Debug":
+            st.info(f"계획을 생성합니다. 요청사항: {instruction}")
         
         if isKorean(instruction):
             system = (
@@ -2283,6 +2491,9 @@ def run_long_form_writing_agent(query):
         plan = response.content.strip().replace('\n\n', '\n')
         planning_steps = plan.split('\n')        
         print('planning_steps: ', planning_steps)
+
+        if debugMode=="Debug":
+            st.info(f"생성된 계획: {planning_steps}")
             
         return {
             "instruction": instruction,
@@ -2384,12 +2595,18 @@ def run_long_form_writing_agent(query):
             })
             output = result.content
             # print('output: ', output)
+
+            if debugMode=="Debug":
+                st.info(f"수행단계: {step}")
             
             if output.find('<result>')==-1:
                 draft = output
             else:
                 draft = output[output.find('<result>')+8:output.find('</result>')]
-                                  
+
+            if debugMode=="Debug":
+                st.info(f"생성결과: {draft}")
+                                              
             print(f"--> step: {step}")
             print(f"--> draft: {draft}")
                 
@@ -2560,6 +2777,9 @@ def run_long_form_writing_agent(query):
         
         parallel_revise = config.get("configurable", {}).get("parallel_revise", "enable")
         print('parallel_revise: ', parallel_revise)
+
+        if debugMode=="Debug":
+            st.info("문서를 개선합니다.")
         
         # reflection
         if parallel_revise == 'enable':  # parallel processing
