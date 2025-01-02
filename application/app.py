@@ -121,7 +121,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
         elif mode == 'Agent (Tool Use)':
             with st.status("thinking...", expanded=True, state="running") as status:
                 response = chat.run_agent_executor(prompt, st, debugMode)
-                #response = chat.run_agent_executor2(prompt, st, debugMode)
                 st.write(response)
                 print('response: ', response)
 

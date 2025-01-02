@@ -1140,18 +1140,39 @@ def run_agent_executor(query, st, debugMode):
 
     def should_continue(state: State) -> Literal["continue", "end"]:
         print("###### should_continue ######")
+
+        print('state: ', state)
         messages = state["messages"]    
-        print('last_message: ', messages[-1])
-        
+
         last_message = messages[-1]
-        if not last_message.tool_calls:
-            return "end"
-        else:                
+        print('last_message: ', last_message)
+        
+        # print('last_message: ', last_message)
+        
+        # if not isinstance(last_message, ToolMessage):
+        #     return "end"
+        # else:                
+        #     return "continue"
+        if isinstance(last_message, ToolMessage) or last_message.tool_calls:
+            print(f"tool_calls: ", last_message.tool_calls)
+
+            for message in last_message.tool_calls:
+                print(f"tool name: {message['name']}, args: {message['args']}")
+                # update_state_message(f"calling... {message['name']}", config)
+
+            print(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
             return "continue"
+        
+        #if not last_message.tool_calls:
+        else:
+            print("Final: ", last_message.content)
+            print("--- END ---")
+            return "end"
+           
 
     def call_model(state: State, config):
         print("###### call_model ######")
-        # print('state: ', state["messages"])
+        print('state: ', state["messages"])
                 
         if isKorean(state["messages"][0].content)==True:
             system = (
@@ -1185,6 +1206,13 @@ def run_agent_executor(query, st, debugMode):
                         print(f"--> {re['type']}: {re['text']}")
 
                         status = re['text']
+                        print('status: ',status)
+                        
+                        status = status.replace('`','')
+                        status = status.replace('\"','')
+                        status = status.replace("\'",'')
+                        
+                        print('status: ',status)
                         if status.find('<thinking>') != -1:
                             print('Remove <thinking> tag.')
                             status = status[status.find('<thinking>')+11:status.find('</thinking>')]
@@ -1192,7 +1220,7 @@ def run_agent_executor(query, st, debugMode):
 
                         if debugMode=="Debug":
                             st.info(status)
-
+                        
                     elif re['type'] == 'tool_use':                
                         print(f"--> {re['type']}: {re['name']}, {re['input']}")
 
@@ -1247,181 +1275,6 @@ def run_agent_executor(query, st, debugMode):
     msg = message.content
 
     #return msg[msg.find('<result>')+8:len(msg)-9]
-    return msg
-
-def run_agent_executor2(query, st, debugMode):        
-    class State(TypedDict):
-        messages: Annotated[list, add_messages]
-        answer: str
-
-    tool_node = ToolNode(tools)
-            
-    def create_agent(chat, tools):        
-        tool_names = ", ".join([tool.name for tool in tools])
-        print("tool_names: ", tool_names)
-
-        system = (
-            "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
-            "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
-            "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-
-            "Use the provided tools to progress towards answering the question."
-            "If you are unable to fully answer, that's OK, another assistant with different tools "
-            "will help where you left off. Execute what you can to make progress."
-            "You have access to the following tools: {tool_names}."
-        )
-
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system",system),
-                MessagesPlaceholder(variable_name="messages"),
-            ]
-        )
-        
-        prompt = prompt.partial(tool_names=tool_names)
-        
-        return prompt | chat.bind_tools(tools)
-    
-    def agent_node(state, agent, name):
-        print(f"###### agent_node:{name} ######")
-
-        last_message = state["messages"][-1]
-        print('last_message: ', last_message)
-        if isinstance(last_message, ToolMessage) and last_message.content=="":    
-            print('last_message is empty') 
-            answer = get_basic_answer(state["messages"][0].content)  
-            return {
-                "messages": [AIMessage(content=answer)],
-                "answer": answer
-            }
-        
-        response = agent.invoke(state["messages"])
-        print('response: ', response)
-
-        if "answer" in state:
-            answer = state['answer']
-        else:
-            answer = ""
-
-        for re in response.content:
-            if "type" in re:
-                if re['type'] == 'text':
-                    print(f"--> {re['type']}: {re['text']}")
-
-                    status = re['text']
-                    if status.find('<thinking>') != -1:
-                        print('Remove <thinking> tag.')
-                        status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                        print('status without tag: ', status)
-
-                    if debugMode=="Debug":
-                        st.info(status)
-
-                elif re['type'] == 'tool_use':                
-                    print(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
-
-                    if debugMode=="Debug":
-                        st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
-                else:
-                    print(re)
-            else: # answer
-                answer += '\n'+response.content
-                print(response.content)
-                break
-
-        response = AIMessage(**response.dict(exclude={"type", "name"}), name=name)     
-        print('message: ', response)
-        
-        return {
-            "messages": [response],
-            "answer": answer
-        }
-    
-    def final_answer(state):
-        print(f"###### final_answer ######")        
-
-        answer = ""        
-        if "answer" in state:
-            answer = state['answer']            
-        else:
-            answer = state["messages"][-1].content
-
-        if answer.find('<thinking>') != -1:
-            print('Remove <thinking> tag.')
-            answer = answer[answer.find('</thinking>')+12:]
-        print('answer: ', answer)
-        
-        return {
-            "answer": answer
-        }
-    
-    chat = get_chat()
-    
-    execution_agent = create_agent(chat, tools)
-    
-    execution_agent_node = functools.partial(agent_node, agent=execution_agent, name="execution_agent")
-    
-    def should_continue(state: State, config) -> Literal["continue", "end"]:
-        print("###### should_continue ######")
-        messages = state["messages"]    
-        # print('(should_continue) messages: ', messages)
-        
-        last_message = messages[-1]        
-        if not last_message.tool_calls:
-            print("Final: ", last_message.content)
-            print("--- END ---")
-            return "end"
-        else:      
-            print(f"tool_calls: ", last_message.tool_calls)
-
-            for message in last_message.tool_calls:
-                print(f"tool name: {message['name']}, args: {message['args']}")
-                # update_state_message(f"calling... {message['name']}", config)
-
-            print(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
-            return "continue"
-
-    def buildAgentExecutor():
-        workflow = StateGraph(State)
-
-        workflow.add_node("agent", execution_agent_node)
-        workflow.add_node("action", tool_node)
-        workflow.add_node("final_answer", final_answer)
-        
-        workflow.add_edge(START, "agent")
-        workflow.add_conditional_edges(
-            "agent",
-            should_continue,
-            {
-                "continue": "action",
-                "end": "final_answer",
-            },
-        )
-        workflow.add_edge("action", "agent")
-        workflow.add_edge("final_answer", END)
-
-        return workflow.compile()
-
-    app = buildAgentExecutor()
-            
-    inputs = [HumanMessage(content=query)]
-    config = {"recursion_limit": 50}
-    
-    msg = ""
-    # for event in app.stream({"messages": inputs}, config, stream_mode="values"):   
-    #     # print('event: ', event)
-        
-    #     if "answer" in event:
-    #         msg = event["answer"]
-    #     else:
-    #         msg = event["messages"][-1].content
-    #     # print('message: ', message)
-
-    output = app.invoke({"messages": inputs}, config)
-    print('output: ', output)
-
-    msg = output['answer']
-
     return msg
 
 def get_basic_answer(query):
