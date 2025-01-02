@@ -113,7 +113,8 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 print('response: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                st.rerun()
+                if debugMode != "Debug":
+                    st.rerun()
 
                 chat.save_chat_history(prompt, response)
 
@@ -130,7 +131,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     print('response without tag: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-
                 if debugMode != "Debug":
                     st.rerun()
 
@@ -148,7 +148,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     print('response without tag: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-
                 if debugMode != "Debug":
                     st.rerun()
 

@@ -1194,10 +1194,10 @@ def run_agent_executor(query, st, debugMode):
                             st.info(status)
 
                     elif re['type'] == 'tool_use':                
-                        print(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
+                        print(f"--> {re['type']}: {re['name']}, {re['input']}")
 
                         if debugMode=="Debug":
-                            st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
+                            st.info(f"{re['type']}: {re['name']}, {re['input']}")
                     else:
                         print(re)
                 else: # answer
@@ -1578,7 +1578,7 @@ def run_knowledge_guru(query, st, debugMode):
         print('task: ', state['messages'][0].content)
 
         if debugMode=="Debug":
-            st.info(f'검색을 수행합니다. 검색어: {state['messages'][0].content}')
+            st.info(f"검색을 수행합니다. 검색어: {state['messages'][0].content}")
         
         draft = enhanced_search(state['messages'][0].content, config, st, debugMode)  
         print('draft: ', draft)
