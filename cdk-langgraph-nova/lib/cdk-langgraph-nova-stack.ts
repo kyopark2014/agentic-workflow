@@ -359,6 +359,20 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       }),
     ); 
 
+    const bedrockEndpoint = vpc.addInterfaceEndpoint(`bedrock-endpoint-${projectName}`, {
+      privateDnsEnabled: true,
+      service: new ec2.InterfaceVpcEndpointService(`com.amazonaws.${region}.bedrock-runtime`, 443)
+    });
+    bedrockEndpoint.connections.allowDefaultPortFrom(ec2.Peer.ipv4(vpc.vpcCidrBlock), 'allowDefaultPortFrom')
+
+    bedrockEndpoint.addToPolicy(
+      new iam.PolicyStatement({
+        principals: [new iam.AnyPrincipal()],
+        actions: ['bedrock:*'],
+        resources: ['*'],
+      }),
+    ); 
+
     // EC2 Security Group
     const ec2Sg = new ec2.SecurityGroup(this, `ec2-sg-for-${projectName}`,
       {
@@ -379,93 +393,6 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
     //   'HTTP',
     // );
     
-    const userData = ec2.UserData.forLinux();
-
-    const environment = {
-      "projectName": projectName,
-      "accountId": accountId,
-      "region": region,
-      "knowledge_base_role": knowledge_base_role.roleArn,
-      "collectionArn": collectionArn,
-      "opensearch_url": OpenSearchCollection.attrCollectionEndpoint,
-      "s3_arn": s3Bucket.bucketArn
-    }    
-    new cdk.CfnOutput(this, `environment-for-${projectName}`, {
-      value: JSON.stringify(environment),
-      description: `environment-${projectName}`,
-      exportName: `environment-${projectName}`
-    });
-
-    const commands = [
-      // 'yum install nginx -y',
-      // 'service nginx start',
-      'yum install git python-pip -y',
-      'pip install pip --upgrade',            
-      `sh -c "cat <<EOF > /etc/systemd/system/streamlit.service
-[Unit]
-Description=Streamlit
-After=network-online.target
-
-[Service]
-User=ec2-user
-Group=ec2-user
-Restart=always
-ExecStart=/home/ec2-user/.local/bin/streamlit run /home/ec2-user/${projectName}/application/app.py
-
-[Install]
-WantedBy=multi-user.target
-EOF"`,
-        `runuser -l ec2-user -c "mkdir -p /home/ec2-user/.streamlit"`,
-        `runuser -l ec2-user -c "cat <<EOF > /home/ec2-user/.streamlit/config.toml
-[server]
-port=${targetPort}
-
-[theme]
-base="dark"
-primaryColor="#fff700"
-EOF"`,
-      `json='${JSON.stringify(environment)}' && echo "$json">/home/config.json`,
-      `runuser -l ec2-user -c 'cd && git clone https://github.com/kyopark2014/${projectName}'`,
-      `runuser -l ec2-user -c 'pip install streamlit streamlit_chat beautifulsoup4 pytz tavily-python'`,        
-      `runuser -l ec2-user -c 'pip install boto3 langchain_aws langchain langchain_community langgraph opensearch-py'`,
-      'systemctl enable streamlit.service',
-      'systemctl start streamlit'
-    ];    
-    userData.addCommands(...commands);
-
-    // EC2 instance
-    const appInstance = new ec2.Instance(this, `app-for-${projectName}`, {
-      instanceName: `app-for-${projectName}`,
-      instanceType: new ec2.InstanceType('t2.small'), // m5.large
-      // instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.SMALL),
-      machineImage: new ec2.AmazonLinuxImage({
-        generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2023
-      }),
-      // machineImage: ec2.MachineImage.latestAmazonLinux2023(),
-      vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets  
-      },
-      securityGroup: ec2Sg,
-      role: ec2Role,
-      userData: userData,
-      blockDevices: [{
-        deviceName: '/dev/xvda',
-        volume: ec2.BlockDeviceVolume.ebs(8, {
-          deleteOnTermination: true,
-          encrypted: true,
-        }),
-      }],
-      detailedMonitoring: true,
-      instanceInitiatedShutdownBehavior: ec2.InstanceInitiatedShutdownBehavior.TERMINATE,
-    }); 
-    s3Bucket.grantReadWrite(appInstance);
-    appInstance.applyRemovalPolicy(cdk.RemovalPolicy.DESTROY);
-
-    // ALB Target
-    const targets: elbv2_tg.InstanceTarget[] = new Array();
-    targets.push(new elbv2_tg.InstanceTarget(appInstance)); 
-
     // ALB SG
     const albSg = new ec2.SecurityGroup(this, `alb-sg-for-${projectName}`, {
       vpc: vpc,
@@ -518,6 +445,91 @@ EOF"`,
       description: 'The domain name of the Distribution'
     });   
     
+    const userData = ec2.UserData.forLinux();
+
+    const environment = {
+      "projectName": projectName,
+      "accountId": accountId,
+      "region": region,
+      "knowledge_base_role": knowledge_base_role.roleArn,
+      "collectionArn": collectionArn,
+      "opensearch_url": OpenSearchCollection.attrCollectionEndpoint,
+      "s3_arn": s3Bucket.bucketArn
+    }    
+    new cdk.CfnOutput(this, `environment-for-${projectName}`, {
+      value: JSON.stringify(environment),
+      description: `environment-${projectName}`,
+      exportName: `environment-${projectName}`
+    });
+
+    const commands = [
+      'yum install git python-pip -y',
+      'pip install pip --upgrade',            
+      `sh -c "cat <<EOF > /etc/systemd/system/streamlit.service
+[Unit]
+Description=Streamlit
+After=network-online.target
+
+[Service]
+User=ec2-user
+Group=ec2-user
+Restart=always
+ExecStart=/home/ec2-user/.local/bin/streamlit run /home/ec2-user/${projectName}/application/app.py
+
+[Install]
+WantedBy=multi-user.target
+EOF"`,
+        `runuser -l ec2-user -c "mkdir -p /home/ec2-user/.streamlit"`,
+        `runuser -l ec2-user -c 'cat <<EOF > /home/ec2-user/.streamlit/config.toml
+[server]
+port=${targetPort}
+
+[theme]
+base="dark"
+primaryColor="#fff700"
+EOF'`,
+      `json='${JSON.stringify(environment)}' && echo "$json">/home/config.json`,
+      `runuser -l ec2-user -c 'cd && git clone https://github.com/kyopark2014/${projectName}'`,
+      `runuser -l ec2-user -c 'pip install streamlit streamlit_chat beautifulsoup4 pytz tavily-python'`,        
+      `runuser -l ec2-user -c 'pip install boto3 langchain_aws langchain langchain_community langgraph opensearch-py'`,
+      'systemctl enable streamlit.service',
+      'systemctl start streamlit'
+    ];    
+    userData.addCommands(...commands);
+
+    // EC2 instance
+    const appInstance = new ec2.Instance(this, `app-for-${projectName}`, {
+      instanceName: `app-for-${projectName}`,
+      instanceType: new ec2.InstanceType('t2.small'), // m5.large
+      // instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.SMALL),
+      machineImage: new ec2.AmazonLinuxImage({
+        generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2023
+      }),
+      // machineImage: ec2.MachineImage.latestAmazonLinux2023(),
+      vpc: vpc,
+      vpcSubnets: {
+        subnets: vpc.privateSubnets  
+      },
+      securityGroup: ec2Sg,
+      role: ec2Role,
+      userData: userData,
+      blockDevices: [{
+        deviceName: '/dev/xvda',
+        volume: ec2.BlockDeviceVolume.ebs(8, {
+          deleteOnTermination: true,
+          encrypted: true,
+        }),
+      }],
+      detailedMonitoring: true,
+      instanceInitiatedShutdownBehavior: ec2.InstanceInitiatedShutdownBehavior.TERMINATE,
+    }); 
+    s3Bucket.grantReadWrite(appInstance);
+    appInstance.applyRemovalPolicy(cdk.RemovalPolicy.DESTROY);
+
+    // ALB Target
+    const targets: elbv2_tg.InstanceTarget[] = new Array();
+    targets.push(new elbv2_tg.InstanceTarget(appInstance)); 
+
     // ALB Listener
     const listener = alb.addListener(`HttpListener-for-${projectName}`, {   
       port: 80,
