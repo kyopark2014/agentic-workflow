@@ -1158,7 +1158,6 @@ def run_agent_executor(query, st, debugMode):
 
             for message in last_message.tool_calls:
                 print(f"tool name: {message['name']}, args: {message['args']}")
-                # update_state_message(f"calling... {message['name']}", config)
 
             print(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
             return "continue"
@@ -1208,7 +1207,7 @@ def run_agent_executor(query, st, debugMode):
                         status = re['text']
                         print('status: ',status)
 
-                        status = status.replace('"', "").replace("'", "")
+                        status = status.replace('"', "").replace("'", "").replace("`", "")
                         
                         print('status: ',status)
                         if status.find('<thinking>') != -1:

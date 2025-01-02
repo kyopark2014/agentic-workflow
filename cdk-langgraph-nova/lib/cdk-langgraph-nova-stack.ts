@@ -371,7 +371,21 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
         actions: ['bedrock:*'],
         resources: ['*'],
       }),
-    ); 
+    );
+    
+    const knowledgeBaseEndpoint = vpc.addInterfaceEndpoint(`knowledge-base-endpoint-${projectName}`, {
+      privateDnsEnabled: true,
+      service: new ec2.InterfaceVpcEndpointService(`com.amazonaws.${region}.bedrock-agent`, 443)
+    });
+    bedrockEndpoint.connections.allowDefaultPortFrom(ec2.Peer.ipv4(vpc.vpcCidrBlock), `allowKnowledgeBasePortFrom-${projectName}`)
+
+    // bedrockEndpoint.addToPolicy(
+    //   new iam.PolicyStatement({
+    //     principals: [new iam.AnyPrincipal()],
+    //     actions: ['bedrock:*'],
+    //     resources: ['*'],
+    //   }),
+    // );
 
     // EC2 Security Group
     const ec2Sg = new ec2.SecurityGroup(this, `ec2-sg-for-${projectName}`,
