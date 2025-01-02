@@ -14,7 +14,7 @@
 
 이때의 architecture는 아래와 같습니다. 여기서에서는 streamlit이 설치된 EC2는 private subnet에 둬서 안전하게 관리합니다. [Amazon S3는 Gateway Endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html)를 이용하여 연결하고 Bedrock은 [Private link](https://docs.aws.amazon.com/ko_kr/bedrock/latest/userguide/usingVPC.html)를 이용하여 연결하였으므로 EC2의 트래픽은 외부로 나가지 않고 AWS 내부에서 처리가 됩니다. 인터넷 및 날씨의 검색 API는 외부 서비스 공급자의 API를 이용하므로 [NAT gateway](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html)를 이용하여 연결하였습니다.
 
-<img width="800" alt="image" src="https://github.com/user-attachments/assets/2fd4a38c-170c-401a-8103-e5641ed25378" />
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/6efc6b10-e37e-4d7f-88fa-cc5db545a96e" />
 
 ## 상세 구현
 
