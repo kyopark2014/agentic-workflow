@@ -1207,10 +1207,8 @@ def run_agent_executor(query, st, debugMode):
 
                         status = re['text']
                         print('status: ',status)
-                        
-                        status = status.replace('`','')
-                        status = status.replace('\"','')
-                        status = status.replace("\'",'')
+
+                        status = status.replace('"', "").replace("'", "")
                         
                         print('status: ',status)
                         if status.find('<thinking>') != -1:
