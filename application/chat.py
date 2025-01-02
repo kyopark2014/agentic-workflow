@@ -1777,7 +1777,7 @@ def run_planning(query, st, debugMode):
         print('input: ', state["input"])
 
         if debugMode=="Debug":
-            st.info(f"계획을 생성합니다. 요청사항: {state["input"]}")
+            st.info(f"계획을 생성합니다. 요청사항: {state['input']}")
         
         system = (
             "당신은 user의 question을 해결하기 위해 step by step plan을 생성하는 AI agent입니다."                
