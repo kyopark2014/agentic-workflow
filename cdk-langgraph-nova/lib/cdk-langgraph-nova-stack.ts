@@ -419,6 +419,10 @@ EOF"`,
         `runuser -l ec2-user -c "cat <<EOF > /home/ec2-user/.streamlit/config.toml
 [server]
 port=${targetPort}
+
+[theme]
+base="dark"
+primaryColor="#fff700"
 EOF"`,
       `json='${JSON.stringify(environment)}' && echo "$json">/home/config.json`,
       `runuser -l ec2-user -c 'cd && git clone https://github.com/kyopark2014/${projectName}'`,
