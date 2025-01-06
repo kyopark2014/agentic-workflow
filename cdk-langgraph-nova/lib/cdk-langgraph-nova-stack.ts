@@ -16,6 +16,7 @@ const accountId = process.env.CDK_DEFAULT_ACCOUNT;
 const targetPort = 8080;
 const bucketName = `storage-for-${projectName}-${accountId}-${region}`; 
 const vectorIndexName = projectName
+const ec2RoleName = `role-ec2-for-${projectName}-${region}`
 
 export class CdkLanggraphNovaStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -178,6 +179,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
           ],
           Principal: [
             `arn:aws:iam::${accountId}:role/${knowledge_base_role.roleName}`,
+            `arn:aws:iam::${accountId}:role/${ec2RoleName}`,
             account.arn
           ], 
         },
@@ -209,9 +211,9 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       description: 'The nmae of bucket',
     });
     
-    // EC2 Role
+    // EC2 Role    
     const ec2Role = new iam.Role(this, `role-ec2-for-${projectName}`, {
-      roleName: `role-ec2-for-${projectName}-${region}`,
+      roleName: ec2RoleName,
       assumedBy: new iam.CompositePrincipal(
         new iam.ServicePrincipal("ec2.amazonaws.com"),
         new iam.ServicePrincipal("bedrock.amazonaws.com"),
