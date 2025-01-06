@@ -360,19 +360,20 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
     //   }),
     // ); 
 
-    const bedrockEndpoint = vpc.addInterfaceEndpoint(`bedrock-endpoint-${projectName}`, {
-      privateDnsEnabled: true,
-      service: new ec2.InterfaceVpcEndpointService(`com.amazonaws.${region}.bedrock-runtime`, 443)
-    });
-    bedrockEndpoint.connections.allowDefaultPortFrom(ec2.Peer.ipv4(vpc.vpcCidrBlock), `allowBedrockPortFrom-${projectName}`)
+    // Bedrock endpoint
+    // const bedrockEndpoint = vpc.addInterfaceEndpoint(`bedrock-endpoint-${projectName}`, {
+    //   privateDnsEnabled: true,
+    //   service: new ec2.InterfaceVpcEndpointService(`com.amazonaws.${region}.bedrock-runtime`, 443)
+    // });
+    // bedrockEndpoint.connections.allowDefaultPortFrom(ec2.Peer.ipv4(vpc.vpcCidrBlock), `allowBedrockPortFrom-${projectName}`)
 
-    bedrockEndpoint.addToPolicy(
-      new iam.PolicyStatement({
-        principals: [new iam.AnyPrincipal()],
-        actions: ['bedrock:*'],
-        resources: ['*'],
-      }),
-    );
+    // bedrockEndpoint.addToPolicy(
+    //   new iam.PolicyStatement({
+    //     principals: [new iam.AnyPrincipal()],
+    //     actions: ['bedrock:*'],
+    //     resources: ['*'],
+    //   }),
+    // );
     
     // const knowledgeBaseEndpoint = vpc.addInterfaceEndpoint(`knowledge-base-endpoint-${projectName}`, {
     //   privateDnsEnabled: true,
