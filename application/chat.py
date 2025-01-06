@@ -578,9 +578,9 @@ def get_references(docs):
         # print('excerpt(quotation removed): ', excerpt)
         
         if page:                
-            reference = reference + f"{i+1}. {page}page in [{name}]({url}), {excerpt[:100]})\n"
+            reference = reference + f"{i+1}. {page}page in [{name}]({url}), {excerpt})\n"
         else:
-            reference = reference + f"{i+1}. [{name}]({url}, {excerpt[:100]})\n"
+            reference = reference + f"{i+1}. [{name}]({url}, {excerpt})\n"
     return reference
 
 
