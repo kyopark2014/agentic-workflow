@@ -284,13 +284,13 @@ try:
         #print('secret: ', secret)
         tavily_key = secret['tavily_api_key']
         #print('tavily_api_key: ', tavily_api_key)
+
+        tavily_api_wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
+        # os.environ["TAVILY_API_KEY"] = tavily_key
     else:
         print('No secret found for tavily api')
 except Exception as e: 
     raise e
-
-tavily_api_wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
-# os.environ["TAVILY_API_KEY"] = tavily_key
 
 def tavily_search(query, k):
     docs = []    
@@ -1132,14 +1132,15 @@ def get_weather_info(city: str) -> str:
     return weather_str
 
 # Tavily Tool
-tavily_tool = TavilySearchResults(
-    max_results=3,
-    include_answer=True,
-    include_raw_content=True,
-    api_wrapper=tavily_api_wrapper,
-    search_depth="advanced", # "basic"
-    include_domains=["google.com", "naver.com"]
-)
+if tavily_api_wrapper:
+    tavily_tool = TavilySearchResults(
+        max_results=3,
+        include_answer=True,
+        include_raw_content=True,
+        api_wrapper=tavily_api_wrapper,
+        search_depth="advanced", # "basic"
+        include_domains=["google.com", "naver.com"]
+    )
 
 @tool
 def search_by_tavily(keyword: str) -> str:
