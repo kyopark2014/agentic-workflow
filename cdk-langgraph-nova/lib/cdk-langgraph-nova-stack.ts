@@ -444,7 +444,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       protocolPolicy: cloudFront.OriginProtocolPolicy.HTTP_ONLY      
     });
     const distribution = new cloudFront.Distribution(this, `cloudfront-for-${projectName}`, {
-      comment: "CloudFront distribution for Streamlit frontend application",
+      comment: `CloudFront-for-${projectName}`,
       defaultBehavior: {
         origin: origin,
         viewerProtocolPolicy: cloudFront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -452,13 +452,22 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
         cachePolicy: cloudFront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy: cloudFront.OriginRequestPolicy.ALL_VIEWER        
       },
+      additionalBehaviors: {
+        "/sharing": {
+          origin: origins.S3BucketOrigin.withOriginAccessControl(s3Bucket),
+          viewerProtocolPolicy: cloudFront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          allowedMethods: cloudFront.AllowedMethods.ALLOW_ALL,
+          cachePolicy: cloudFront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: cloudFront.OriginRequestPolicy.ALL_VIEWER
+        }
+      },
       priceClass: cloudFront.PriceClass.PRICE_CLASS_200
     }); 
     new cdk.CfnOutput(this, `distributionDomainName-for-${projectName}`, {
       value: 'https://'+distribution.domainName,
       description: 'The domain name of the Distribution'
     });   
-    
+
     const userData = ec2.UserData.forLinux();
 
     const environment = {
