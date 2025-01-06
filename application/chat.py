@@ -933,7 +933,7 @@ def run_rag_with_knowledge_base(text, st, debugMode):
 
     chat = get_chat()
     
-    msg = reference = ""
+    msg = ""
     top_k = numberOfDocs
     
     # retrieve
@@ -2798,6 +2798,42 @@ def run_long_form_writing_agent(query, st, debugMode):
     </html>"""        
         return html
 
+    def get_references_for_markdown(docs):
+        reference = ""
+        nameList = []
+        cnt = 1
+        for i, doc in enumerate(docs):
+            print(f"reference {i}: doc")
+            page = ""
+            if "page" in doc.metadata:
+                page = doc.metadata['page']
+                #print('page: ', page)            
+            url = ""
+            if "url" in doc.metadata:
+                url = doc.metadata['url']
+                #print('url: ', url)                
+            name = ""
+            if "name" in doc.metadata:
+                name = doc.metadata['name']
+                #print('name: ', name)     
+            pos = name.rfind('/')
+            name = name[pos+1:]
+            print(f"name: {name}")
+            
+            excerpt = ""+doc.page_content
+
+            excerpt = re.sub('"', '', excerpt)
+            print('length: ', len(excerpt))
+            
+            if name in nameList:
+                print('duplicated!')
+            else:
+                reference = reference + f"{cnt}. [{name}]({url})"
+                nameList.append(name)
+                cnt = cnt+1
+                
+        return reference
+
     def get_references_for_html(docs):
         reference = ""
         nameList = []
@@ -2899,22 +2935,27 @@ def run_long_form_writing_agent(query, st, debugMode):
         html_key = 'markdown/'+f"{subject}.html"
         
         html_reference = ""
+        markdown_reference = ""
         print('references: ', references)
         if references:
             html_reference = get_references_for_html(references)
+            markdown_reference = get_references_for_markdown(references)
             
             global reference_docs
             reference_docs += references
             
-        html_body = markdown_to_html(markdown_body, html_reference)
-        print('html_body: ', html_body)
+        # html_body = markdown_to_html(markdown_body, html_reference)
+        # print('html_body: ', html_body)
+        
+        body = markdown_to_html(markdown_body, markdown_reference)
+        print('reference body: ', body)
         
         s3_client = boto3.client('s3')  
         response = s3_client.put_object(
             Bucket=bucketName,
             Key=html_key,
             ContentType='text/html',
-            Body=html_body
+            Body=body
         )
         # print('response: ', response)
         
