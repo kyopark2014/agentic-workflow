@@ -1327,6 +1327,7 @@ def run_agent_executor(query, st, debugMode):
         return workflow.compile()
 
     app = buildChatAgent()
+    reference_docs = []
             
     inputs = [HumanMessage(content=query)]
     config = {
@@ -1341,7 +1342,7 @@ def run_agent_executor(query, st, debugMode):
         # print('message: ', message)
 
     msg = message.content
-    
+        
     reference = ""
     if reference_docs:
         reference = get_references(reference_docs)
