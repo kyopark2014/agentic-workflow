@@ -537,7 +537,7 @@ def retrieve_documents_from_tavily(query, top_k):
     return relevant_documents 
 
 def get_references(docs):
-    reference = "\n\nFrom\n"
+    reference = "\n\n### 관련 문서\n"
     for i, doc in enumerate(docs):
         page = ""
         if "page" in doc.metadata:
@@ -578,9 +578,9 @@ def get_references(docs):
         # print('excerpt(quotation removed): ', excerpt)
         
         if page:                
-            reference = reference + f"{i+1}. {page}page in [{name}]({url}), [관련문서]({excerpt})"
+            reference = reference + f"{i+1}. {page}page in [{name}]({url}))"
         else:
-            reference = reference + f"{i+1}. [{name}]({url}), [관련문서]({excerpt})"
+            reference = reference + f"{i+1}. [{name}]({url})"
     return reference
 
 
