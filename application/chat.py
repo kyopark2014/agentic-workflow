@@ -1130,7 +1130,8 @@ def get_weather_info(city: str) -> str:
     return weather_str
 
 # Tavily Tool
-tavily_tool = TavilySearchResults(max_results=3,
+tavily_tool = TavilySearchResults(
+    max_results=3,
     include_answer=True,
     include_raw_content=True,
     api_wrapper=tavily_api_wrapper,
