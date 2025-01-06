@@ -1164,6 +1164,7 @@ def run_agent_executor(query, st, debugMode):
 
             for message in last_message.tool_calls:
                 print(f"tool name: {message['name']}, args: {message['args']}")
+                # update_state_message(f"calling... {message['name']}", config)
 
             print(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
             return "continue"
@@ -1174,7 +1175,6 @@ def run_agent_executor(query, st, debugMode):
             print("--- END ---")
             return "end"
            
-
     def call_model(state: State, config):
         print("###### call_model ######")
         print('state: ', state["messages"])
@@ -1212,8 +1212,10 @@ def run_agent_executor(query, st, debugMode):
 
                         status = re['text']
                         print('status: ',status)
-
-                        status = status.replace('"', "").replace("'", "").replace("`", "")
+                        
+                        status = status.replace('`','')
+                        status = status.replace('\"','')
+                        status = status.replace("\'",'')
                         
                         print('status: ',status)
                         if status.find('<thinking>') != -1:
@@ -1279,35 +1281,6 @@ def run_agent_executor(query, st, debugMode):
 
     #return msg[msg.find('<result>')+8:len(msg)-9]
     return msg
-
-def get_basic_answer(query):
-    print('#### get_basic_answer ####')
-    chat = get_chat()
-
-    if isKorean(query)==True:
-        system = (
-            "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
-            "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다." 
-            "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-        )
-    else: 
-        system = (
-            "You will be acting as a thoughtful advisor."
-            "Using the following conversation, answer friendly for the newest question." 
-            "If you don't know the answer, just say that you don't know, don't try to make up an answer."     
-        )    
-    
-    human = "Question: {input}"    
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system), 
-        ("human", human)
-    ])    
-    
-    chain = prompt | chat    
-    output = chain.invoke({"input": query})
-    print('output.content: ', output.content)
-
-    return output.content
 
 ####################### LangGraph #######################
 # Agentic Workflow: Tool Use (partial tool을 활용)
