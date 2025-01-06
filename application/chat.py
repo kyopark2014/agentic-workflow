@@ -1071,12 +1071,12 @@ def get_weather_info(city: str) -> str:
     return weather_str
 
 # tavily tool
-tavily_tool = TavilySearchResults(max_results=3,
-    include_answer=True,
-    include_raw_content=True,
-    search_depth="advanced", # "basic"
-    include_domains=["google.com", "naver.com"]
-)
+# tavily_tool = TavilySearchResults(max_results=3,
+#     include_answer=True,
+#     include_raw_content=True,
+#     search_depth="advanced", # "basic"
+#     include_domains=["google.com", "naver.com"]
+# )
 
 @tool
 def search_by_tavily(keyword: str) -> str:
