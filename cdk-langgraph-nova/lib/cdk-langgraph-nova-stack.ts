@@ -467,7 +467,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       value: 'https://'+distribution.domainName,
       description: 'The domain name of the Distribution'
     });   
-
+    /*
     const userData = ec2.UserData.forLinux();
 
     const environment = {
@@ -575,6 +575,6 @@ EOF'`,
     })
     listener.addAction(`RedirectHttpListener-for-${projectName}`, {
       action: defaultAction
-    });       
+    });       */
   }
 }
