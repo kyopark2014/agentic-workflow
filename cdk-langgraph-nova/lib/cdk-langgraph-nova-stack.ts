@@ -375,6 +375,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
     //   }),
     // );
     
+    // Knowledge base endpoint
     // const knowledgeBaseEndpoint = vpc.addInterfaceEndpoint(`knowledge-base-endpoint-${projectName}`, {
     //   privateDnsEnabled: true,
     //   service: new ec2.InterfaceVpcEndpointService(`com.amazonaws.${region}.bedrock-agent`, 443)
@@ -398,7 +399,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
         securityGroupName: `ec2-sg-for-${projectName}`,
       }
     );
-    // ec2Sg.addIngressRule(
+    // ec2Sg.addIngressRule(  
     //   ec2.Peer.anyIpv4(),
     //   ec2.Port.tcp(22),
     //   'SSH',
@@ -454,7 +455,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
         cachePolicy: cloudFront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy: cloudFront.OriginRequestPolicy.ALL_VIEWER        
       },
-      additionalBehaviors: {
+    /*  additionalBehaviors: {
         "/sharing": {
           origin: origins.S3BucketOrigin.withOriginAccessControl(s3Bucket),
           viewerProtocolPolicy: cloudFront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -462,13 +463,28 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
           cachePolicy: cloudFront.CachePolicy.CACHING_DISABLED,
           originRequestPolicy: cloudFront.OriginRequestPolicy.ALL_VIEWER
         }
-      }, 
+      }, */
       priceClass: cloudFront.PriceClass.PRICE_CLASS_200
     }); 
     new cdk.CfnOutput(this, `distributionDomainName-for-${projectName}`, {
       value: 'https://'+distribution.domainName,
       description: 'The domain name of the Distribution'
     });   
+
+    // cloudfront for sharing s3
+    const distribution_sharing = new cloudFront.Distribution(this, `sharing-for-${projectName}`, {
+      defaultBehavior: {
+        origin: origins.S3BucketOrigin.withOriginAccessControl(s3Bucket),
+        allowedMethods: cloudFront.AllowedMethods.ALLOW_ALL,
+        cachePolicy: cloudFront.CachePolicy.CACHING_DISABLED,
+        viewerProtocolPolicy: cloudFront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+      priceClass: cloudFront.PriceClass.PRICE_CLASS_200,  
+    });
+    new cdk.CfnOutput(this, `distribution-sharing-DomainName-for-${projectName}`, {
+      value: distribution_sharing.domainName,
+      description: 'The domain name of the Distribution Sharing',
+    });
 
     const userData = ec2.UserData.forLinux();
 
