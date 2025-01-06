@@ -288,8 +288,7 @@ try:
 except Exception as e: 
     raise e
 
-if tavily_key:
-    os.environ["TAVILY_API_KEY"] = tavily_key
+os.environ["TAVILY_API_KEY"] = tavily_key
 
 def tavily_search(query, k):
     docs = []    
