@@ -348,17 +348,17 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
     });  
 
     // S3 endpoint
-    const s3BucketAcessPoint = vpc.addGatewayEndpoint(`s3Endpoint-${projectName}`, {
-      service: ec2.GatewayVpcEndpointAwsService.S3,
-    });
+    // const s3BucketAcessPoint = vpc.addGatewayEndpoint(`s3Endpoint-${projectName}`, {
+    //   service: ec2.GatewayVpcEndpointAwsService.S3,
+    // });
 
-    s3BucketAcessPoint.addToPolicy(
-      new iam.PolicyStatement({
-        principals: [new iam.AnyPrincipal()],
-        actions: ['s3:*'],
-        resources: ['*'],
-      }),
-    ); 
+    // s3BucketAcessPoint.addToPolicy(
+    //   new iam.PolicyStatement({
+    //     principals: [new iam.AnyPrincipal()],
+    //     actions: ['s3:*'],
+    //     resources: ['*'],
+    //   }),
+    // ); 
 
     const bedrockEndpoint = vpc.addInterfaceEndpoint(`bedrock-endpoint-${projectName}`, {
       privateDnsEnabled: true,
