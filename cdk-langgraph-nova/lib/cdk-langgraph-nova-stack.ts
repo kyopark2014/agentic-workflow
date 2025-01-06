@@ -178,8 +178,6 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
             }
           ],
           Principal: [
-            // `arn:aws:iam::${accountId}:role/${knowledge_base_role.roleName}`,
-            // `arn:aws:iam::${accountId}:role/${ec2RoleName}`,
             account.arn
           ], 
         },
