@@ -376,11 +376,11 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       }),
     );
     
-    const knowledgeBaseEndpoint = vpc.addInterfaceEndpoint(`knowledge-base-endpoint-${projectName}`, {
-      privateDnsEnabled: true,
-      service: new ec2.InterfaceVpcEndpointService(`com.amazonaws.${region}.bedrock-agent`, 443)
-    });
-    bedrockEndpoint.connections.allowDefaultPortFrom(ec2.Peer.ipv4(vpc.vpcCidrBlock), `allowKnowledgeBasePortFrom-${projectName}`)
+    // const knowledgeBaseEndpoint = vpc.addInterfaceEndpoint(`knowledge-base-endpoint-${projectName}`, {
+    //   privateDnsEnabled: true,
+    //   service: new ec2.InterfaceVpcEndpointService(`com.amazonaws.${region}.bedrock-agent`, 443)
+    // });
+    // bedrockEndpoint.connections.allowDefaultPortFrom(ec2.Peer.ipv4(vpc.vpcCidrBlock), `allowKnowledgeBasePortFrom-${projectName}`)
 
     // bedrockEndpoint.addToPolicy(
     //   new iam.PolicyStatement({
