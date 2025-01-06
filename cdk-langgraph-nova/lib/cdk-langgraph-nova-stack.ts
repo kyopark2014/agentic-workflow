@@ -27,7 +27,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       roleName: `role-knowledge-base-for-${projectName}-${region}`,
       assumedBy: new iam.CompositePrincipal(
         new iam.ServicePrincipal("bedrock.amazonaws.com")
-      )
+      )    
     });
     
     const bedrockInvokePolicy = new iam.PolicyStatement({ 
@@ -77,7 +77,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
     
     const knowledgeBaseOpenSearchPolicy = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      resources: ['*'],
+      resources: ['*'],   // `arn:aws:aoss:${region}:${accountId}:collection/${collectionName}`
       actions: ["aoss:APIAccessAll"],
     });
     knowledge_base_role.attachInlinePolicy( 
@@ -118,7 +118,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       type: "encryption",
       description: `opensearch encryption policy for ${projectName}`,
       policy:
-        '{"Rules":[{"ResourceType":"collection","Resource":["collection/*"]}],"AWSOwnedKey":true}',      
+        `{"Rules":[{"ResourceType":"collection","Resource":["collection/${collectionName}"]}],"AWSOwnedKey":true}`,      
     });
     OpenSearchCollection.addDependency(encPolicy);
 
@@ -178,8 +178,8 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
             }
           ],
           Principal: [
-            `arn:aws:iam::${accountId}:role/${knowledge_base_role.roleName}`,
-            `arn:aws:iam::${accountId}:role/${ec2RoleName}`,
+            // `arn:aws:iam::${accountId}:role/${knowledge_base_role.roleName}`,
+            // `arn:aws:iam::${accountId}:role/${ec2RoleName}`,
             account.arn
           ], 
         },

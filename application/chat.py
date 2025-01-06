@@ -717,7 +717,7 @@ def initiate_knowledge_base():
                         }                  
                     },
                     "AMAZON_BEDROCK_METADATA": {"type": "text", "index": False},
-                    "AMAZON_BEDROCK_TEXT_CHUNK": {"type": "text"},
+                    "AMAZON_BEDROCK_TEXT": {"type": "text"},
                 }
             }
         }
