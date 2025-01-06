@@ -295,7 +295,9 @@ tavily_api_wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
 def tavily_search(query, k):
     docs = []    
     try:
-        tavily_client = TavilyClient(api_key=tavily_key)
+        tavily_client = TavilyClient(
+            api_key=tavily_key
+        )
         response = tavily_client.search(query, max_results=k)
         # print('tavily response: ', response)
             
@@ -1190,7 +1192,7 @@ def search_by_tavily(keyword: str) -> str:
         
     return answer
 
-tools = [get_current_time, get_book_list, get_weather_info, tavily_tool]        
+tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily]        
 
 ####################### LangGraph #######################
 # Chat Agent Executor
