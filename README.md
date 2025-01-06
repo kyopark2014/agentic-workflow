@@ -48,6 +48,14 @@ streamlit run application/app.py
 
 EC2에서 debug을 하면서 개발할때 사용하는 명령어입니다.
 
+먼저, 시스템에 등록된 streamlit을 종료합니다.
+
+```text
+sudo systemctl stop streamlit
+```
+
+이후 EC2를 session manager를 이용해 접속한 이후에 아래 명령어를 이용해 실행하면 로그를 보면서 수정을 할 수 있습니다. 
+
 ```text
 sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-user/langgraph-nova/application/app.py"
 ```
