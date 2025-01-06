@@ -298,12 +298,7 @@ try:
         include_domains=["google.com", "naver.com"]
     )
     output = search.invoke(query)
-    print('tavily output: ', output)
-        
-    for result in output:
-        print('result: ', result)
-        break
-
+    print('tavily output: ', output)    
 except Exception as e: 
     print('Tavily credential is required: ', e)
     raise e
