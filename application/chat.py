@@ -575,14 +575,13 @@ def get_references(docs):
         #excerpt = excerpt.replace('"', '')        
         #excerpt = ''.join(c for c in excerpt if c not in '"')
         excerpt = re.sub('"', '', excerpt)
-        # print('excerpt(quotation removed): ', excerpt)
+        print('excerpt(quotation removed): ', excerpt)
         
         if page:                
             reference = reference + f"{i+1}. {page}page in [{name}]({url})), {excerpt}\n"
         else:
             reference = reference + f"{i+1}. [{name}]({url}), {excerpt}\n"
     return reference
-
 
 
 ####################### LangChain #######################
