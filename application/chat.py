@@ -790,7 +790,7 @@ def initiate_knowledge_base():
                             'collectionArn': collectionArn,
                             'fieldMapping': {
                                 'metadataField': 'AMAZON_BEDROCK_METADATA',
-                                'textField': 'AMAZON_BEDROCK_TEXT_CHUNK',
+                                'textField': 'AMAZON_BEDROCK_TEXT',
                                 'vectorField': 'vector_field'
                             },
                             'vectorIndexName': vectorIndexName
