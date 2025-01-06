@@ -37,6 +37,7 @@ from multiprocessing import Process, Pipe
 from urllib import parse
 from pydantic.v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
+from langchain.utilities.tavily_search import TavilySearchAPIWrapper
 
 try:
     with open("/home/config.json", "r", encoding="utf-8") as f:
@@ -288,7 +289,8 @@ try:
 except Exception as e: 
     raise e
 
-os.environ["TAVILY_API_KEY"] = tavily_key
+tavily_api_wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
+# os.environ["TAVILY_API_KEY"] = tavily_key
 
 def tavily_search(query, k):
     docs = []    
@@ -494,12 +496,12 @@ def check_duplication(docs):
 def retrieve_documents_from_tavily(query, top_k):
     print("###### retrieve_documents_from_tavily ######")
 
-    relevant_documents = []
+    relevant_documents = []        
     search = TavilySearchResults(
         max_results=top_k,
         include_answer=True,
-        include_raw_content=True,
-        tavily_api_key=tavily_key,
+        include_raw_content=True,        
+        api_wrapper=tavily_api_wrapper,
         search_depth="advanced", 
         include_domains=["google.com", "naver.com"]
     )
@@ -1131,7 +1133,7 @@ def get_weather_info(city: str) -> str:
 # tavily_tool = TavilySearchResults(max_results=3,
 #     include_answer=True,
 #     include_raw_content=True,
-#     tavily_api_key=tavily_key,
+#     api_wrapper=tavily_api_wrapper,
 #     search_depth="advanced", # "basic"
 #     include_domains=["google.com", "naver.com"]
 # )
@@ -1153,7 +1155,7 @@ def search_by_tavily(keyword: str) -> str:
             max_results=3,
             include_answer=True,
             include_raw_content=True,
-            tavily_api_key=tavily_key,
+            api_wrapper=tavily_api_wrapper,
             search_depth="advanced", # "basic"
             include_domains=["google.com", "naver.com"]
         )
@@ -1769,7 +1771,7 @@ def run_knowledge_guru(query, st, debugMode):
                 max_results=2,
                 include_answer=True,
                 include_raw_content=True,
-                tavily_api_key=tavily_key,
+                api_wrapper=tavily_api_wrapper,
                 search_depth="advanced", 
                 include_domains=["google.com", "naver.com"]
             )
