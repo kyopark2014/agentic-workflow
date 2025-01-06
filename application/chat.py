@@ -1638,17 +1638,19 @@ def init_enhanced_search(st, debugMode):
         chain = prompt | model
                 
         response = chain.invoke(messages)
-        print('call_model response: ', response.tool_calls)
-
-        if debugMode=="Debug":
-            st.info(f"{response.tool_calls[-1]['name']}: {response.tool_calls[-1]['args']}")
-
+        print('call_model response: ', response)
+              
         # state messag
         if response.tool_calls:
+            print('tool_calls response: ', response.tool_calls)
+
             toolinfo = response.tool_calls[-1]            
             if toolinfo['type'] == 'tool_call':
-                print('tool name: ', toolinfo['name'])                    
-        
+                print('tool name: ', toolinfo['name'])         
+
+            if debugMode=="Debug":
+                st.info(f"{response.tool_calls[-1]['name']}: {response.tool_calls[-1]['args']}")
+                   
         return {"messages": [response]}
 
     def buildChatAgent():
