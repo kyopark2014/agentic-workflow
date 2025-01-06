@@ -531,6 +531,54 @@ def retrieve_documents_from_tavily(query, top_k):
 
     return relevant_documents 
 
+def get_references(docs):
+    reference = "\n\nFrom\n"
+    for i, doc in enumerate(docs):
+        page = ""
+        if "page" in doc.metadata:
+            page = doc.metadata['page']
+            #print('page: ', page)            
+        url = ""
+        if "url" in doc.metadata:
+            url = doc.metadata['url']
+            #print('url: ', url)                
+        name = ""
+        if "name" in doc.metadata:
+            name = doc.metadata['name']
+            #print('name: ', name)     
+           
+        sourceType = ""
+        if "from" in doc.metadata:
+            sourceType = doc.metadata['from']
+        else:
+            # if useEnhancedSearch:
+            #     sourceType = "OpenSearch"
+            # else:
+            #     sourceType = "WWW"
+            sourceType = "WWW"
+
+        #print('sourceType: ', sourceType)        
+        
+        #if len(doc.page_content)>=1000:
+        #    excerpt = ""+doc.page_content[:1000]
+        #else:
+        #    excerpt = ""+doc.page_content
+        excerpt = ""+doc.page_content
+        # print('excerpt: ', excerpt)
+        
+        # for some of unusual case 
+        #excerpt = excerpt.replace('"', '')        
+        #excerpt = ''.join(c for c in excerpt if c not in '"')
+        excerpt = re.sub('"', '', excerpt)
+        # print('excerpt(quotation removed): ', excerpt)
+        
+        if page:                
+            reference = reference + f"{i+1}. {page}page in [{name}]({url}), [관련문서]({excerpt})"
+        else:
+            reference = reference + f"{i+1}. [{name}]({url}), [관련문서]({excerpt})"
+    return reference
+
+
 
 ####################### LangChain #######################
 # General Conversation
@@ -973,9 +1021,12 @@ def run_rag_with_knowledge_base(text, st, debugMode):
     
     if len(filtered_docs):
         reference_docs += filtered_docs 
-            
-    return msg
 
+    reference = ""
+    if reference_docs:
+        reference = get_references(filtered_docs)
+
+    return msg+reference
 
 ####################### LangGraph #######################
 # Agentic Workflow: Tool Use
