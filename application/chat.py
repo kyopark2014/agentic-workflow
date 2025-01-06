@@ -499,6 +499,7 @@ def retrieve_documents_from_tavily(query, top_k):
         max_results=top_k,
         include_answer=True,
         include_raw_content=True,
+        tavily_api_key=tavily_key,
         search_depth="advanced", 
         include_domains=["google.com", "naver.com"]
     )
@@ -1130,6 +1131,7 @@ def get_weather_info(city: str) -> str:
 # tavily_tool = TavilySearchResults(max_results=3,
 #     include_answer=True,
 #     include_raw_content=True,
+#     tavily_api_key=tavily_key,
 #     search_depth="advanced", # "basic"
 #     include_domains=["google.com", "naver.com"]
 # )
@@ -1151,6 +1153,7 @@ def search_by_tavily(keyword: str) -> str:
             max_results=3,
             include_answer=True,
             include_raw_content=True,
+            tavily_api_key=tavily_key,
             search_depth="advanced", # "basic"
             include_domains=["google.com", "naver.com"]
         )
@@ -1762,7 +1765,14 @@ def run_knowledge_guru(query, st, debugMode):
                 # print(f'q: {q}, response: {response}')
                 content.append(response)                   
         else:
-            search = TavilySearchResults(max_results=2)
+            search = TavilySearchResults(
+                max_results=2,
+                include_answer=True,
+                include_raw_content=True,
+                tavily_api_key=tavily_key,
+                search_depth="advanced", 
+                include_domains=["google.com", "naver.com"]
+            )
             for q in state["search_queries"]:
                 response = search.invoke(q)     
                 for r in response:
