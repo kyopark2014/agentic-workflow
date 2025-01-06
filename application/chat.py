@@ -841,11 +841,16 @@ def retrieve_documents_from_knowledge_base(query, top_k):
             region_name=bedrock_region
         )
         
-        documents = retriever.invoke(query)
-        # print('docs: ', docs)
-        print('--> docs from knowledge base')
-        for i, doc in enumerate(documents):
-            print_doc(i, doc)
+        try: 
+            documents = retriever.invoke(query)
+            # print('documents: ', documents)
+            print('--> docs from knowledge base')
+            for i, doc in enumerate(documents):
+                print_doc(i, doc)
+        except Exception:
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg)    
+            raise Exception ("Not able to request to LLM: "+err_msg)
         
         relevant_docs = []
         for doc in documents:

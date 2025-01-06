@@ -452,7 +452,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
         cachePolicy: cloudFront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy: cloudFront.OriginRequestPolicy.ALL_VIEWER        
       },
-      additionalBehaviors: {
+    /*  additionalBehaviors: {
         "/sharing": {
           origin: origins.S3BucketOrigin.withOriginAccessControl(s3Bucket),
           viewerProtocolPolicy: cloudFront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -460,7 +460,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
           cachePolicy: cloudFront.CachePolicy.CACHING_DISABLED,
           originRequestPolicy: cloudFront.OriginRequestPolicy.ALL_VIEWER
         }
-      },
+      }, */
       priceClass: cloudFront.PriceClass.PRICE_CLASS_200
     }); 
     new cdk.CfnOutput(this, `distributionDomainName-for-${projectName}`, {
