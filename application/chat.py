@@ -1007,8 +1007,9 @@ def run_rag_with_knowledge_base(text, st, debugMode):
     # retrieve
     if debugMode == "Debug":
         st.info(f"검색을 수행합니다. 검색어: {text}")
-
-    relevant_docs = retrieve_documents_from_knowledge_base(text, top_k)
+    
+    # relevant_docs = retrieve_documents_from_knowledge_base(text, top_k=4)
+    relevant_docs += retrieve_documents_from_tavily(text, top_k=4)
 
     # grade   
     if debugMode == "Debug":
