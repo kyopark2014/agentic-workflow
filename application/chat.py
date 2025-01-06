@@ -2222,8 +2222,12 @@ def run_planning(query, st, debugMode):
             print(f"Finished: {key}")
             #print("value: ", value)            
     print('value: ', value)
+
+    reference = ""
+    if reference_docs:
+        reference = get_references(reference_docs)
     
-    return value["answer"]
+    return value["answer"]+reference
 
     
 ####################### LangGraph #######################
