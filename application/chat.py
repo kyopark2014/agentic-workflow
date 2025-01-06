@@ -1342,9 +1342,12 @@ def run_agent_executor(query, st, debugMode):
         # print('message: ', message)
 
     msg = message.content
-
-    #return msg[msg.find('<result>')+8:len(msg)-9]
-    return msg
+    
+    reference = ""
+    if reference_docs:
+        reference = get_references(reference_docs)
+    
+    return msg+reference
 
 ####################### LangGraph #######################
 # Agentic Workflow: Tool Use (partial tool을 활용)
