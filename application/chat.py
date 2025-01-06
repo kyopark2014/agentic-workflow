@@ -272,7 +272,6 @@ if langsmith_api_key:
     os.environ["LANGCHAIN_PROJECT"] = langchain_project
 
 # api key to use Tavily Search
-tavily_api_key = []
 tavily_key = ""
 try:
     get_tavily_api_secret = secretsmanager.get_secret_value(
@@ -1090,7 +1089,7 @@ def search_by_tavily(keyword: str) -> str:
     global reference_docs    
     answer = ""
     
-    if tavily_api_key:
+    if tavily_key:
         keyword = keyword.replace('\'','')
         
         search = TavilySearchResults(
@@ -1130,7 +1129,7 @@ def search_by_tavily(keyword: str) -> str:
         
     return answer
 
-tools = [get_current_time, get_book_list, get_weather_info, tavily_tool]        
+tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily]        
 
 ####################### LangGraph #######################
 # Chat Agent Executor
