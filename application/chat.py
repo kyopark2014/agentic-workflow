@@ -279,47 +279,34 @@ try:
         SecretId=f"tavilyapikey-{projectName}"
     )
     #print('get_tavily_api_secret: ', get_tavily_api_secret)
-    if get_tavily_api_secret['SecretString']:
-        secret = json.loads(get_tavily_api_secret['SecretString'])
-        #print('secret: ', secret)
-        tavily_key = secret['tavily_api_key']
-        #print('tavily_api_key: ', tavily_api_key)
+    secret = json.loads(get_tavily_api_secret['SecretString'])
+    #print('secret: ', secret)
+    tavily_key = secret['tavily_api_key']
+    #print('tavily_api_key: ', tavily_api_key)
 
-        tavily_api_wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
-        # os.environ["TAVILY_API_KEY"] = tavily_key
-    else:
-        print('No secret found for tavily api')
+    tavily_api_wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
+    #     os.environ["TAVILY_API_KEY"] = tavily_key
+
+    # Tavily Tool Test
+    query = 'what is Amazon Nova Pro?'
+    search = TavilySearchResults(
+        max_results=1,
+        include_answer=True,
+        include_raw_content=True,
+        api_wrapper=tavily_api_wrapper,
+        search_depth="advanced", # "basic"
+        include_domains=["google.com", "naver.com"]
+    )
+    output = search.invoke(query)
+    print('tavily output: ', output)
+        
+    for result in output:
+        print('result: ', result)
+        break
+
 except Exception as e: 
+    print('Tavily credential is required: ', e)
     raise e
-
-def tavily_search(query, k):
-    docs = []    
-    try:
-        tavily_client = TavilyClient(
-            api_key=tavily_key
-        )
-        response = tavily_client.search(query, max_results=k)
-        # print('tavily response: ', response)
-            
-        for r in response["results"]:
-            name = r.get("title")
-            if name is None:
-                name = 'WWW'
-            
-            docs.append(
-                Document(
-                    page_content=r.get("content"),
-                    metadata={
-                        'name': name,
-                        'url': r.get("url"),
-                        'from': 'tavily'
-                    },
-                )
-            )                   
-    except Exception as e:
-        print('Exception: ', e)
-
-    return docs
 
 def isKorean(text):
     # check korean
@@ -583,6 +570,34 @@ def get_references(docs):
             reference = reference + f"{i+1}. [{name}]({url}), {excerpt[:40]}...\n"
     return reference
 
+def tavily_search(query, k):
+    docs = []    
+    try:
+        tavily_client = TavilyClient(
+            api_key=tavily_key
+        )
+        response = tavily_client.search(query, max_results=k)
+        # print('tavily response: ', response)
+            
+        for r in response["results"]:
+            name = r.get("title")
+            if name is None:
+                name = 'WWW'
+            
+            docs.append(
+                Document(
+                    page_content=r.get("content"),
+                    metadata={
+                        'name': name,
+                        'url': r.get("url"),
+                        'from': 'tavily'
+                    },
+                )
+            )                   
+    except Exception as e:
+        print('Exception: ', e)
+
+    return docs
 
 ####################### LangChain #######################
 # General Conversation
@@ -987,6 +1002,7 @@ def generate_answer_using_RAG(chat, context, question):
 
 def run_rag_with_knowledge_base(text, st, debugMode):
     global reference_docs
+    reference_docs = []
 
     chat = get_chat()
     
