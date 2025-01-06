@@ -482,7 +482,7 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       priceClass: cloudFront.PriceClass.PRICE_CLASS_200,  
     });
     new cdk.CfnOutput(this, `distribution-sharing-DomainName-for-${projectName}`, {
-      value: distribution_sharing.domainName,
+      value: 'https://'+distribution_sharing.domainName,
       description: 'The domain name of the Distribution Sharing',
     });
 
@@ -495,7 +495,8 @@ export class CdkLanggraphNovaStack extends cdk.Stack {
       "knowledge_base_role": knowledge_base_role.roleArn,
       "collectionArn": collectionArn,
       "opensearch_url": OpenSearchCollection.attrCollectionEndpoint,
-      "s3_arn": s3Bucket.bucketArn
+      "s3_arn": s3Bucket.bucketArn,
+      "sharing_url": 'https://'+distribution_sharing.domainName
     }    
     new cdk.CfnOutput(this, `environment-for-${projectName}`, {
       value: JSON.stringify(environment),

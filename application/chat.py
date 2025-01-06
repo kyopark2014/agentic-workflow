@@ -79,6 +79,10 @@ opensearch_url = config["opensearch_url"] if "opensearch_url" in config else Non
 if opensearch_url is None:
     raise Exception ("No OpenSearch URL")
 
+path = config["sharing_url"] if "sharing_url" in config else None
+if path is None:
+    raise Exception ("No Sharing URL")
+
 credentials = boto3.Session().get_credentials()
 service = "aoss" 
 awsauth = AWSV4SignerAuth(credentials, region, service)
@@ -99,7 +103,6 @@ multi_region = 'disable'
 minDocSimilarity = 400
 length_of_models = 1
 doc_prefix = s3_prefix+'/'
-path = 'https://url/'   
 useEnhancedSearch = False
 
 multi_region_models = [   # Nova Pro
@@ -528,7 +531,7 @@ def get_references(docs):
         url = ""
         if "url" in doc.metadata:
             url = doc.metadata['url']
-            #print('url: ', url)                
+            print('url: ', url)
         name = ""
         if "name" in doc.metadata:
             name = doc.metadata['name']
@@ -1009,7 +1012,7 @@ def run_rag_with_knowledge_base(text, st, debugMode):
         st.info(f"검색을 수행합니다. 검색어: {text}")
     
     relevant_docs = retrieve_documents_from_knowledge_base(text, top_k=top_k)
-    relevant_docs += retrieve_documents_from_tavily(text, top_k=top_k)
+    # relevant_docs += retrieve_documents_from_tavily(text, top_k=top_k)
 
     # grade   
     if debugMode == "Debug":
