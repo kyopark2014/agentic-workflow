@@ -98,7 +98,7 @@ knowledge_base_name = projectName
 
 numberOfDocs = 4
 MSG_LENGTH = 100    
-grade_state = "LLM" # LLM, PRIORITY_SEARCH, OTHERS
+grade_state = "OTHERS" # LLM, PRIORITY_SEARCH, OTHERS
 multi_region = 'disable'
 minDocSimilarity = 400
 length_of_models = 1
