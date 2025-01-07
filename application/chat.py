@@ -2284,10 +2284,11 @@ def run_long_form_writing_agent(query, st, debugMode):
         search_queries = []
         for attempt in range(5):
             chat = get_chat()
-            if isKorean(draft):
-                structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
-            else:
-                structured_llm = chat.with_structured_output(Research, include_raw=True)
+            # if isKorean(draft):
+            #     structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
+            # else:
+            #     structured_llm = chat.with_structured_output(Research, include_raw=True)
+            structured_llm = chat.with_structured_output(Research, include_raw=True)
             
             try:
                 print('draft: ', draft)
