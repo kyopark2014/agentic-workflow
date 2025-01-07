@@ -2329,8 +2329,8 @@ def run_long_form_writing_agent(query, st, debugMode):
                 print('---> parsing error from boto3. I think it is an error of converse api')
 
                 err_msg = traceback.format_exc()
-                print('error message: ', err_msg)                    
-                # raise Exception ("Not able to request to LLM")               
+                print('error message: ', err_msg)
+                # raise Exception ("Not able to request to LLM")
             
         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
         return {
@@ -2347,9 +2347,20 @@ def run_long_form_writing_agent(query, st, debugMode):
 
         relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
         relevant_docs += retrieve_documents_from_tavily(q, top_k=numberOfDocs)
-            
+
+        # translate
+
+        docs = []
+        for doc in relevant_docs:
+            chat = get_chat()
+            if not isKorean(doc.page_content):
+                translated_content = traslation(chat, q, "English", "Korean")
+                doc.page_content = translated_content
+            docs.append(doc)
+        print('translated relevant docs: ', docs)
+                
         # grade
-        filtered_docs = grade_documents(q, relevant_docs) # grading    
+        filtered_docs = grade_documents(q, docs) # grading    
         filtered_docs = check_duplication(filtered_docs) # check duplication
                                 
         conn.send(filtered_docs)
