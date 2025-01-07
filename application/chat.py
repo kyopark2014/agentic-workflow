@@ -3032,9 +3032,11 @@ def run_long_form_writing_agent(query, st, debugMode):
         
         html_url = f"{path}{html_key}"
         print('html_url: ', html_url)
+
+        final_doc += f"\n[미리보기 링크]({html_url})\n[다운로드 링크 - {subject}.md]({markdown_url})"
         
         return {
-            "final_doc": final_doc+f"\n<a href={html_url} target=_blank>[미리보기 링크]</a>\n<a href={markdown_url} download=\"{subject}.md\">[다운로드 링크]</a>"
+            "final_doc": final_doc
         }
         
     def buildLongformWriting():
