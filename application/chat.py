@@ -2843,7 +2843,7 @@ def run_long_form_writing_agent(query, st, debugMode):
             raise Exception ("Not able to request to LLM")        
         return subject
     
-    def markdown_to_html(body, reference):
+    def markdown_to_html(body):
         body = body + f"\n\n### 참고자료\n\n\n"
         
         html = f"""
@@ -2864,7 +2864,6 @@ def run_long_form_writing_agent(query, st, debugMode):
             <md-block>{body}
             </md-block>
         </div>
-        {reference}
     </body>
     </html>"""        
         return html
@@ -2988,14 +2987,25 @@ def run_long_form_writing_agent(query, st, debugMode):
         markdown_key = 'markdown/'+f"{subject}.md"
         # print('markdown_key: ', markdown_key)
         
-        markdown_body = f"## {state['instruction']}\n\n"+final_doc
+        final_doc = f"## {state['instruction']}\n\n"+final_doc
+
+        if references:
+            global reference_docs
+            reference_docs += references
+
+            # html_reference = get_references_for_html(references)
+            markdown_reference = get_references(references)
+
+            print('markdown_reference: ', markdown_reference)
+
+        final_doc += markdown_reference
                 
         s3_client = boto3.client('s3')  
         response = s3_client.put_object(
             Bucket=bucketName,
             Key=markdown_key,
             ContentType='text/markdown',
-            Body=markdown_body.encode('utf-8')
+            Body=final_doc.encode('utf-8')
         )
         # print('response: ', response)
         
@@ -3004,29 +3014,16 @@ def run_long_form_writing_agent(query, st, debugMode):
         
         # html file
         html_key = 'markdown/'+f"{subject}.html"
-        
-        # html_reference = ""
-        markdown_reference = ""
-        print('references: ', references)
-        if references:
-            global reference_docs
-            reference_docs += references
-
-            # html_reference = get_references_for_html(references)
-            markdown_reference = get_references_for_markdown(references)
             
-        # html_body = markdown_to_html(markdown_body, html_reference)
-        # print('html_body: ', html_body)
-        
-        body = markdown_to_html(markdown_body, markdown_reference)
-        print('reference body: ', body)
+        html_body = markdown_to_html(final_doc)
+        print('html_body: ', html_body)
         
         s3_client = boto3.client('s3')  
         response = s3_client.put_object(
             Bucket=bucketName,
             Key=html_key,
             ContentType='text/html',
-            Body=body
+            Body=html_body
         )
         # print('response: ', response)
         
