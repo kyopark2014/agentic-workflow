@@ -2364,7 +2364,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         for doc in relevant_docs:
             chat = get_chat()
             if not isKorean(doc.page_content):
-                translated_content = traslation(chat, q, "English", "Korean")
+                translated_content = traslation(chat, doc.page_content, "English", "Korean")
                 doc.page_content = translated_content
             docs.append(doc)
         print('translated relevant docs: ', docs)
