@@ -2998,7 +2998,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 
             print('markdown_reference: ', markdown_reference)
 
-        final_doc += markdown_reference
+            final_doc += markdown_reference
                 
         s3_client = boto3.client('s3')  
         response = s3_client.put_object(
