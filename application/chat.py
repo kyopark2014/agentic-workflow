@@ -1017,8 +1017,18 @@ def run_rag_with_knowledge_base(text, st, debugMode):
     # grade   
     if debugMode == "Debug":
         st.info(f"가져온 문서를 평가하고 있습니다.")
-    
-    filtered_docs = grade_documents(text, relevant_docs)    
+
+    docs = []
+    for doc in relevant_docs:
+        chat = get_chat()
+        if not isKorean(doc.page_content):
+            translated_content = traslation(chat, doc.page_content, "English", "Korean")
+            doc.page_content = translated_content
+            print("doc.page_content: ", doc.page_content)
+        docs.append(doc)
+    print('translated relevant docs: ', docs)
+
+    filtered_docs = grade_documents(text, docs)
     
     filtered_docs = check_duplication(filtered_docs) # duplication checker
             
