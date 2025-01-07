@@ -2397,8 +2397,8 @@ def run_long_form_writing_agent(query, st, debugMode):
                 if debugMode=="Debug":
                     st.info(f"검색을 수행합니다. 검색어: {q}")
 
-                relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
-                relevant_docs += retrieve_documents_from_tavily(q, top_k=numberOfDocs)
+                #relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
+                relevant_docs = retrieve_documents_from_tavily(q, top_k=numberOfDocs)
             
                 # grade
                 docs = grade_documents(q, relevant_docs) # grading
