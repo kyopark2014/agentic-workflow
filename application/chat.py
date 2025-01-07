@@ -2419,6 +2419,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         print('reflection: ', reflection)
 
         if debugMode=="Debug":
+            idx = config.get("configurable", {}).get("idx")
             st.info(f"{idx}: 개선사항을 반영하여 새로운 답변을 생성합니다.")
                             
         idx = config.get("configurable", {}).get("idx")
