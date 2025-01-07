@@ -2128,7 +2128,7 @@ def run_planning(query, st, debugMode):
         print('#### final_answer ####')
         
         # get final answer
-        context = state['info']
+        context = "".join(f"{info}\n" for info in state['info'])
         print('context: ', context)
         
         query = state['input']
@@ -2142,7 +2142,7 @@ def run_planning(query, st, debugMode):
                 "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
                 "다음의 Reference texts을 이용하여 user의 질문에 답변합니다."
                 "답변의 이유를 풀어서 명확하게 설명합니다."
-                "결과는 <result> tag를 붙여주세요."
+                #"결과는 <result> tag를 붙여주세요."
             )
         else: 
             system = (
@@ -2150,7 +2150,7 @@ def run_planning(query, st, debugMode):
                 "Provide a concise answer to the question at the end."
                 "Explains clearly the reason for the answer."
                 "If you don't know the answer, just say that you don't know, don't try to make up an answer."
-                "Put it in <result> tags."
+                #"Put it in <result> tags."
             )
     
         human = (
