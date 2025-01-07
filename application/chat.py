@@ -3005,15 +3005,15 @@ def run_long_form_writing_agent(query, st, debugMode):
         # html file
         html_key = 'markdown/'+f"{subject}.html"
         
-        html_reference = ""
+        # html_reference = ""
         markdown_reference = ""
         print('references: ', references)
         if references:
-            html_reference = get_references_for_html(references)
-            markdown_reference = get_references_for_markdown(references)
-            
             global reference_docs
             reference_docs += references
+
+            # html_reference = get_references_for_html(references)
+            markdown_reference = get_references_for_markdown(references)
             
         # html_body = markdown_to_html(markdown_body, html_reference)
         # print('html_body: ', html_body)
@@ -3033,7 +3033,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         html_url = f"{path}{html_key}"
         print('html_url: ', html_url)
 
-        final_doc += f"\n[미리보기 링크]({html_url})\n[다운로드 링크 - {subject}.md]({markdown_url})"
+        final_doc += f"\n[미리보기 링크]({html_url})\n\n[다운로드 링크 - {subject}.md]({markdown_url})"
         
         return {
             "final_doc": final_doc
