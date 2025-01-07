@@ -2844,8 +2844,6 @@ def run_long_form_writing_agent(query, st, debugMode):
         return subject
     
     def markdown_to_html(body):
-        body = body + f"\n\n### 참고자료\n\n\n"
-        
         html = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -2994,7 +2992,7 @@ def run_long_form_writing_agent(query, st, debugMode):
             reference_docs += references
 
             # html_reference = get_references_for_html(references)
-            markdown_reference = get_references(references)
+            markdown_reference = get_references(reference_docs)
 
             print('markdown_reference: ', markdown_reference)
 
