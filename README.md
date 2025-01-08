@@ -361,7 +361,59 @@ plans = result.strip().replace('\n\n', '\n')
 planning_steps = plans.split('\n')
 ```        
 
-### 
+### Agentic Workflow: Multi-agent Collaboration
+
+<img width="416" alt="image" src="https://github.com/user-attachments/assets/3d8e0527-cbf3-4d72-855b-4067150e3b19" />
+
+여기서 설명하는 multi-agent collaboration은 planning과 reflection을 수행하는 agent를 이용하여 구현됩니다. 먼저 planning agent의 workflow는 아래와 같이 구성할 수 있습니다. 
+
+```python
+workflow = StateGraph(State)
+
+# Add nodes
+workflow.add_node("planning_node", plan_node)
+workflow.add_node("execute_node", execute_node)
+workflow.add_node("revising_node", revise_answer)
+
+# Set entry point
+workflow.set_entry_point("planning_node")
+
+# Add edges
+workflow.add_edge("planning_node", "execute_node")
+workflow.add_edge("execute_node", "revising_node")
+workflow.add_edge("revising_node", END)
+
+planning_app = workflow.compile()
+```
+
+planning에서 생성된 draft를 개선하기 위하여 reflection agent를 아래와 같이 정의하여 활용할 수 있습니다.
+
+```python
+workflow = StateGraph(ReflectionState)
+
+# Add nodes
+workflow.add_node("reflect_node", reflect_node)
+workflow.add_node("revise_draft", revise_draft)
+
+# Set entry point
+workflow.set_entry_point("reflect_node")
+
+workflow.add_conditional_edges(
+    "revise_draft", 
+    should_continue, 
+    {
+        "end": END, 
+        "continue": "reflect_node"
+    }
+)
+
+# Add edges
+workflow.add_edge("reflect_node", "revise_draft")
+
+reflection_app = workflow.compile()
+```
+    
+
 
 ### 활용 방법
 
