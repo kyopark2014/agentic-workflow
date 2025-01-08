@@ -186,6 +186,37 @@ stream = chain.invoke(
 print(stream.content)    
 ```
 
+### Agentic Workflow: Tool Use
+
+<img width="261" alt="image" src="https://github.com/user-attachments/assets/31202a6a-950f-44d6-b50e-644d28012d8f" />
+
+```python
+workflow = StateGraph(State)
+
+workflow.add_node("agent", call_model)
+workflow.add_node("action", tool_node)
+workflow.add_edge(START, "agent")
+workflow.add_conditional_edges(
+    "agent",
+    should_continue,
+    {
+        "continue": "action",
+        "end": END,
+    },
+)
+workflow.add_edge("action", "agent")
+
+app = workflow.compile()
+
+inputs = [HumanMessage(content=query)]
+config = {
+    "recursion_limit": 50
+}
+message = app.invoke({"messages": inputs}, config)
+
+print(event["messages"][-1].content)
+```
+
 
 ### 활용 방법
 
