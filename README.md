@@ -183,7 +183,7 @@ stream = chain.invoke(
         "input": revised_question,
     }
 )
-msg = readStreamMsg(connectionId, requestId, stream.content)    
+print(stream.content)    
 ```
 
 
