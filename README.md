@@ -217,6 +217,151 @@ message = app.invoke({"messages": inputs}, config)
 print(event["messages"][-1].content)
 ```
 
+### Agentic Workflow: Reflection
+
+<img width="205" alt="image" src="https://github.com/user-attachments/assets/5a9b547f-afc8-427e-9172-9dc5648ec512" />
+
+```python
+workflow = StateGraph(State)
+
+workflow.add_node("generate", generate)
+workflow.add_node("reflect", reflect)
+workflow.add_node("revise_answer", revise_answer)
+
+workflow.set_entry_point("generate")
+
+workflow.add_conditional_edges(
+    "revise_answer", 
+    should_continue, 
+    {
+        "end": END, 
+        "continue": "reflect"}
+)
+
+workflow.add_edge("generate", "reflect")
+workflow.add_edge("reflect", "revise_answer")
+
+app = workflow.compile()
+
+inputs = [HumanMessage(content=query)]
+config = {
+    "recursion_limit": 50
+}
+message = app.invoke({"messages": inputs}, config)
+print(event["messages"][-1].content)
+```
+
+
+### Agentic Workflow: Planning
+
+<img width="98" alt="image" src="https://github.com/user-attachments/assets/58aa8302-cb56-45e3-b225-f6c9c7a6ab66" />
+
+아래와 같이 planning을 위한 workflow를 정의합니다.
+
+```python
+workflow = StateGraph(State)
+workflow.add_node("planner", plan_node)
+workflow.add_node("executor", execute_node)
+workflow.add_node("replaner", replan_node)
+workflow.add_node("final_answer", final_answer)
+
+workflow.set_entry_point("planner")
+workflow.add_edge("planner", "executor")
+workflow.add_edge("executor", "replaner")
+workflow.add_conditional_edges(
+    "replaner",
+    should_end,
+    {
+        "continue": "executor",
+        "end": "final_answer",
+    },
+)
+workflow.add_edge("final_answer", END)
+app = workflow.compile()
+```
+
+여기서 planning을 아래와 같이 생성하고 executor로 실행합니다.
+
+```python
+system = (
+    "당신은 user의 question을 해결하기 위해 step by step plan을 생성하는 AI agent입니다."                
+    
+    "문제를 충분히 이해하고, 문제 해결을 위한 계획을 다음 형식으로 4단계 이하의 계획을 세웁니다."                
+    "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
+    "1. [질문을 해결하기 위한 단계]"
+    "2. [질문을 해결하기 위한 단계]"
+    "..."                
+)
+human = (
+    "{question}"
+)                   
+planner_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system),
+        ("human", human),
+    ]
+)
+chat = get_chat()
+planner = planner_prompt | chat
+response = planner.invoke({
+    "question": state["input"]
+})
+result = response.content
+plan = result.strip().replace('\n\n', '\n')
+planning_steps = plan.split('\n')
+```
+
+replan은 아래와 같이 수행할 수 있습니다.
+
+```python
+system = (
+    "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
+    "당신은 다음의 Question에 대한 적절한 답변을 얻고자합니다."
+)        
+human = (
+    "Question: {input}"
+                
+    "당신의 원래 계획은 아래와 같습니다." 
+    "Original Plan:"
+    "{plan}"
+
+    "완료한 단계는 아래와 같습니다."
+    "Past steps:"
+    "{past_steps}"
+    
+    "당신은 Original Plan의 원래 계획을 상황에 맞게 수정하세요."
+    "계획에 아직 해야 할 단계만 추가하세요. 이전에 완료한 단계는 계획에 포함하지 마세요."                
+    "수정된 계획에는 <plan> tag를 붙여주세요."
+    "만약 더 이상 계획을 세우지 않아도 Question의 주어진 질문에 답변할 있다면, 최종 결과로 Question에 대한 답변을 <result> tag를 붙여 전달합니다."
+    
+    "수정된 계획의 형식은 아래와 같습니다."
+    "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
+    "1. [질문을 해결하기 위한 단계]"
+    "2. [질문을 해결하기 위한 단계]"
+    "..."         
+)                   
+
+replanner_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system),
+        ("human", human),
+    ]
+)     
+replanner = replanner_prompt | chat
+
+response = replanner.invoke({
+    "input": state["input"],
+    "plan": state["plan"],
+    "past_steps": state["past_steps"]
+})
+print('replanner output: ', response.content)
+result = response.content
+
+plans = result.strip().replace('\n\n', '\n')
+planning_steps = plans.split('\n')
+```        
+
+### 
 
 ### 활용 방법
 
