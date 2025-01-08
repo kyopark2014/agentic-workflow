@@ -21,6 +21,171 @@
 
 Agentic workflow (tool use)는 아래와 같이 구현할 수 있습니다. 상세한 내용은 [chat.py](./application/chat.py)을 참조합니다.
 
+### Basic Chat
+
+일반적인 대화는 아래와 같이 stream으로 결과를 얻을 수 있습니다. 여기에서는 LangChain의 ChatBedrock과 Nova Pro의 모델명인 "us.amazon.nova-pro-v1:0"을 활용하고 있습니다.
+
+```python
+modelId = "us.amazon.nova-pro-v1:0"
+bedrock_region = "us-west-2"
+boto3_bedrock = boto3.client(
+    service_name='bedrock-runtime',
+    region_name=bedrock_region,
+    config=Config(
+        retries = {
+            'max_attempts': 30
+        }
+    )
+)
+parameters = {
+    "max_tokens":maxOutputTokens,     
+    "temperature":0.1,
+    "top_k":250,
+    "top_p":0.9,
+    "stop_sequences": ["\n\n<thinking>", "\n<thinking>", " <thinking>"]
+}
+
+chat = ChatBedrock(  
+    model_id=modelId,
+    client=boto3_bedrock, 
+    model_kwargs=parameters,
+    region_name=bedrock_region
+)
+
+system = (
+    "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
+    "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다." 
+    "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+)
+
+human = "Question: {input}"
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", system), 
+    MessagesPlaceholder(variable_name="history"), 
+    ("human", human)
+])
+            
+history = memory_chain.load_memory_variables({})["chat_history"]
+
+chain = prompt | chat | StrOutputParser()
+stream = chain.stream(
+    {
+        "history": history,
+        "input": query,
+    }
+)  
+print('stream: ', stream)
+```
+
+### RAG
+
+여기에서는 RAG 구현을 위하여 Amazon Bedrock의 knowledge base를 이용합니다. Amazon S3에 필요한 문서를 올려놓고, knowledge base에서 동기화를 하면, OpenSearch에 문서들이 chunk 단위로 저장되므로 문서를 쉽게 RAG로 올리고 편하게 사용할 수 있습니다. 또한 Hiearchical chunk을 위하여 검색 정확도를 높이면서 필요한 context를 충분히 제공합니다. 
+
+
+LangChain의 [AmazonKnowledgeBasesRetriever](https://api.python.langchain.com/en/latest/community/retrievers/langchain_community.retrievers.bedrock.AmazonKnowledgeBasesRetriever.html)을 이용하여 retriever를 등록합니다. 
+
+retriever = AmazonKnowledgeBasesRetriever(
+    knowledge_base_id=knowledge_base_id, 
+    retrieval_config={"vectorSearchConfiguration": {
+        "numberOfResults": top_k,
+        "overrideSearchType": "HYBRID"   
+    }},
+    region_name=bedrock_region
+)
+```
+
+Knowledge base로 조회하여 얻어진 문서를 필요에 따라 아래와 같이 재정리합니다. 이때 파일 경로로 사용하는 url은 application에서 다운로드 가능하도록 CloudFront의 도메인과 파일명을 조화합여 생성합니다.
+
+documents = retriever.invoke(query)
+for doc in documents:
+    content = ""
+    if doc.page_content:
+        content = doc.page_content    
+    score = doc.metadata["score"]    
+    link = ""
+    if "s3Location" in doc.metadata["location"]:
+        link = doc.metadata["location"]["s3Location"]["uri"] if doc.metadata["location"]["s3Location"]["uri"] is not None else ""        
+        pos = link.find(f"/{doc_prefix}")
+        name = link[pos+len(doc_prefix)+1:]
+        encoded_name = parse.quote(name)
+        link = f"{path}{doc_prefix}{encoded_name}"        
+    elif "webLocation" in doc.metadata["location"]:
+        link = doc.metadata["location"]["webLocation"]["url"] if doc.metadata["location"]["webLocation"]["url"] is not None else ""
+        name = "WEB"
+    url = link
+            
+    relevant_docs.append(
+        Document(
+            page_content=content,
+            metadata={
+                'name': name,
+                'score': score,
+                'url': url,
+                'from': 'RAG'
+            },
+        )
+    )    
+```        
+
+얻어온 문서가 적절한지를 판단하기 위하여 아래와 같이 prompt를 이용해 관련도를 평가하고 [structured output](https://github.com/kyopark2014/langgraph-agent/blob/main/structured-output.md)을 이용해 결과를 추출합니다.
+
+```python
+system = (
+    "You are a grader assessing relevance of a retrieved document to a user question."
+    "If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant."
+    "Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question."
+)
+
+grade_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system),
+        ("human", "Retrieved document: \n\n {document} \n\n User question: {question}"),
+    ]
+)
+    
+structured_llm_grader = chat.with_structured_output(GradeDocuments)
+retrieval_grader = grade_prompt | structured_llm_grader
+
+filtered_docs = []
+for i, doc in enumerate(documents):
+    score = retrieval_grader.invoke({"question": question, "document": doc.page_content})
+                
+    grade = score.binary_score
+    if grade.lower() == "yes":
+        print("---GRADE: DOCUMENT RELEVANT---")
+        filtered_docs.append(doc)
+    else:
+        print("---GRADE: DOCUMENT NOT RELEVANT---")
+        continue
+```
+
+이후 아래와 같이 RAG를 활용하여 원하는 응답을 얻습니다.
+
+```python
+system = (
+  "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
+  "다음의 Reference texts을 이용하여 user의 질문에 답변합니다."
+  "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+  "답변의 이유를 풀어서 명확하게 설명합니다."
+)
+human = (
+    "Question: {input}"
+
+    "Reference texts: "
+    "{context}"
+)    
+prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
+chain = prompt | chat
+stream = chain.invoke(
+    {
+        "context": context,
+        "input": revised_question,
+    }
+)
+msg = readStreamMsg(connectionId, requestId, stream.content)    
+```
+
 
 ### 활용 방법
 
