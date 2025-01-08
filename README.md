@@ -502,3 +502,4 @@ RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주
 
 ### Reference 
 
+[Nova Pro User Guide](https://docs.aws.amazon.com/pdfs/nova/latest/userguide/nova-ug.pdf)
