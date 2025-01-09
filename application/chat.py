@@ -778,7 +778,7 @@ def initiate_knowledge_base():
                     
     if not knowledge_base_id:
         print('creating knowledge base...')        
-        for atempt in range(10):
+        for atempt in range(20):
             try:
                 response = client.create_knowledge_base(
                     name=knowledge_base_name,
@@ -1391,7 +1391,7 @@ def run_agent_executor(query, st, debugMode):
                 "You will be acting as a thoughtful advisor."    
             )
 
-        for attempt in range(10):   
+        for attempt in range(20):   
             print('attempt: ', attempt)
             try:
                 prompt = ChatPromptTemplate.from_messages(
@@ -1862,7 +1862,7 @@ def run_knowledge_guru(query, st, debugMode):
 
         reflection = []
         search_queries = []
-        for attempt in range(10):
+        for attempt in range(20):
             chat = get_chat()
             structured_llm = chat.with_structured_output(Research, include_raw=True)
             
@@ -2427,7 +2427,7 @@ def run_long_form_writing_agent(query, st, debugMode):
     
         reflection = []
         search_queries = []
-        for attempt in range(10):
+        for attempt in range(20):
             chat = get_chat()
             if isKorean(draft):
                 structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
@@ -3180,7 +3180,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         "instruction": query
     }    
     config = {
-        "recursion_limit": 50,
+        "recursion_limit": 100,
         "parallel_revise": multi_region
     }
     
