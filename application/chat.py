@@ -124,8 +124,7 @@ multi_region_models = [   # Nova Pro
     }
 ]
 selected_chat = 0
-HUMAN_PROMPT = "\n\nHuman:"
-AI_PROMPT = "\n\nAssistant:"
+STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
 
 userId = "demo"
 map_chain = dict() 
@@ -175,7 +174,7 @@ def get_chat():
         "temperature":0.1,
         "top_k":250,
         "top_p":0.9,
-        "stop_sequences": [HUMAN_PROMPT]
+        "stop_sequences": [STOP_SEQUENCE]
     }
     # print('parameters: ', parameters)
 
@@ -214,7 +213,7 @@ def get_multi_region_chat(models, selected):
         "temperature":0.1,
         "top_k":250,
         "top_p":0.9,
-        "stop_sequences": [HUMAN_PROMPT]
+        "stop_sequences": [STOP_SEQUENCE]
     }
     # print('parameters: ', parameters)
 
@@ -573,7 +572,7 @@ def get_references(docs):
             reference += f"{i+1}. [{name}]({url}), {excerpt[:40]}...\n"
 
     if reference: 
-        reference = "\n\n### 관련 문서\n"+reference
+        reference = "\n\n#### 관련 문서\n"+reference
 
     return reference
 
@@ -973,7 +972,6 @@ def generate_answer_using_RAG(chat, context, question):
             "모르는 질문을 받으면 솔직히 모른다고 말합니다."
             "답변의 이유를 풀어서 명확하게 설명합니다."
             "결과는 <result> tag를 붙여주세요."
-            "답변은 markdown 포맷을 사용하지 않습니다."
         )
     else: 
         system = (
@@ -1005,7 +1003,10 @@ def generate_answer_using_RAG(chat, context, question):
         )
         msg = output.content
         print('msg: ', msg)
-        
+
+        if msg.find('<result>')!=-1:
+            msg = msg[msg.find('<result>')+8:msg.find('</result>')]
+            
     except Exception:
         err_msg = traceback.format_exc()
         print('error message: ', err_msg)    
@@ -1069,7 +1070,7 @@ def run_rag_with_knowledge_base(text, st, debugMode):
 
     reference = ""
     if reference_docs:
-        reference = get_references(filtered_docs)
+        reference = get_references(reference_docs)
 
     return msg+reference
 
@@ -1389,56 +1390,58 @@ def run_agent_executor(query, st, debugMode):
                 "If you don't know the answer, just say that you don't know, don't try to make up an answer."
                 "You will be acting as a thoughtful advisor."    
             )
-                
-        try:
-            prompt = ChatPromptTemplate.from_messages(
-                [
-                    ("system", system),
-                    MessagesPlaceholder(variable_name="messages"),
-                ]
-            )
-            chain = prompt | model
-                
-            response = chain.invoke(state["messages"])
-            print('call_model response: ', response)
-        
-            for re in response.content:
-                if "type" in re:
-                    if re['type'] == 'text':
-                        print(f"--> {re['type']}: {re['text']}")
 
-                        status = re['text']
-                        print('status: ',status)
-                        
-                        status = status.replace('`','')
-                        status = status.replace('\"','')
-                        status = status.replace("\'",'')
-                        
-                        print('status: ',status)
-                        if status.find('<thinking>') != -1:
-                            print('Remove <thinking> tag.')
-                            status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                            print('status without tag: ', status)
+        for attempt in range(10):   
+            print('attempt: ', attempt)
+            try:
+                prompt = ChatPromptTemplate.from_messages(
+                    [
+                        ("system", system),
+                        MessagesPlaceholder(variable_name="messages"),
+                    ]
+                )
+                chain = prompt | model
+                    
+                response = chain.invoke(state["messages"])
+                print('call_model response: ', response)
+            
+                for re in response.content:
+                    if "type" in re:
+                        if re['type'] == 'text':
+                            print(f"--> {re['type']}: {re['text']}")
 
-                        if debugMode=="Debug":
-                            st.info(status)
-                        
-                    elif re['type'] == 'tool_use':                
-                        print(f"--> {re['type']}: {re['name']}, {re['input']}")
+                            status = re['text']
+                            print('status: ',status)
+                            
+                            status = status.replace('`','')
+                            status = status.replace('\"','')
+                            status = status.replace("\'",'')
+                            
+                            print('status: ',status)
+                            if status.find('<thinking>') != -1:
+                                print('Remove <thinking> tag.')
+                                status = status[status.find('<thinking>')+11:status.find('</thinking>')]
+                                print('status without tag: ', status)
 
-                        if debugMode=="Debug":
-                            st.info(f"{re['type']}: {re['name']}, {re['input']}")
-                    else:
-                        print(re)
-                else: # answer
-                    print(response.content)
-                    break
-        except Exception:
-            response = AIMessage(content="답변을 찾지 못하였습니다.")
+                            if debugMode=="Debug":
+                                st.info(status)
+                            
+                        elif re['type'] == 'tool_use':                
+                            print(f"--> {re['type']}: {re['name']}, {re['input']}")
 
-            err_msg = traceback.format_exc()
-            print('error message: ', err_msg)
-            # raise Exception ("Not able to request to LLM")
+                            if debugMode=="Debug":
+                                st.info(f"{re['type']}: {re['name']}, {re['input']}")
+                        else:
+                            print(re)
+                    else: # answer
+                        print(response.content)
+                break
+            except Exception:
+                response = AIMessage(content="답변을 찾지 못하였습니다.")
+
+                err_msg = traceback.format_exc()
+                print('error message: ', err_msg)
+                # raise Exception ("Not able to request to LLM")
 
         return {"messages": [response]}
 
@@ -2019,7 +2022,13 @@ def run_knowledge_guru(query, st, debugMode):
             
     print('value: ', value)
         
-    return value["messages"][-1].content
+    msg = value["messages"][-1].content
+
+    reference = ""
+    if reference_docs:
+        reference = get_references(reference_docs)
+
+    return msg+reference
 
 
 ####################### LangGraph #######################
@@ -3047,43 +3056,7 @@ def run_long_form_writing_agent(query, st, debugMode):
                 cnt = cnt+1
                 
         return reference
-
-    def get_references_for_html(docs):
-        reference = ""
-        nameList = []
-        cnt = 1
-        for i, doc in enumerate(docs):
-            print(f"reference {i}: doc")
-            page = ""
-            if "page" in doc.metadata:
-                page = doc.metadata['page']
-                #print('page: ', page)            
-            url = ""
-            if "url" in doc.metadata:
-                url = doc.metadata['url']
-                #print('url: ', url)                
-            name = ""
-            if "name" in doc.metadata:
-                name = doc.metadata['name']
-                #print('name: ', name)     
-            pos = name.rfind('/')
-            name = name[pos+1:]
-            print(f"name: {name}")
-            
-            excerpt = ""+doc.page_content
-
-            excerpt = re.sub('"', '', excerpt)
-            print('length: ', len(excerpt))
-            
-            if name in nameList:
-                print('duplicated!')
-            else:
-                reference = reference + f"{cnt}. <a href={url} target=_blank>{name}</a><br>"
-                nameList.append(name)
-                cnt = cnt+1
-                
-        return reference
-
+    
     def revise_answer(state: State, config):
         print("###### revise ######")
         drafts = state["drafts"]        
@@ -3217,314 +3190,315 @@ def run_long_form_writing_agent(query, st, debugMode):
     return output['final_doc']
 
 
-draft = """### 건강한 exosome의 분비를 촉진하는 방법
+# Test 
+# draft = """### 건강한 exosome의 분비를 촉진하는 방법
 
-건강한 exosome의 분비를 촉진하는 방법을 탐구하는 것은 당뇨병과 같은 대사 질환의 예방과 치료에 중요한 단서를 제공할 수 있습니다. 여기에는 식이, 운동, 그리고 다른 생활 습관이 어떻게 exosome의 분비와 기능에 영향을 미칠 수 있는지 포함됩니다. 먼저, 식이는 exosome의 분비에 중요한 역할을 합니다. 특히, 다양한 영양소와 항산화제가 풍부한 식이는 지방 조직의 건강을 유지하고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 예를 들어, 오메가-3 지방산이 풍부한 식품은 지방 조직의 염증을 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 또한, 항산화제가 풍부한 식품, 예를 들어 베리류, 견과류, 그리고 녹차는 지방 조직의 산화 스트레스를 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다.
+# 건강한 exosome의 분비를 촉진하는 방법을 탐구하는 것은 당뇨병과 같은 대사 질환의 예방과 치료에 중요한 단서를 제공할 수 있습니다. 여기에는 식이, 운동, 그리고 다른 생활 습관이 어떻게 exosome의 분비와 기능에 영향을 미칠 수 있는지 포함됩니다. 먼저, 식이는 exosome의 분비에 중요한 역할을 합니다. 특히, 다양한 영양소와 항산화제가 풍부한 식이는 지방 조직의 건강을 유지하고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 예를 들어, 오메가-3 지방산이 풍부한 식품은 지방 조직의 염증을 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 또한, 항산화제가 풍부한 식품, 예를 들어 베리류, 견과류, 그리고 녹차는 지방 조직의 산화 스트레스를 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다.
 
-운동 또한 exosome의 분비에 중요한 역할을 합니다. 규칙적인 운동은 지방 조직의 대사 활동을 증가시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 특히, 중강도 운동은 지방 조직의 염증을 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 또한, 운동은 인슐린 감수성을 개선하고, 이에 따라 혈당 수치를 조절할 수 있습니다. 이는 당뇨병의 발병과 진행을 예방하는 데 중요한 역할을 할 수 있습니다.
+# 운동 또한 exosome의 분비에 중요한 역할을 합니다. 규칙적인 운동은 지방 조직의 대사 활동을 증가시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 특히, 중강도 운동은 지방 조직의 염증을 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 또한, 운동은 인슐린 감수성을 개선하고, 이에 따라 혈당 수치를 조절할 수 있습니다. 이는 당뇨병의 발병과 진행을 예방하는 데 중요한 역할을 할 수 있습니다.
 
-다른 생활 습관 또한 exosome의 분비에 영향을 미칠 수 있습니다. 예를 들어, 충분한 수면은 지방 조직의 대사 활동을 증가시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 또한, 스트레스 관리는 지방 조직의 염증을 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 스트레스는 지방 조직의 염증을 증가시키고, 이에 따라 비건강한 exosome의 분비를 촉진할 수 있습니다. 따라서, 스트레스 관리는 건강한 exosome의 분비를 촉진하는 데 중요한 역할을 할 수 있습니다.
+# 다른 생활 습관 또한 exosome의 분비에 영향을 미칠 수 있습니다. 예를 들어, 충분한 수면은 지방 조직의 대사 활동을 증가시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 또한, 스트레스 관리는 지방 조직의 염증을 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 스트레스는 지방 조직의 염증을 증가시키고, 이에 따라 비건강한 exosome의 분비를 촉진할 수 있습니다. 따라서, 스트레스 관리는 건강한 exosome의 분비를 촉진하는 데 중요한 역할을 할 수 있습니다.
 
-이러한 방법을 통해 건강한 exosome의 분비를 촉진함으로써, 당뇨병과 같은 대사 질환의 예방과 치료에 중요한 역할을 할 수 있습니다. 예를 들어, 건강한 exosome의 분비를 촉진함으로써, 인슐린 감수성을 개선하고 염증 반응을 조절할 수 있습니다. 이는 당뇨병의 발병을 예방하고 진행을 늦출 수 있는 중요한 전략이 될 수 있습니다. 또한, 건강한 exosome의 분비를 촉진함으로써, 당뇨병의 합병증을 예방하고 치료할 수 있습니다. 이러한 연구는 현재 활발히 진행되고 있으며, 미래에는 더 많은 가능성을 열어줄 것으로 기대됩니다. 따라서, 건강한 exosome의 분비를 촉진하는 방법을 탐구함으로써, 당뇨병과 같은 질병의 예방과 치료에 중요한 역할을 할 수 있습니다."""
+# 이러한 방법을 통해 건강한 exosome의 분비를 촉진함으로써, 당뇨병과 같은 대사 질환의 예방과 치료에 중요한 역할을 할 수 있습니다. 예를 들어, 건강한 exosome의 분비를 촉진함으로써, 인슐린 감수성을 개선하고 염증 반응을 조절할 수 있습니다. 이는 당뇨병의 발병을 예방하고 진행을 늦출 수 있는 중요한 전략이 될 수 있습니다. 또한, 건강한 exosome의 분비를 촉진함으로써, 당뇨병의 합병증을 예방하고 치료할 수 있습니다. 이러한 연구는 현재 활발히 진행되고 있으며, 미래에는 더 많은 가능성을 열어줄 것으로 기대됩니다. 따라서, 건강한 exosome의 분비를 촉진하는 방법을 탐구함으로써, 당뇨병과 같은 질병의 예방과 치료에 중요한 역할을 할 수 있습니다."""
 
 
-def run_long_form_writing_agent2(query, st, debugMode):
-    class ReflectionState(TypedDict):
-        draft : str
-        reflection : List[str]
-        search_queries : List[str]
-        revised_draft: str
-        revision_number: int
-        references: List[str]
+# def run_long_form_writing_agent2(query, st, debugMode):
+#     class ReflectionState(TypedDict):
+#         draft : str
+#         reflection : List[str]
+#         search_queries : List[str]
+#         revised_draft: str
+#         revision_number: int
+#         references: List[str]
 
-    class Reflection(BaseModel):
-        missing: str = Field(description="Critique of what is missing.")
-        advisable: str = Field(description="Critique of what is helpful for better writing")
-        superfluous: str = Field(description="Critique of what is superfluous")
+#     class Reflection(BaseModel):
+#         missing: str = Field(description="Critique of what is missing.")
+#         advisable: str = Field(description="Critique of what is helpful for better writing")
+#         superfluous: str = Field(description="Critique of what is superfluous")
 
-    class Research(BaseModel):
-        """Provide reflection and then follow up with search queries to improve the writing."""
+#     class Research(BaseModel):
+#         """Provide reflection and then follow up with search queries to improve the writing."""
 
-        reflection: Reflection = Field(description="Your reflection on the initial writing.")
-        search_queries: list[str] = Field(
-            description="1-3 search queries for researching improvements to address the critique of your current writing."
-        )
+#         reflection: Reflection = Field(description="Your reflection on the initial writing.")
+#         search_queries: list[str] = Field(
+#             description="1-3 search queries for researching improvements to address the critique of your current writing."
+#         )
 
-    class ReflectionKor(BaseModel):
-        missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
-        advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
-        superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
+#     class ReflectionKor(BaseModel):
+#         missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
+#         advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
+#         superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
 
-    class ResearchKor(BaseModel):
-        """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
+#     class ResearchKor(BaseModel):
+#         """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
 
-        reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
-        search_queries: list[str] = Field(
-            description="도출된 비평을 해결하기 위한 3개 이내의 검색어"
-        ) 
+#         reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
+#         search_queries: list[str] = Field(
+#             description="도출된 비평을 해결하기 위한 3개 이내의 검색어"
+#         ) 
     
-    def should_continue(state: ReflectionState, config):
-        print("###### should_continue ######")
-        max_revisions = config.get("configurable", {}).get("max_revisions", MAX_REVISIONS)
-        print("max_revisions: ", max_revisions)
+#     def should_continue(state: ReflectionState, config):
+#         print("###### should_continue ######")
+#         max_revisions = config.get("configurable", {}).get("max_revisions", MAX_REVISIONS)
+#         print("max_revisions: ", max_revisions)
             
-        if state["revision_number"] > max_revisions:
-            return "end"
-        return "continue"        
+#         if state["revision_number"] > max_revisions:
+#             return "end"
+#         return "continue"        
     
-    def revise_draft(state: ReflectionState, config):   
-        print("###### revise_draft ######")
+#     def revise_draft(state: ReflectionState, config):   
+#         print("###### revise_draft ######")
         
-        draft = state['draft']
-        search_queries = state['search_queries']
-        reflection = state['reflection']
-        print('draft: ', draft)
-        print('search_queries: ', search_queries)
-        print('reflection: ', reflection)
+#         draft = state['draft']
+#         search_queries = state['search_queries']
+#         reflection = state['reflection']
+#         print('draft: ', draft)
+#         print('search_queries: ', search_queries)
+#         print('reflection: ', reflection)
 
-        if debugMode=="Debug":
-            st.info(f"개선사항을 반영하여 새로운 답변을 생성합니다.")
+#         if debugMode=="Debug":
+#             st.info(f"개선사항을 반영하여 새로운 답변을 생성합니다.")
                             
-        # reference = state['reference'] if 'reference' in state else []     
-        if 'references' in state:
-            references = state['references'] 
-        else:
-            references = []            
-        print('----> length of previous references: ', len(references))
+#         # reference = state['reference'] if 'reference' in state else []     
+#         if 'references' in state:
+#             references = state['references'] 
+#         else:
+#             references = []            
+#         print('----> length of previous references: ', len(references))
 
-        if len(search_queries) and len(reflection):
-            docs = retrieve_docs(search_queries, config)
-            print('docs: ', docs)
+#         if len(search_queries) and len(reflection):
+#             docs = retrieve_docs(search_queries, config)
+#             print('docs: ', docs)
                     
-            content = []   
-            if len(docs):
-                for d in docs:
-                    content.append(d.page_content)            
-                print('content: ', content)
+#             content = []   
+#             if len(docs):
+#                 for d in docs:
+#                     content.append(d.page_content)            
+#                 print('content: ', content)
                                     
-                if isKorean(draft):
-                    system = (
-                        "당신은 장문 작성에 능숙한 유능한 글쓰기 도우미입니다."                
-                        "draft을 critique과 information 사용하여 수정하십시오."
-                        "최종 결과는 한국어로 작성하고 <result> tag를 붙여주세요."
-                    )
-                    human = (
-                        "draft:"
-                        "{draft}"
+#                 if isKorean(draft):
+#                     system = (
+#                         "당신은 장문 작성에 능숙한 유능한 글쓰기 도우미입니다."                
+#                         "draft을 critique과 information 사용하여 수정하십시오."
+#                         "최종 결과는 한국어로 작성하고 <result> tag를 붙여주세요."
+#                     )
+#                     human = (
+#                         "draft:"
+#                         "{draft}"
                                     
-                        "critique:"
-                        "{reflection}"
+#                         "critique:"
+#                         "{reflection}"
 
-                        "information:"
-                        "{content}"
-                    )
-                else:    
-                    system = (
-                        "You are an excellent writing assistant." 
-                        "Revise this draft using the critique and additional information."
-                        "Provide the final answer with <result> tag."
-                    )
-                    human = (                            
-                        "draft:"
-                        "{draft}"
+#                         "information:"
+#                         "{content}"
+#                     )
+#                 else:    
+#                     system = (
+#                         "You are an excellent writing assistant." 
+#                         "Revise this draft using the critique and additional information."
+#                         "Provide the final answer with <result> tag."
+#                     )
+#                     human = (                            
+#                         "draft:"
+#                         "{draft}"
                                     
-                        "critique:"
-                        "{reflection}"
+#                         "critique:"
+#                         "{reflection}"
 
-                        "information:"
-                        "{content}"
-                    )
+#                         "information:"
+#                         "{content}"
+#                     )
                             
-                revise_prompt = ChatPromptTemplate([
-                    ('system', system),
-                    ('human', human)
-                ])
+#                 revise_prompt = ChatPromptTemplate([
+#                     ('system', system),
+#                     ('human', human)
+#                 ])
 
-                chat = get_chat()
-                reflect = revise_prompt | chat
+#                 chat = get_chat()
+#                 reflect = revise_prompt | chat
                 
-                res = reflect.invoke(
-                    {
-                        "draft": draft,
-                        "reflection": reflection,
-                        "content": content
-                    }
-                )
-                output = res.content
-                # print('output: ', output)
+#                 res = reflect.invoke(
+#                     {
+#                         "draft": draft,
+#                         "reflection": reflection,
+#                         "content": content
+#                     }
+#                 )
+#                 output = res.content
+#                 # print('output: ', output)
                 
-                if output.find('<result>') == -1:
-                    revised_draft = output
-                else:
-                    revised_draft = output[output.find('<result>')+8:output.find('</result>')]
+#                 if output.find('<result>') == -1:
+#                     revised_draft = output
+#                 else:
+#                     revised_draft = output[output.find('<result>')+8:output.find('</result>')]
                     
-                #print('--> draft: ', draft)
-                print('--> reflection: ', reflection)
-                print('--> revised_draft: ', revised_draft)
+#                 #print('--> draft: ', draft)
+#                 print('--> reflection: ', reflection)
+#                 print('--> revised_draft: ', revised_draft)
 
-                references += docs
-                print('len(references): ', len(references))
-            else:
-                print('No relevant document!')
-                revised_draft = draft
-        else:
-            print('No reflection!')
-            revised_draft = draft
+#                 references += docs
+#                 print('len(references): ', len(references))
+#             else:
+#                 print('No relevant document!')
+#                 revised_draft = draft
+#         else:
+#             print('No reflection!')
+#             revised_draft = draft
             
-        revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
+#         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
 
-        print('----> length of references: ', len(references))
+#         print('----> length of references: ', len(references))
         
-        return {
-            "revised_draft": revised_draft,            
-            "revision_number": revision_number,
-            "references": references
-        }
+#         return {
+#             "revised_draft": revised_draft,            
+#             "revision_number": revision_number,
+#             "references": references
+#         }
         
-    MAX_REVISIONS = 1
+#     MAX_REVISIONS = 1
     
-    def reflect_node(state: ReflectionState, config):
-        print("###### reflect ######")
-        draft = state['draft']
+#     def reflect_node(state: ReflectionState, config):
+#         print("###### reflect ######")
+#         draft = state['draft']
         
-        if debugMode=="Debug":
-            st.info(f"draft에서 개선 사항을 도출합니다.")
+#         if debugMode=="Debug":
+#             st.info(f"draft에서 개선 사항을 도출합니다.")
     
-        reflection = []
-        search_queries = []
-        for attempt in range(10):
-            chat = get_chat()
-            if isKorean(draft):
-                structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
-            else:
-                structured_llm = chat.with_structured_output(Research, include_raw=True)
+#         reflection = []
+#         search_queries = []
+#         for attempt in range(10):
+#             chat = get_chat()
+#             if isKorean(draft):
+#                 structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
+#             else:
+#                 structured_llm = chat.with_structured_output(Research, include_raw=True)
             
-            try:
-                print('draft: ', draft)
-                info = structured_llm.invoke(draft)
-                print(f'attempt: {attempt}, info: {info}')
+#             try:
+#                 print('draft: ', draft)
+#                 info = structured_llm.invoke(draft)
+#                 print(f'attempt: {attempt}, info: {info}')
                     
-                if not info['parsed'] == None:
-                    parsed_info = info['parsed']
-                    # print('reflection: ', parsed_info.reflection)                
-                    reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
-                    search_queries = parsed_info.search_queries
+#                 if not info['parsed'] == None:
+#                     parsed_info = info['parsed']
+#                     # print('reflection: ', parsed_info.reflection)                
+#                     reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
+#                     search_queries = parsed_info.search_queries
 
-                    if debugMode=="Debug":
-                        st.info(f"개선사항: {reflection}")
+#                     if debugMode=="Debug":
+#                         st.info(f"개선사항: {reflection}")
                     
-                    print('reflection: ', parsed_info.reflection)
-                    print('search_queries: ', search_queries)
+#                     print('reflection: ', parsed_info.reflection)
+#                     print('search_queries: ', search_queries)
             
-                    if isKorean(draft):
-                        translated_search = []
-                        for q in search_queries:
-                            chat = get_chat()
-                            if isKorean(q):
-                                search = traslation(chat, q, "Korean", "English")
-                            else:
-                                search = traslation(chat, q, "English", "Korean")
-                            translated_search.append(search)
+#                     if isKorean(draft):
+#                         translated_search = []
+#                         for q in search_queries:
+#                             chat = get_chat()
+#                             if isKorean(q):
+#                                 search = traslation(chat, q, "Korean", "English")
+#                             else:
+#                                 search = traslation(chat, q, "English", "Korean")
+#                             translated_search.append(search)
                             
-                        print('translated_search: ', translated_search)
-                        search_queries += translated_search
+#                         print('translated_search: ', translated_search)
+#                         search_queries += translated_search
 
-                    if debugMode=="Debug":
-                        st.info(f"검색어: {search_queries}")
+#                     if debugMode=="Debug":
+#                         st.info(f"검색어: {search_queries}")
 
-                    print('search_queries (mixed): ', search_queries)
-                    break
-            except Exception:
-                print('---> parsing error for the draft')
+#                     print('search_queries (mixed): ', search_queries)
+#                     break
+#             except Exception:
+#                 print('---> parsing error for the draft')
 
-                err_msg = traceback.format_exc()
-                print('error message: ', err_msg)
-                # raise Exception ("Not able to request to LLM")
+#                 err_msg = traceback.format_exc()
+#                 print('error message: ', err_msg)
+#                 # raise Exception ("Not able to request to LLM")
             
-        revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
-        return {
-            "reflection": reflection,
-            "search_queries": search_queries,
-            "revision_number": revision_number + 1
-        }
+#         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
+#         return {
+#             "reflection": reflection,
+#             "search_queries": search_queries,
+#             "revision_number": revision_number + 1
+#         }
 
-    def retrieve_docs(search_queries, config):
-        parallel_retrieval = config.get("configurable", {}).get("parallel_retrieval")
-        print('parallel_retrieval: ', parallel_retrieval)
+#     def retrieve_docs(search_queries, config):
+#         parallel_retrieval = config.get("configurable", {}).get("parallel_retrieval")
+#         print('parallel_retrieval: ', parallel_retrieval)
         
-        docs = []        
+#         docs = []        
 
-        for q in search_queries:      
-            if debugMode=="Debug":
-                st.info(f"검색을 수행합니다. 검색어: {q}")
+#         for q in search_queries:      
+#             if debugMode=="Debug":
+#                 st.info(f"검색을 수행합니다. 검색어: {q}")
 
-            #docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
-            tavily_docs = retrieve_documents_from_tavily(q, top_k=numberOfDocs)
+#             #docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
+#             tavily_docs = retrieve_documents_from_tavily(q, top_k=numberOfDocs)
         
-            # grade
-            docs += grade_documents(q, tavily_docs) # grading
+#             # grade
+#             docs += grade_documents(q, tavily_docs) # grading
             
-        docs = check_duplication(docs) # check duplication
-        for i, doc in enumerate(docs):
-            print(f"#### {i}: {doc.page_content[:100]}")
+#         docs = check_duplication(docs) # check duplication
+#         for i, doc in enumerate(docs):
+#             print(f"#### {i}: {doc.page_content[:100]}")
             
-        return docs
+#         return docs
 
-    def buildReflection():
-        workflow = StateGraph(ReflectionState)
+#     def buildReflection():
+#         workflow = StateGraph(ReflectionState)
 
-        # Add nodes
-        workflow.add_node("reflect_node", reflect_node)
-        workflow.add_node("revise_draft", revise_draft)
+#         # Add nodes
+#         workflow.add_node("reflect_node", reflect_node)
+#         workflow.add_node("revise_draft", revise_draft)
 
-        # Set entry point
-        workflow.set_entry_point("reflect_node")
+#         # Set entry point
+#         workflow.set_entry_point("reflect_node")
         
-        workflow.add_conditional_edges(
-            "revise_draft", 
-            should_continue, 
-            {
-                "end": END, 
-                "continue": "reflect_node"
-            }
-        )
+#         workflow.add_conditional_edges(
+#             "revise_draft", 
+#             should_continue, 
+#             {
+#                 "end": END, 
+#                 "continue": "reflect_node"
+#             }
+#         )
 
-        # Add edges
-        workflow.add_edge("reflect_node", "revise_draft")
+#         # Add edges
+#         workflow.add_edge("reflect_node", "revise_draft")
         
-        return workflow.compile()
+#         return workflow.compile()
     
-    # initiate
-    global reference_docs, contentList
-    reference_docs = []
-    contentList =  []
+#     # initiate
+#     global reference_docs, contentList
+#     reference_docs = []
+#     contentList =  []
 
-    # workflow
-    reflection_app = buildReflection()
+#     # workflow
+#     reflection_app = buildReflection()
                 
-    final_doc = ""   
-    references = []
+#     final_doc = ""   
+#     references = []
 
-    inputs = {
-        "draft": draft
-    }                    
-    app_config = {
-        "recursion_limit": 50,
-        "max_revisions": MAX_REVISIONS,
-        "parallel_retrieval": "disable"
-    }
-    output = reflection_app.invoke(inputs, config=app_config)
-    final_doc += output['revised_draft'] + '\n\n'
+#     inputs = {
+#         "draft": draft
+#     }                    
+#     app_config = {
+#         "recursion_limit": 50,
+#         "max_revisions": MAX_REVISIONS,
+#         "parallel_retrieval": "disable"
+#     }
+#     output = reflection_app.invoke(inputs, config=app_config)
+#     final_doc += output['revised_draft'] + '\n\n'
 
-    if 'references' in output:
-        references += output['references']
+#     if 'references' in output:
+#         references += output['references']
 
-    print('references: ', references)
+#     print('references: ', references)
 
-    markdown_references = ""
-    if references:
-        markdown_references = get_references(references)
+#     markdown_references = ""
+#     if references:
+#         markdown_references = get_references(references)
 
-    return final_doc+markdown_references
+#     return final_doc+markdown_references
 
 
