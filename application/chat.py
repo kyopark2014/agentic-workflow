@@ -525,8 +525,8 @@ def retrieve_documents_from_tavily(query, top_k):
 
     return relevant_documents 
 
-def get_references(docs):
-    reference = "\n\n### 관련 문서\n"
+def get_references(docs):    
+    reference = ""
     for i, doc in enumerate(docs):
         page = ""
         if "page" in doc.metadata:
@@ -540,7 +540,7 @@ def get_references(docs):
         if "name" in doc.metadata:
             name = doc.metadata['name']
             #print('name: ', name)     
-           
+        
         sourceType = ""
         if "from" in doc.metadata:
             sourceType = doc.metadata['from']
@@ -568,9 +568,13 @@ def get_references(docs):
         print('excerpt(quotation removed): ', excerpt)
         
         if page:                
-            reference = reference + f"{i+1}. {page}page in [{name}]({url})), {excerpt[:40]}...\n"
+            reference += f"{i+1}. {page}page in [{name}]({url})), {excerpt[:40]}...\n"
         else:
-            reference = reference + f"{i+1}. [{name}]({url}), {excerpt[:40]}...\n"
+            reference += f"{i+1}. [{name}]({url}), {excerpt[:40]}...\n"
+
+    if reference: 
+        reference = "\n\n### 관련 문서\n"+reference
+
     return reference
 
 def tavily_search(query, k):
@@ -964,22 +968,28 @@ def retrieve_documents_from_knowledge_base(query, top_k):
 def generate_answer_using_RAG(chat, context, question):    
     if isKorean(question)==True:
         system = (
-            """다음의 <context> tag안의 참고자료를 이용하여 상황에 맞는 구체적인 세부 정보를 충분히 제공합니다. Assistant의 이름은 서연이고, 모르는 질문을 받으면 솔직히 모른다고 말합니다.
-            
-            <context>
-            {context}
-            </context>"""
+            "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
+            "다음의 Reference texts을 이용하여 user의 질문에 답변합니다."
+            "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+            "답변의 이유를 풀어서 명확하게 설명합니다."
+            "결과는 <result> tag를 붙여주세요."
+            "답변은 markdown 포맷을 사용하지 않습니다."
         )
     else: 
         system = (
-            """Here is pieces of context, contained in <context> tags. Provide a concise answer to the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-            
-            <context>
-            {context}
-            </context>"""
+            "You will be acting as a thoughtful advisor."
+            "Provide a concise answer to the question at the end using reference texts." 
+            "If you don't know the answer, just say that you don't know, don't try to make up an answer."
+            "You will only answer in text format, using markdown format is not allowed."
+            "Put it in <result> tags."
         )
     
-    human = "{input}"
+    human = (
+        "Question: {input}"
+
+        "Reference texts: "
+        "{context}"
+    )
     
     prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
     # print('prompt: ', prompt)
@@ -1005,7 +1015,8 @@ def generate_answer_using_RAG(chat, context, question):
 
 def run_rag_with_knowledge_base(text, st, debugMode):
     global reference_docs, contentList
-    reference_docs = contentList = []
+    reference_docs = []
+    contentList = []
 
     chat = get_chat()
     
@@ -1017,23 +1028,23 @@ def run_rag_with_knowledge_base(text, st, debugMode):
         st.info(f"검색을 수행합니다. 검색어: {text}")
     
     relevant_docs = retrieve_documents_from_knowledge_base(text, top_k=top_k)
-    relevant_docs += retrieve_documents_from_tavily(text, top_k=top_k)
+    # relevant_docs += retrieve_documents_from_tavily(text, top_k=top_k)
 
     # grade   
     if debugMode == "Debug":
         st.info(f"가져온 문서를 평가하고 있습니다.")
 
-    docs = []
-    for doc in relevant_docs:
-        chat = get_chat()
-        if not isKorean(doc.page_content):
-            translated_content = traslation(chat, doc.page_content, "English", "Korean")
-            doc.page_content = translated_content
-            print("doc.page_content: ", doc.page_content)
-        docs.append(doc)
-    print('translated relevant docs: ', docs)
+    # docs = []
+    # for doc in relevant_docs:
+    #     chat = get_chat()
+    #     if not isKorean(doc.page_content):
+    #         translated_content = traslation(chat, doc.page_content, "English", "Korean")
+    #         doc.page_content = translated_content
+    #         print("doc.page_content: ", doc.page_content)
+    #     docs.append(doc)
+    # print('translated relevant docs: ', docs)
 
-    filtered_docs = grade_documents(text, docs)
+    filtered_docs = grade_documents(text, relevant_docs)
     
     filtered_docs = check_duplication(filtered_docs) # duplication checker
             
@@ -1169,6 +1180,95 @@ tavily_tool = TavilySearchResults(
     search_depth="advanced", # "basic"
     # include_domains=["google.com", "naver.com"]
 )
+     
+@tool    
+def search_by_knowledge_base(keyword: str) -> str:
+    """
+    Search technical information by keyword and then return the result as a string.
+    keyword: search keyword
+    return: the technical information of keyword
+    """    
+    print("###### search_by_knowledge_base ######")    
+    
+    global reference_docs
+
+   
+    
+    print('keyword: ', keyword)
+    keyword = keyword.replace('\'','')
+    keyword = keyword.replace('|','')
+    keyword = keyword.replace('\n','')
+    print('modified keyword: ', keyword)
+    
+    top_k = numberOfDocs
+    relevant_docs = []
+    if knowledge_base_id:    
+        retriever = AmazonKnowledgeBasesRetriever(
+            knowledge_base_id=knowledge_base_id, 
+            retrieval_config={"vectorSearchConfiguration": {
+                "numberOfResults": top_k,
+                "overrideSearchType": "HYBRID"   # SEMANTIC
+            }},
+        )
+        
+        docs = retriever.invoke(keyword)
+        # print('docs: ', docs)
+        print('--> docs from knowledge base')
+        for i, doc in enumerate(docs):
+            # print_doc(i, doc)
+            
+            content = ""
+            if doc.page_content:
+                content = doc.page_content
+            
+            score = doc.metadata["score"]
+            
+            link = ""
+            if "s3Location" in doc.metadata["location"]:
+                link = doc.metadata["location"]["s3Location"]["uri"] if doc.metadata["location"]["s3Location"]["uri"] is not None else ""
+                
+                # print('link:', link)    
+                pos = link.find(f"/{doc_prefix}")
+                name = link[pos+len(doc_prefix)+1:]
+                encoded_name = parse.quote(name)
+                # print('name:', name)
+                link = f"{path}{doc_prefix}{encoded_name}"
+                
+            elif "webLocation" in doc.metadata["location"]:
+                link = doc.metadata["location"]["webLocation"]["url"] if doc.metadata["location"]["webLocation"]["url"] is not None else ""
+                name = "WEB"
+
+            url = link
+            # print('url:', url)
+            
+            relevant_docs.append(
+                Document(
+                    page_content=content,
+                    metadata={
+                        'name': name,
+                        'score': score,
+                        'url': url,
+                        'from': 'RAG'
+                    },
+                )
+            )    
+    
+    # grading        
+    filtered_docs = grade_documents(keyword, relevant_docs)
+
+    filtered_docs = check_duplication(filtered_docs) # duplication checker
+
+    relevant_context = ""
+    for i, document in enumerate(filtered_docs):
+        print(f"{i}: {document}")
+        if document.page_content:
+            relevant_context += document.page_content + "\n\n"        
+    print('relevant_context: ', relevant_context)
+    
+    if len(filtered_docs):
+        reference_docs += filtered_docs
+            
+    return relevant_context
 
 @tool
 def search_by_tavily(keyword: str) -> str:
@@ -1221,14 +1321,13 @@ def search_by_tavily(keyword: str) -> str:
         
     return answer
 
-tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily]        
+tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base]        
 
 ####################### LangGraph #######################
 # Chat Agent Executor
 #########################################################
 def run_agent_executor(query, st, debugMode):
-    chatModel = get_chat() 
-    
+    chatModel = get_chat()     
     model = chatModel.bind_tools(tools)
 
     class State(TypedDict):
@@ -1271,6 +1370,11 @@ def run_agent_executor(query, st, debugMode):
     def call_model(state: State, config):
         print("###### call_model ######")
         print('state: ', state["messages"])
+
+        print("[Reference Doc]")
+        for i, doc in enumerate(reference_docs):
+            print(f"--> {i}: {doc}")
+
                 
         if isKorean(state["messages"][0].content)==True:
             system = (
@@ -1358,7 +1462,8 @@ def run_agent_executor(query, st, debugMode):
 
     # initiate
     global reference_docs, contentList
-    reference_docs = contentList = []
+    reference_docs = []
+    contentList = []
 
     # workflow 
     app = buildChatAgent()
@@ -1368,14 +1473,15 @@ def run_agent_executor(query, st, debugMode):
         "recursion_limit": 50
     }
     
-    message = ""
-    for event in app.stream({"messages": inputs}, config, stream_mode="values"):   
-        # print('event: ', event)
-        
-        message = event["messages"][-1]
-        # print('message: ', message)
+    # msg = message.content
+    result = app.invoke({"messages": inputs}, config)
+    #print("result: ", result)
 
-    msg = message.content
+    msg = result["messages"][-1].content
+    print("msg: ", msg)
+
+    for i, doc in enumerate(reference_docs):
+        print(f"--> {i}: {doc}")
         
     reference = ""
     if reference_docs:
@@ -1722,6 +1828,9 @@ def run_knowledge_guru(query, st, debugMode):
         
         draft = enhanced_search(state['messages'][0].content, config, st, debugMode)  
         print('draft: ', draft)
+
+        if debugMode=="Debug":
+            st.info(f"생성된 초안: {draft}")
         
         return {
             "messages": [AIMessage(content=draft)]
@@ -1891,7 +2000,8 @@ def run_knowledge_guru(query, st, debugMode):
     
     # initiate
     global contentList, reference_docs
-    contentList = reference_docs = []
+    contentList = []
+    reference_docs = []
 
     # workflow
     app = buildKnowledgeGuru()
@@ -2233,7 +2343,8 @@ def run_planning(query, st, debugMode):
 
     # initiate
     global contentList, reference_docs
-    contentList = reference_docs = []
+    contentList = []
+    reference_docs = []
 
     # workflow
     app = buildPlanAndExecute()    
@@ -2430,11 +2541,11 @@ def run_long_form_writing_agent(query, st, debugMode):
                 if debugMode=="Debug":
                     st.info(f"검색을 수행합니다. 검색어: {q}")
 
-                #relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
-                tavily_docs = retrieve_documents_from_tavily(q, top_k=numberOfDocs)
+                relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
+                relevant_docs += retrieve_documents_from_tavily(q, top_k=numberOfDocs)
             
                 # grade
-                docs += grade_documents(q, tavily_docs) # grading
+                docs += grade_documents(q, relevant_docs) # grading
                     
             docs = check_duplication(docs) # check duplication
             for i, doc in enumerate(docs):
@@ -3087,7 +3198,8 @@ def run_long_form_writing_agent(query, st, debugMode):
     
     # initiate
     global contentList, reference_docs
-    contentList = reference_docs = []
+    contentList = []
+    reference_docs = []
     
     # Run the workflow
     app = buildLongformWriting()    
@@ -3384,7 +3496,8 @@ def run_long_form_writing_agent2(query, st, debugMode):
     
     # initiate
     global reference_docs, contentList
-    reference_docs = contentList =  []
+    reference_docs = []
+    contentList =  []
 
     # workflow
     reflection_app = buildReflection()
