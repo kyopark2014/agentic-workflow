@@ -499,7 +499,7 @@ Agentic Workflow(Tool Use) 메뉴를 선택하여 오늘 서울의 날씨에 대
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/8f8d2e94-8be1-4b75-8795-4db9a8fa340f" />
 
 
-RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주세요."라고 질문을 하면, 이번에는 좀더 나은 답변을 얻었습니다. 
+RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주세요."라고 질문을 하면, 이번에는 좀더 나은 답변을 얻었습니다. 
 
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/969e9b84-5b80-4948-8627-f86bd2af26bc" />
 
