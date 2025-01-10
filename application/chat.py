@@ -99,7 +99,7 @@ knowledge_base_name = projectName
 numberOfDocs = 4
 MSG_LENGTH = 100    
 grade_state = "LLM" # LLM, PRIORITY_SEARCH, OTHERS
-parallel_processing = 'disable'
+parallel_processing = 'enable'
 
 doc_prefix = s3_prefix+'/'
 useEnhancedSearch = False
@@ -1401,37 +1401,38 @@ def run_agent_executor(query, st, debugMode):
                     
                 response = chain.invoke(state["messages"])
                 print('call_model response: ', response)
-            
-                # for re in response.content:
-                #     if "type" in re:
-                #         if re['type'] == 'text':
-                #             print(f"--> {re['type']}: {re['text']}")
 
-                #             status = re['text']
-                #             print('status: ',status)
-                            
-                #             status = status.replace('`','')
-                #             status = status.replace('\"','')
-                #             status = status.replace("\'",'')
-                            
-                #             print('status: ',status)
-                #             if status.find('<thinking>') != -1:
-                #                 print('Remove <thinking> tag.')
-                #                 status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                #                 print('status without tag: ', status)
+                if isinstance(response.content, list):            
+                    for re in response.content:
+                        if "type" in re:
+                            if re['type'] == 'text':
+                                print(f"--> {re['type']}: {re['text']}")
 
-                #             if debugMode=="Debug":
-                #                 st.info(status)
-                            
-                #         elif re['type'] == 'tool_use':                
-                #             print(f"--> {re['type']}: {re['name']}, {re['input']}")
+                                status = re['text']
+                                print('status: ',status)
+                                
+                                status = status.replace('`','')
+                                status = status.replace('\"','')
+                                status = status.replace("\'",'')
+                                
+                                print('status: ',status)
+                                if status.find('<thinking>') != -1:
+                                    print('Remove <thinking> tag.')
+                                    status = status[status.find('<thinking>')+11:status.find('</thinking>')]
+                                    print('status without tag: ', status)
 
-                #             if debugMode=="Debug":
-                #                 st.info(f"{re['type']}: {re['name']}, {re['input']}")
-                #         else:
-                #             print(re)
-                #     else: # answer
-                #         print(response.content)
+                                if debugMode=="Debug":
+                                    st.info(status)
+                                
+                            elif re['type'] == 'tool_use':                
+                                print(f"--> {re['type']}: {re['name']}, {re['input']}")
+
+                                if debugMode=="Debug":
+                                    st.info(f"{re['type']}: {re['name']}, {re['input']}")
+                            else:
+                                print(re)
+                        else: # answer
+                            print(response.content)
                 break
             except Exception:
                 response = AIMessage(content="답변을 찾지 못하였습니다.")
@@ -1547,31 +1548,32 @@ def run_agent_executor2(query, st, debugMode):
         else:
             answer = ""
 
-        for re in response.content:
-            if "type" in re:
-                if re['type'] == 'text':
-                    print(f"--> {re['type']}: {re['text']}")
+        if isinstance(response.content, list):      
+            for re in response.content:
+                if "type" in re:
+                    if re['type'] == 'text':
+                        print(f"--> {re['type']}: {re['text']}")
 
-                    status = re['text']
-                    if status.find('<thinking>') != -1:
-                        print('Remove <thinking> tag.')
-                        status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                        print('status without tag: ', status)
+                        status = re['text']
+                        if status.find('<thinking>') != -1:
+                            print('Remove <thinking> tag.')
+                            status = status[status.find('<thinking>')+11:status.find('</thinking>')]
+                            print('status without tag: ', status)
 
-                    if debugMode=="Debug":
-                        st.info(status)
+                        if debugMode=="Debug":
+                            st.info(status)
 
-                elif re['type'] == 'tool_use':                
-                    print(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
+                    elif re['type'] == 'tool_use':                
+                        print(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
 
-                    if debugMode=="Debug":
-                        st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
-                else:
-                    print(re)
-            else: # answer
-                answer += '\n'+response.content
-                print(response.content)
-                break
+                        if debugMode=="Debug":
+                            st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
+                    else:
+                        print(re)
+                else: # answer
+                    answer += '\n'+response.content
+                    print(response.content)
+                    break
 
         response = AIMessage(**response.dict(exclude={"type", "name"}), name=name)     
         print('message: ', response)
