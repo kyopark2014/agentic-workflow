@@ -1388,57 +1388,57 @@ def run_agent_executor(query, st, debugMode):
                 "You will be acting as a thoughtful advisor."    
             )
 
-        for attempt in range(20):   
-            print('attempt: ', attempt)
-            try:
-                prompt = ChatPromptTemplate.from_messages(
-                    [
-                        ("system", system),
-                        MessagesPlaceholder(variable_name="messages"),
-                    ]
-                )
-                chain = prompt | model
-                    
-                response = chain.invoke(state["messages"])
-                print('call_model response: ', response)
-            
-                for re in response.content:
-                    if "type" in re:
-                        if re['type'] == 'text':
-                            print(f"--> {re['type']}: {re['text']}")
+        #for attempt in range(20):   
+        #print('attempt: ', attempt)
+        try:
+            prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", system),
+                    MessagesPlaceholder(variable_name="messages"),
+                ]
+            )
+            chain = prompt | model
+                
+            response = chain.invoke(state["messages"])
+            print('call_model response: ', response)
+        
+            for re in response.content:
+                if "type" in re:
+                    if re['type'] == 'text':
+                        print(f"--> {re['type']}: {re['text']}")
 
-                            status = re['text']
-                            print('status: ',status)
-                            
-                            status = status.replace('`','')
-                            status = status.replace('\"','')
-                            status = status.replace("\'",'')
-                            
-                            print('status: ',status)
-                            if status.find('<thinking>') != -1:
-                                print('Remove <thinking> tag.')
-                                status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                                print('status without tag: ', status)
+                        status = re['text']
+                        print('status: ',status)
+                        
+                        status = status.replace('`','')
+                        status = status.replace('\"','')
+                        status = status.replace("\'",'')
+                        
+                        print('status: ',status)
+                        if status.find('<thinking>') != -1:
+                            print('Remove <thinking> tag.')
+                            status = status[status.find('<thinking>')+11:status.find('</thinking>')]
+                            print('status without tag: ', status)
 
-                            if debugMode=="Debug":
-                                st.info(status)
-                            
-                        elif re['type'] == 'tool_use':                
-                            print(f"--> {re['type']}: {re['name']}, {re['input']}")
+                        if debugMode=="Debug":
+                            st.info(status)
+                        
+                    elif re['type'] == 'tool_use':                
+                        print(f"--> {re['type']}: {re['name']}, {re['input']}")
 
-                            if debugMode=="Debug":
-                                st.info(f"{re['type']}: {re['name']}, {re['input']}")
-                        else:
-                            print(re)
-                    else: # answer
-                        print(response.content)
-                break
-            except Exception:
-                response = AIMessage(content="답변을 찾지 못하였습니다.")
+                        if debugMode=="Debug":
+                            st.info(f"{re['type']}: {re['name']}, {re['input']}")
+                    else:
+                        print(re)
+                else: # answer
+                    print(response.content)
+            #break
+        except Exception:
+            response = AIMessage(content="답변을 찾지 못하였습니다.")
 
-                err_msg = traceback.format_exc()
-                print('error message: ', err_msg)
-                # raise Exception ("Not able to request to LLM")
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg)
+            # raise Exception ("Not able to request to LLM")
 
         return {"messages": [response]}
 
