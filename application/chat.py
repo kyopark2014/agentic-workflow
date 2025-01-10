@@ -394,7 +394,10 @@ def grade_documents_using_parallel_processing(question, documents):
     for process in processes:
         process.join()
     
-    #print('filtered_docs: ', filtered_docs)
+    print('filtered_docs: ', filtered_docs)
+    for process in processes:
+        process.close()
+    
     return filtered_docs
 
 class GradeDocuments(BaseModel):

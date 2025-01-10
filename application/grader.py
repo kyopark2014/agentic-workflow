@@ -31,6 +31,5 @@ def grade_documents_using_parallel_processing(question, documents):
 
     for process in processes:
         process.join()
-    
-    #print('filtered_docs: ', filtered_docs)
+        
     return filtered_docs
