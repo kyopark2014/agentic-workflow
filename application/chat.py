@@ -99,14 +99,14 @@ knowledge_base_name = projectName
 numberOfDocs = 4
 MSG_LENGTH = 100    
 grade_state = "LLM" # LLM, PRIORITY_SEARCH, OTHERS
-multi_region = 'disable'
+parallel_processing = 'disable'
 minDocSimilarity = 400
 length_of_models = 1
 doc_prefix = s3_prefix+'/'
 useEnhancedSearch = False
 max_attempt = 10
 
-multi_region_models = [   # Nova Pro
+parallel_processing_models = [   # Nova Pro
     {   
         "bedrock_region": "us-west-2", # Oregon
         "model_type": "nova",
@@ -151,8 +151,8 @@ def save_chat_history(text, msg):
 def get_chat():
     global selected_chat
     
-    profile = multi_region_models[selected_chat]
-    length_of_models = len(multi_region_models)
+    profile = parallel_processing_models[selected_chat]
+    length_of_models = len(parallel_processing_models)
         
     bedrock_region =  profile['bedrock_region']
     modelId = profile['model_id']
@@ -191,7 +191,7 @@ def get_chat():
     
     return chat
 
-def get_multi_region_chat(models, selected):
+def get_parallel_processing_chat(models, selected):
     profile = models[selected]
     bedrock_region =  profile['bedrock_region']
     modelId = profile['model_id']
@@ -349,7 +349,7 @@ def traslation(chat, text, input_language, output_language):
     return msg[msg.find('<result>')+8:len(msg)-9] # remove <result> tag
     
 def grade_document_based_on_relevance(conn, question, doc, models, selected):     
-    chat = get_multi_region_chat(models, selected)
+    chat = get_parallel_processing_chat(models, selected)
     retrieval_grader = get_retrieval_grader(chat)
     score = retrieval_grader.invoke({"question": question, "document": doc.page_content})
     # print(f"score: {score}")
@@ -377,7 +377,7 @@ def grade_documents_using_parallel_processing(question, documents):
         parent_conn, child_conn = Pipe()
         parent_connections.append(parent_conn)
             
-        process = Process(target=grade_document_based_on_relevance, args=(child_conn, question, doc, multi_region_models, selected_chat))
+        process = Process(target=grade_document_based_on_relevance, args=(child_conn, question, doc, parallel_processing_models, selected_chat))
         processes.append(process)
 
         selected_chat = selected_chat + 1
@@ -427,7 +427,7 @@ def grade_documents(question, documents):
     
     if grade_state == "LLM":
         filtered_docs = []
-        if multi_region == 'enable':  # parallel processing        
+        if parallel_processing == 'enable':  # parallel processing        
             filtered_docs = grade_documents_using_parallel_processing(question, documents)
 
         else:
@@ -2167,6 +2167,10 @@ def run_planning(query, st, debugMode):
         print('task: ', plan[0])
         print('executor output: ', result)
 
+        global reference_docs
+        if len(filtered_docs):
+            reference_docs += filtered_docs
+
         if debugMode=="Debug":
             st.info(f"현 단계의 결과 {result}")
         
@@ -3181,7 +3185,7 @@ def run_long_form_writing_agent(query, st, debugMode):
     }    
     config = {
         "recursion_limit": 100,
-        "parallel_revise": multi_region
+        "parallel_revise": parallel_processing
     }
     
     output = app.invoke(inputs, config)
