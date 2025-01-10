@@ -1431,6 +1431,7 @@ def run_agent_executor(query, st, debugMode):
                     else:
                         print(re)
                 else: # answer
+                    print(f"--> answer: {re}")
                     print(response.content)
             #break
         except Exception:
