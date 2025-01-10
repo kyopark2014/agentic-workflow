@@ -1480,12 +1480,12 @@ def run_agent_executor(query, st, debugMode):
     msg = result["messages"][-1].content
     print("msg: ", msg)
 
-    for i, doc in enumerate(reference_docs):
-        print(f"--> {i}: {doc}")
+    # for i, doc in enumerate(reference_docs):
+    #     print(f"--> {i}: {doc}")
         
     reference = ""
-    if reference_docs:
-        reference = get_references(reference_docs)
+    # if reference_docs:
+    #     reference = get_references(reference_docs)
     
     return msg+reference
 
