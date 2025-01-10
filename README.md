@@ -221,6 +221,64 @@ message = app.invoke({"messages": inputs}, config)
 print(event["messages"][-1].content)
 ```
 
+```python
+system = (
+    "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
+    "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
+    "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+    "최종 답변에는 조사한 내용을 반드시 포함합니다."
+)
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system),
+        MessagesPlaceholder(variable_name="messages"),
+    ]
+)
+chain = prompt | model
+        
+response = chain.invoke(state["messages"])
+            
+                for re in response.content:
+                    if "type" in re:
+                        if re['type'] == 'text':
+                            print(f"--> {re['type']}: {re['text']}")
+
+                            status = re['text']
+                            print('status: ',status)
+                            
+                            status = status.replace('`','')
+                            status = status.replace('\"','')
+                            status = status.replace("\'",'')
+                            
+                            print('status: ',status)
+                            if status.find('<thinking>') != -1:
+                                print('Remove <thinking> tag.')
+                                status = status[status.find('<thinking>')+11:status.find('</thinking>')]
+                                print('status without tag: ', status)
+
+                            if debugMode=="Debug":
+                                st.info(status)
+                            
+                        elif re['type'] == 'tool_use':                
+                            print(f"--> {re['type']}: {re['name']}, {re['input']}")
+
+                            if debugMode=="Debug":
+                                st.info(f"{re['type']}: {re['name']}, {re['input']}")
+                        else:
+                            print(re)
+                    else: # answer
+                        print(response.content)
+                break
+            except Exception:
+                response = AIMessage(content="답변을 찾지 못하였습니다.")
+
+                err_msg = traceback.format_exc()
+                print('error message: ', err_msg)
+                # raise Exception ("Not able to request to LLM")
+
+        return {"messages": [response]}
+
 ### Agentic Workflow: Reflection
 
 <img width="205" alt="image" src="https://github.com/user-attachments/assets/5a9b547f-afc8-427e-9172-9dc5648ec512" />
