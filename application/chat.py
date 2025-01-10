@@ -99,12 +99,10 @@ knowledge_base_name = projectName
 numberOfDocs = 4
 MSG_LENGTH = 100    
 grade_state = "LLM" # LLM, PRIORITY_SEARCH, OTHERS
-parallel_processing = 'disable'
-minDocSimilarity = 400
-length_of_models = 1
+parallel_processing = 'enable'
+
 doc_prefix = s3_prefix+'/'
 useEnhancedSearch = False
-max_attempt = 10
 
 parallel_processing_models = [   # Nova Pro
     {   
@@ -124,6 +122,7 @@ parallel_processing_models = [   # Nova Pro
     }
 ]
 selected_chat = 0
+number_of_models = len(parallel_processing_models)
 STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
 
 userId = "demo"
@@ -152,7 +151,6 @@ def get_chat():
     global selected_chat
     
     profile = parallel_processing_models[selected_chat]
-    length_of_models = len(parallel_processing_models)
         
     bedrock_region =  profile['bedrock_region']
     modelId = profile['model_id']
@@ -186,7 +184,7 @@ def get_chat():
     )    
     
     selected_chat = selected_chat + 1
-    if selected_chat == length_of_models:
+    if selected_chat == number_of_models:
         selected_chat = 0
     
     return chat
@@ -381,7 +379,7 @@ def grade_documents_using_parallel_processing(question, documents):
         processes.append(process)
 
         selected_chat = selected_chat + 1
-        if selected_chat == length_of_models:
+        if selected_chat == number_of_models:
             selected_chat = 0
     for process in processes:
         process.start()
@@ -2012,7 +2010,8 @@ def run_knowledge_guru(query, st, debugMode):
     inputs = [HumanMessage(content=query)]
     config = {
         "recursion_limit": 50,
-        "max_revisions": MAX_REVISIONS
+        "max_revisions": MAX_REVISIONS,
+        "parallel_processing": parallel_processing
     }
     
     for output in app.stream({"messages": inputs}, config):   
@@ -2915,11 +2914,17 @@ def run_long_form_writing_agent(query, st, debugMode):
     def reflect_draft(conn, reflection_app, idx, config, draft):     
         inputs = {
             "draft": draft
-        }            
-        output = reflection_app.invoke(inputs, config)
-        
-        print('idx: ', idx)
-        
+        }     
+
+        try:        
+            output = reflection_app.invoke(inputs, config)
+            print('idx: ', idx)
+
+        except Exception:
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg)                    
+            # raise Exception ("Not able to request to LLM")    
+    
         result = {
             "revised_draft": output['revised_draft'],
             "idx": idx,
@@ -3159,17 +3164,17 @@ def run_long_form_writing_agent(query, st, debugMode):
         workflow = StateGraph(State)
 
         # Add nodes
-        workflow.add_node("planning_node", plan_node)
+        workflow.add_node("plan_node", plan_node)
         workflow.add_node("execute_node", execute_node)
-        workflow.add_node("revising_node", revise_answer)
+        workflow.add_node("revise_answer", revise_answer)
 
         # Set entry point
-        workflow.set_entry_point("planning_node")
+        workflow.set_entry_point("plan_node")
 
         # Add edges
-        workflow.add_edge("planning_node", "execute_node")
-        workflow.add_edge("execute_node", "revising_node")
-        workflow.add_edge("revising_node", END)
+        workflow.add_edge("plan_node", "execute_node")
+        workflow.add_edge("execute_node", "revise_answer")
+        workflow.add_edge("revise_answer", END)
         
         return workflow.compile()
     
