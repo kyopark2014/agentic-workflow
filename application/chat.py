@@ -1265,8 +1265,12 @@ def search_by_knowledge_base(keyword: str) -> str:
     
     if len(filtered_docs):
         reference_docs += filtered_docs
-            
-    return relevant_context
+        return relevant_context
+    else:        
+        no_content_msg = "No relevant documents found."
+        print(f"--> {no_content_msg}")
+        return no_content_msg
+    
 
 @tool
 def search_by_tavily(keyword: str) -> str:
