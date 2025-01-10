@@ -479,7 +479,7 @@ sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-u
 
 ![image](https://github.com/user-attachments/assets/89dbe5f3-0dd1-4829-af80-a5fc51ad03e7)
 
-이번에는 "Bedrock Agent와 S3를 비교해 주세요" 라고 입력후에 결과를 확인합니다. RAG만 적용한 경우에는 사용자의 질문을 그대로 검색하는데, 정확히 관련된 문서가 없으면 적절히 답변할 수 없습니다. 이 문제는 agent를 이용하였을때 query decomposition으로 해결할 수 있습니다. 
+이번에는 "Bedrock Agent와 S3를 비교해 주세요" 라고 입력후에 결과를 확인합니다. RAG만 적용한 경우에는 사용자의 질문을 그대로 검색하는데, 정확히 관련된 문서가 없으면 적절히 답변할 수 없습니다. 
 
 ![image](https://github.com/user-attachments/assets/a365357a-aaec-4745-ab74-fc3bcb769873)
 
