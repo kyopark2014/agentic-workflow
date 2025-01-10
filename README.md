@@ -485,22 +485,24 @@ sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-u
 
 메뉴에서 RAG를 선택하고 "Amazon Nova Pro 모델에 대해 설명해주세요"라고 입력하고 결과를 확인하면 아래와 같습니다. RAG는 retrieve - grade - generate의 단계를 통해 질문에 대한 답변 및 관련 문서를 제공합니다. RAG의 경우에 query decomposition을 하지 못하므로 입력된 질문을 Knowledge base로 구현된 RAG에 직접 질문하게 됩니다.
 
-<img width="700" alt="image" src="https://github.com/user-attachments/assets/f84e4fa2-c7b8-492f-8c0c-82b32cb1426b" />
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/f84e4fa2-c7b8-492f-8c0c-82b32cb1426b" />
 
 
 ### Agentic Workflow
 
 Agentic Workflow(Tool Use) 메뉴를 선택하여 오늘 서울의 날씨에 대해 질문을 하면, 아래와 같이 입력하고 결과를 확인합니다. LangGraph로 구현된 Tool Use 패턴의 agent는 날씨에 대한 요청이 올 경우에 openweathermap의 API를 요청해 날씨정보를 조회하여 활용할 수 있습니다. 
 
-![image](https://github.com/user-attachments/assets/4693c1ff-b7e9-43f5-b7b7-af354b572f07)
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/4693c1ff-b7e9-43f5-b7b7-af354b572f07" />
 
 아래와 같은 질문은 LLM이 가지고 있지 않은 정보이므로, 인터넷 검색을 수행하고 그 결과로 아래와 같은 답변을 얻었습니다.
 
-![image](https://github.com/user-attachments/assets/8f8d2e94-8be1-4b75-8795-4db9a8fa340f)
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/8f8d2e94-8be1-4b75-8795-4db9a8fa340f" />
+
 
 RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주세요."라고 질문을 하면, 이번에는 좀더 나은 답변을 얻었습니다. 
 
-![noname](https://github.com/user-attachments/assets/969e9b84-5b80-4948-8627-f86bd2af26bc)
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/969e9b84-5b80-4948-8627-f86bd2af26bc" />
+
 
 메뉴에서 multi-agent collaboration을 선택한 후에 "지방 조직이 분비하는 exosome들이 어떻게 면역체계에 역할을 하고 어떻게 하면 좋은 exosome들을 분비시켜 당뇨나 병을 예방할수 있는지 알려주세요."라고 입력합니다. 이때 생성된 결과는 아래와 같습니다.
 
