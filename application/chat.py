@@ -396,7 +396,7 @@ def grade_documents_using_parallel_processing(question, documents):
     
     print('filtered_docs: ', filtered_docs)
     for process in processes:
-        process.close()
+        process.terminate()
     
     return filtered_docs
 
