@@ -11,7 +11,6 @@ import time
 import logging
 import base64
 import operator
-import grader
 
 from io import BytesIO
 from PIL import Image
@@ -100,7 +99,7 @@ knowledge_base_name = projectName
 numberOfDocs = 4
 MSG_LENGTH = 100    
 grade_state = "LLM" # LLM, PRIORITY_SEARCH, OTHERS
-parallel_processing = 'enable'
+parallel_processing = 'disable'
 
 doc_prefix = s3_prefix+'/'
 useEnhancedSearch = False
@@ -393,10 +392,6 @@ def grade_documents_using_parallel_processing(question, documents):
 
     for process in processes:
         process.join()
-    
-    print('filtered_docs: ', filtered_docs)
-    for process in processes:
-        process.kill()
     
     return filtered_docs
 
