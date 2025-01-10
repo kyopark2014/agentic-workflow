@@ -485,7 +485,7 @@ sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-u
 
 메뉴에서 RAG를 선택하고 "Amazon Nova Pro 모델에 대해 설명해주세요"라고 입력하고 결과를 확인하면 아래와 같습니다. RAG는 retrieve - grade - generate의 단계를 통해 질문에 대한 답변 및 관련 문서를 제공합니다. RAG의 경우에 query decomposition을 하지 못하므로 입력된 질문을 Knowledge base로 구현된 RAG에 직접 질문하게 됩니다.
 
-<img width="300" alt="image" src="https://github.com/user-attachments/assets/f84e4fa2-c7b8-492f-8c0c-82b32cb1426b" />
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/f84e4fa2-c7b8-492f-8c0c-82b32cb1426b" />
 
 
 ### Agentic Workflow
