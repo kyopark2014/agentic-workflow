@@ -326,6 +326,39 @@ message = app.invoke({"messages": inputs}, config)
 print(event["messages"][-1].content)
 ```
 
+Reflection에서는 부족(missing), 조언(advisable), 추가 검색어(search_queries)를 추출합니다. 아래와 같이 structued_output을 활용합니다.
+
+```python
+class Reflection(BaseModel):
+    missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
+    advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
+    superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
+
+class Research(BaseModel):
+    """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
+    reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
+    search_queries: list[str] = Field(
+        description="도출된 비평을 해결하기 위한 3개 이내의 검색어"            
+    )    
+
+def reflect(state: State, config):
+    reflection = []
+    search_queries = []
+
+    structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)    
+    info = structured_llm.invoke(state["messages"][-1].content)        
+    if not info['parsed'] == None:
+        parsed_info = info['parsed']
+        reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
+        search_queries = parsed_info.search_queries
+    return {
+        "messages": state["messages"],
+        "reflection": reflection,
+        "search_queries": search_queries
+    }
+```
+
+
 
 ### Agentic Workflow: Planning
 
