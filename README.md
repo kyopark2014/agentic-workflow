@@ -100,6 +100,7 @@ retriever = AmazonKnowledgeBasesRetriever(
 
 Knowledge base로 조회하여 얻어진 문서를 필요에 따라 아래와 같이 재정리합니다. 이때 파일 경로로 사용하는 url은 application에서 다운로드 가능하도록 CloudFront의 도메인과 파일명을 조화합여 생성합니다.
 
+```python
 documents = retriever.invoke(query)
 for doc in documents:
     content = ""
