@@ -225,12 +225,42 @@ message = app.invoke({"messages": inputs}, config)
 print(event["messages"][-1].content)
 ```
 
+Tool use 패턴의 agent는 정의된 tool 함수의 docstring을 이용해 목적에 맞는 tool을 선택합니다. 아래의 search_by_knowledge_base는 OpenSearch를 데이터 저장소로 사용하는 knowledbe base로 부터 관련된 문서를 얻어오는 tool의 예입니다.
+
+```python
+@tool    
+def search_by_knowledge_base(keyword: str) -> str:
+    """
+    Search technical information by keyword and then return the result as a string.
+    keyword: search keyword
+    return: the technical information of keyword
+    """    
+    
+    relevant_docs = []
+    if knowledge_base_id:    
+        retriever = AmazonKnowledgeBasesRetriever(
+            knowledge_base_id=knowledge_base_id, 
+            retrieval_config={"vectorSearchConfiguration": {
+                "numberOfResults": top_k,
+                "overrideSearchType": "HYBRID" 
+            }},
+        )        
+        docs = retriever.invoke(keyword)
+    
+    relevant_context = ""
+    for i, doc in enumerate(docs):
+        relevant_context += doc.page_content + "\n\n"        
+    return relevant_context    
+```
+
+
+
 아래와 같이 tool들로 tools를 정의한 후에 [bind_tools](https://python.langchain.com/docs/how_to/chat_models_universal_init/#using-a-configurable-model-declaratively)을 이용하여 call_model 노드를 정의합니다. 
 
 ```python
 tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base]        
 
-model = chat.bind_tools(tools)
+
 
 def call_model(state: State, config):
     system = (
@@ -245,6 +275,8 @@ def call_model(state: State, config):
             MessagesPlaceholder(variable_name="messages"),
         ]
     )
+
+    model = chat.bind_tools(tools)
     chain = prompt | model
         
     response = chain.invoke(state["messages"])
