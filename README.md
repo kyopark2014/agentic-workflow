@@ -225,7 +225,7 @@ message = app.invoke({"messages": inputs}, config)
 print(event["messages"][-1].content)
 ```
 
-아래와 같이 tool들로 tools를 정의한 후에 [bind_tools](https://python.langchain.com/docs/how_to/chat_models_universal_init/#using-a-configurable-model-declaratively) call_model 노드를 정의합니다. 
+아래와 같이 tool들로 tools를 정의한 후에 [bind_tools](https://python.langchain.com/docs/how_to/chat_models_universal_init/#using-a-configurable-model-declaratively)을 이용하여 call_model 노드를 정의합니다. 
 
 ```python
 tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base]        
