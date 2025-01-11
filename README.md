@@ -225,63 +225,41 @@ message = app.invoke({"messages": inputs}, config)
 print(event["messages"][-1].content)
 ```
 
+아래와 같이 tool들로 tools를 정의한 후에 [bind_tools](https://python.langchain.com/docs/how_to/chat_models_universal_init/#using-a-configurable-model-declaratively) call_model 노드를 정의합니다. 
+
 ```python
-system = (
-    "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
-    "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
-    "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-    "최종 답변에는 조사한 내용을 반드시 포함합니다."
-)
+tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base]        
 
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system),
-        MessagesPlaceholder(variable_name="messages"),
-    ]
-)
-chain = prompt | model
+model = chat.bind_tools(tools)
+
+def call_model(state: State, config):
+    system = (
+        "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
+        "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
+        "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+    )
+    
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            MessagesPlaceholder(variable_name="messages"),
+        ]
+    )
+    chain = prompt | model
         
-response = chain.invoke(state["messages"])
-            
-                for re in response.content:
-                    if "type" in re:
-                        if re['type'] == 'text':
-                            print(f"--> {re['type']}: {re['text']}")
+    response = chain.invoke(state["messages"])
 
-                            status = re['text']
-                            print('status: ',status)
-                            
-                            status = status.replace('`','')
-                            status = status.replace('\"','')
-                            status = status.replace("\'",'')
-                            
-                            print('status: ',status)
-                            if status.find('<thinking>') != -1:
-                                print('Remove <thinking> tag.')
-                                status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                                print('status without tag: ', status)
+    return {"messages": [response]}
+```
 
-                            if debugMode=="Debug":
-                                st.info(status)
-                            
-                        elif re['type'] == 'tool_use':                
-                            print(f"--> {re['type']}: {re['name']}, {re['input']}")
+또한, tool 노드는 아래와 같이 [ToolNode](https://langchain-ai.github.io/langgraph/reference/prebuilt/#langgraph.prebuilt.tool_node.ToolNode)을 이용해 정의합니다.
 
-                            if debugMode=="Debug":
-                                st.info(f"{re['type']}: {re['name']}, {re['input']}")
-                        else:
-                            print(re)
-                    else: # answer
-                        print(response.content)
-                break
-            except Exception:
-                response = AIMessage(content="답변을 찾지 못하였습니다.")
+```python
+from langgraph.prebuilt import ToolNode
 
-                err_msg = traceback.format_exc()
-                print('error message: ', err_msg)
-                # raise Exception ("Not able to request to LLM")
+tool_node = ToolNode(tools)
+```
 
-        return {"messages": [response]}
 
 ### Agentic Workflow: Reflection
 
