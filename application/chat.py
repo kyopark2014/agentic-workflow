@@ -1071,6 +1071,17 @@ def run_rag_with_knowledge_base(text, st, debugMode):
 
     return msg+reference
 
+def extract_thinking_tag(msg, st, debugMode):
+    if msg.find('<thinking>') != -1:
+        print('Remove <thinking> tag.')
+        status = msg[msg.find('<thinking>')+11:msg.find('</thinking>')]
+        print('status without tag: ', status)
+        msg = msg[msg.find('</thinking>')+12:]
+
+        if debugMode=="Debug":
+            st.info(status)
+    return msg
+
 ####################### LangGraph #######################
 # Agentic Workflow: Tool Use
 #########################################################
@@ -1189,9 +1200,7 @@ def search_by_knowledge_base(keyword: str) -> str:
     print("###### search_by_knowledge_base ######")    
     
     global reference_docs
-
-   
-    
+ 
     print('keyword: ', keyword)
     keyword = keyword.replace('\'','')
     keyword = keyword.replace('|','')
@@ -1271,11 +1280,10 @@ def search_by_knowledge_base(keyword: str) -> str:
         print(f"--> {no_content_msg}")
         return no_content_msg
     
-
 @tool
 def search_by_tavily(keyword: str) -> str:
     """
-    Search general information by keyword and then return the result as a string.
+    Search general knowledge by keyword and then return the result as a string.
     keyword: search keyword
     return: the information of keyword
     """    
@@ -1484,6 +1492,8 @@ def run_agent_executor(query, st, debugMode):
     reference = ""
     if reference_docs:
         reference = get_references(reference_docs)
+
+    msg = extract_thinking_tag(msg, st, debugMode)
     
     return msg+reference
 
@@ -1848,6 +1858,19 @@ def run_knowledge_guru(query, st, debugMode):
             description="1-3 search queries for researching improvements to address the critique of your current answer."
         )
     
+    class ReflectionKor(BaseModel):
+        missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
+        advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
+        superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
+
+    class ResearchKor(BaseModel):
+        """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
+
+        reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
+        search_queries: list[str] = Field(
+            description="도출된 비평을 해결하기 위한 3개 이내의 검색어"            
+        )    
+    
     def reflect(state: State, config):
         print("###### reflect ######")
         print('state: ', state["messages"])    
@@ -1860,7 +1883,10 @@ def run_knowledge_guru(query, st, debugMode):
         search_queries = []
         for attempt in range(20):
             chat = get_chat()
-            structured_llm = chat.with_structured_output(Research, include_raw=True)
+            if isKorean(state["messages"][-1].content):
+                structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
+            else:
+                structured_llm = chat.with_structured_output(Research, include_raw=True)
             
             info = structured_llm.invoke(state["messages"][-1].content)
             print(f'attempt: {attempt}, info: {info}')
