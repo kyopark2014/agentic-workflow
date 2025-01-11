@@ -215,14 +215,11 @@ workflow.add_conditional_edges(
 workflow.add_edge("action", "agent")
 
 app = workflow.compile()
-
 inputs = [HumanMessage(content=query)]
 config = {
     "recursion_limit": 50
 }
 message = app.invoke({"messages": inputs}, config)
-
-print(event["messages"][-1].content)
 ```
 
 Tool use 패턴의 agent는 정의된 tool 함수의 docstring을 이용해 목적에 맞는 tool을 선택합니다. 아래의 search_by_knowledge_base는 OpenSearch를 데이터 저장소로 사용하는 knowledbe base로 부터 관련된 문서를 얻어오는 tool의 예입니다. "Search technical information by keyword"로 정의하였으므로 질문이 기술적인 내용이라면 search_by_knowledge_base가 호출되게 됩니다.
@@ -260,8 +257,6 @@ def search_by_knowledge_base(keyword: str) -> str:
 ```python
 tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base]        
 
-
-
 def call_model(state: State, config):
     system = (
         "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
@@ -295,7 +290,11 @@ tool_node = ToolNode(tools)
 
 ### Agentic Workflow: Reflection
 
+Reflection은 generate, reflect, revise의 과정을 통해 초안(draft)을 향상시킵니다.
+
 <img width="205" alt="image" src="https://github.com/user-attachments/assets/5a9b547f-afc8-427e-9172-9dc5648ec512" />
+
+아래와 같이 generate, reflect, revise_answer로 된 노드를 구성하고 conditional edge인 should_continue()을 통해 max_revision만큼 반복합니다.
 
 ```python
 workflow = StateGraph(State)
@@ -329,6 +328,8 @@ print(event["messages"][-1].content)
 
 
 ### Agentic Workflow: Planning
+
+Planning 패턴에서는 plan, execute, reflan을 통해 논리적인 글을 쓰거나 복잡한 문제를 해결할 수 있습니다.
 
 <img width="98" alt="image" src="https://github.com/user-attachments/assets/58aa8302-cb56-45e3-b225-f6c9c7a6ab66" />
 
