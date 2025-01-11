@@ -85,6 +85,9 @@ print('stream: ', stream)
 
 LangChain의 [AmazonKnowledgeBasesRetriever](https://api.python.langchain.com/en/latest/community/retrievers/langchain_community.retrievers.bedrock.AmazonKnowledgeBasesRetriever.html)을 이용하여 retriever를 등록합니다. 
 
+```python
+from langchain_aws import AmazonKnowledgeBasesRetriever
+
 retriever = AmazonKnowledgeBasesRetriever(
     knowledge_base_id=knowledge_base_id, 
     retrieval_config={"vectorSearchConfiguration": {
