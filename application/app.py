@@ -40,7 +40,7 @@ with st.sidebar:
         label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)"], index=0
     )   
     st.info(mode_descriptions[mode][0])    
-    print('mode: ', mode)
+    # print('mode: ', mode)
 
     # debug Mode
     debugMode = st.selectbox(
@@ -50,9 +50,12 @@ with st.sidebar:
 
     st.success("Connected to Nova Pro", icon="💚")
     clear_button = st.button("대화 초기화", key="clear")
-    print('clear_button: ', clear_button)
+    # print('clear_button: ', clear_button)
 
 st.title('🔮 '+ mode)
+
+if clear_button==True:
+    chat.initiate()
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -87,8 +90,6 @@ if clear_button or "messages" not in st.session_state:
     st.rerun()
 
     chat.clear_chat_history()
-
-    chat.initiate()
         
 # Always show the chat input
 if prompt := st.chat_input("메시지를 입력하세요."):
@@ -97,10 +98,11 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
     st.session_state.messages.append({"role": "user", "content": prompt})  # add user message to chat history
     prompt = prompt.replace('"', "").replace("'", "")
+    print('prompt: ', prompt)
     
     with st.chat_message("assistant"):
         if mode == '일상적인 대화':
-            stream = chat.general_conversation(prompt)            
+            stream = chat.general_conversation(prompt)
             response = st.write_stream(stream)
             print('response: ', response)
             st.session_state.messages.append({"role": "assistant", "content": response})

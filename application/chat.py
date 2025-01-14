@@ -642,7 +642,6 @@ def general_conversation(query):
                 "input": query,
             }
         )  
-        print('stream: ', stream)
             
     except Exception:
         err_msg = traceback.format_exc()
