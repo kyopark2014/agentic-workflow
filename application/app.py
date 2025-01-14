@@ -87,6 +87,8 @@ if clear_button or "messages" not in st.session_state:
     st.rerun()
 
     chat.clear_chat_history()
+
+    chat.initiate()
         
 # Always show the chat input
 if prompt := st.chat_input("메시지를 입력하세요."):

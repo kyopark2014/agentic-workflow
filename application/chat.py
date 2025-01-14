@@ -128,13 +128,22 @@ STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
 userId = "demo"
 map_chain = dict() 
 
-if userId in map_chain:  
-        # print('memory exist. reuse it!')
-        memory_chain = map_chain[userId]
-else: 
-    # print('memory does not exist. create new one!')        
-    memory_chain = ConversationBufferWindowMemory(memory_key="chat_history", output_key='answer', return_messages=True, k=5)
-    map_chain[userId] = memory_chain
+def initiate():
+    global userId
+    global memory_chain
+
+    userId = uuid.uuid4().hex
+    print('userId: ', userId)
+
+    if userId in map_chain:  
+            # print('memory exist. reuse it!')
+            memory_chain = map_chain[userId]
+    else: 
+        # print('memory does not exist. create new one!')        
+        memory_chain = ConversationBufferWindowMemory(memory_key="chat_history", output_key='answer', return_messages=True, k=5)
+        map_chain[userId] = memory_chain
+
+initiate()
 
 def clear_chat_history():
     memory_chain = []
