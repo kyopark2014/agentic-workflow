@@ -6,9 +6,7 @@
 </p>
 
 
-여기서는 LangGraph로 구현한 agentic workflow를 구현하고 [Streamlit](https://streamlit.io/)을 이용해 개발 및 테스트 환경을 제공합니다.  
-
-한번에 배포하고 바로 활용할 수 있도록 [AWS CDK](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-construct-library.html)를 이용하고 ALB - EC2의 구조를 이용해 scale out도 구현할 수 있습니다. 또한, [CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html) - ALB 구조를 이용해 배포후 바로 HTTPS로 접속할 수 있습니다. Streamlit이 설치되는 EC2의 OS는 EKS/ECS와 같은 컨테이너 서비스에 주로 사용되는 [Amazon Linux](https://docs.aws.amazon.com/linux/al2023/ug/what-is-amazon-linux.html)를 base하여, 추후 상용으로 전환할 때에 수고를 줄일 수 있도록 하였습니다.
+여기서는 LangGraph로 구현한 agentic workflow를 구현하고 [Streamlit](https://streamlit.io/)을 이용해 개발 및 테스트 환경을 제공합니다. 한번에 배포하고 바로 활용할 수 있도록 [AWS CDK](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-construct-library.html)를 이용하고 ALB - EC2의 구조를 이용해 scale out도 구현할 수 있습니다. 또한, [CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html) - ALB 구조를 이용해 배포후 바로 HTTPS로 접속할 수 있습니다. Agentic workflow는 tool use, reflection, planning, multi-agent collaboration을 구현하고 있습니다.
 
 ## System Architecture 
 
