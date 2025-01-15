@@ -10,7 +10,7 @@
 
 ## System Architecture 
 
-이때의 architecture는 아래와 같습니다. 여기서에서는 streamlit이 설치된 EC2는 private subnet에 둬서 안전하게 관리합니다. [Amazon S3는 Gateway Endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html)를 이용하여 연결하고 Bedrock은 [Private link](https://docs.aws.amazon.com/ko_kr/bedrock/latest/userguide/usingVPC.html)를 이용하여 연결하였으므로 EC2의 트래픽은 외부로 나가지 않고 AWS 내부에서 처리가 됩니다. 인터넷 및 날씨의 검색 API는 외부 서비스 공급자의 API를 이용하므로 [NAT gateway](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html)를 이용하여 연결하였습니다.
+이때의 architecture는 아래와 같습니다. 여기서에서는 streamlit이 설치된 EC2는 private subnet에 둬서 안전하게 관리합니다. RAG는 Knowledge base를 이용해 손쉽게 동기화 및 문서관리가 가능합니다. 이때 Knowledge base의 data source로는 OpenSearch를 활용하고 있습니다. 인터넷 검색은 tavily를 사용하고 날씨 API를 추가로 활용합니다.
 
 <img width="800" alt="image" src="https://github.com/user-attachments/assets/ac1dc2a8-3bb8-4d77-8d15-cf708e3541ab" />
 
