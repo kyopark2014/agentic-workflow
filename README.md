@@ -577,6 +577,11 @@ sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-u
 
 ## 실행 결과
 
+메뉴에서는 아래와 항목들을 제공하고 있습니다.
+
+<img width="219" alt="image" src="https://github.com/user-attachments/assets/a016fb98-758a-4e27-9231-c207cebf3d1c" />
+
+
 ### RAG (Knowledge Base)
 
 메뉴에서 RAG를 선택하고, "AWS의 스토리지 서비스에 대해 설명해주세요."라고 입력 후 결과를 확인합니다.
