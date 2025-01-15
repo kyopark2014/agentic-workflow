@@ -473,7 +473,7 @@ planning_steps = plans.split('\n')
 
 여기서 설명하는 multi-agent collaboration은 planning과 reflection을 수행하는 agent를 이용하여 구현됩니다. 
 
-![image](https://github.com/user-attachments/assets/486d748d-cdf4-4e52-ab9a-785116176198)
+<img src="https://github.com/user-attachments/assets/486d748d-cdf4-4e52-ab9a-785116176198" width="800">
 
 먼저 planning agent의 workflow는 아래와 같이 구성할 수 있습니다. 
 
