@@ -471,9 +471,11 @@ planning_steps = plans.split('\n')
 
 ### Agentic Workflow: Multi-agent Collaboration
 
-<img width="416" alt="image" src="https://github.com/user-attachments/assets/3d8e0527-cbf3-4d72-855b-4067150e3b19" />
+여기서 설명하는 multi-agent collaboration은 planning과 reflection을 수행하는 agent를 이용하여 구현됩니다. 
 
-여기서 설명하는 multi-agent collaboration은 planning과 reflection을 수행하는 agent를 이용하여 구현됩니다. 먼저 planning agent의 workflow는 아래와 같이 구성할 수 있습니다. 
+![image](https://github.com/user-attachments/assets/486d748d-cdf4-4e52-ab9a-785116176198)
+
+먼저 planning agent의 workflow는 아래와 같이 구성할 수 있습니다. 
 
 ```python
 workflow = StateGraph(State)
