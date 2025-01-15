@@ -9,16 +9,16 @@ mode_descriptions = {
         "Bedrock Knowledge Base를 이용해 구현한 RAG로 필요한 정보를 검색합니다."
     ],
     "Agent (Tool Use)": [
-        "Agent를 이용해 다양한 툴을 사용할 수 있습니다. 여기에서는 날씨, 시간, 도서추천, 인터넷 검색을 제공합니다."
+        "Tool Use 방식의 Workflow를 수행하는 Agent를 구현합니다. 여기에서는 날씨, 시간, 도서추천, RAG, 인터넷 검색을 제공합니다."
     ],
     "Agent (Reflection)": [
-        "Bedrock Agent를 이용하여 RAG를 포함한 Workflow를 구현합니다."
+        "Reflection Workflow를 수행하는 Agent 구현합니다."
     ],
     "Agent (Planning)": [
-        "Bedrock Agent를 이용하여 RAG를 포함한 Workflow를 구현합니다."
+        "Planning Workflow를 수행하는 Agent 구현합니다."
     ],
     "Agent (Multi-agent Collaboration)": [
-        "Bedrock Agent를 이용하여 RAG를 포함한 Workflow를 구현합니다."
+        "Planning/Reflection agent들을 이용하여 Multi-agent Collaboration Workflow을 수행합니다. 여기서 Reflection agent들은 병렬처리하여 수행시간을 단축합니다."
     ]
 }
 
@@ -26,11 +26,11 @@ with st.sidebar:
     st.title("🔮 Menu")
     
     st.markdown(
-        "Amazon Nova Pro를 이용해 다양한 형태의 대화를 구현합니다." 
+        "Amazon Bedrock을 이용해 다양한 형태의 대화를 구현합니다." 
         "여기에서는 일상적인 대화와 각종 툴을 이용해 Agent를 구현할 수 있습니다." 
         "또한 번역이나 문법 확인과 같은 용도로 사용할 수 있습니다."
         "주요 코드는 LangChain과 LangGraph를 이용해 구현되었습니다.\n"
-        "상세한 코드는 [Github](https://github.com/kyopark2014/bedrock-agent)을 참조하세요."
+        "상세한 코드는 [Github](https://github.com/kyopark2014/langgraph-nova)을 참조하세요."
     )
 
     st.subheader("🐱 대화 형태")
