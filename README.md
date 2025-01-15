@@ -6,11 +6,11 @@
 </p>
 
 
-여기서는 LangGraph로 구현한 agentic workflow를 구현하고 [Streamlit](https://streamlit.io/)을 이용해 개발 및 테스트 환경을 제공합니다. 한번에 배포하고 바로 활용할 수 있도록 [AWS CDK](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-construct-library.html)를 이용하고 ALB - EC2의 구조를 이용해 scale out도 구현할 수 있습니다. 또한, [CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html) - ALB 구조를 이용해 배포후 바로 HTTPS로 접속할 수 있습니다. Agentic workflow는 tool use, reflection, planning, multi-agent collaboration을 구현하고 있습니다.
+여기서는 오픈소스 LLM Framework인 [LangGraph](https://langchain-ai.github.io/langgraph/)을 이용하여 tool use, reflection, planning, multi-agent collaboration 방식으로 workflow를 수행하는 agent를 구현합니다. 구현된 workflow들은 [Streamlit](https://streamlit.io/)을 이용해 개발 및 테스트를 수행할 수 있습니다. [AWS CDK](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-construct-library.html)를 이용하고 한번에 배포할 수 있고, [CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html) - ALB 구조를 이용해 HTTPS로 안전하게 접속할 수 있습니다. 
 
 ## System Architecture 
 
-이때의 architecture는 아래와 같습니다. 여기서에서는 streamlit이 설치된 EC2는 private subnet에 둬서 안전하게 관리합니다. RAG는 Knowledge base를 이용해 손쉽게 동기화 및 문서관리가 가능합니다. 이때 Knowledge base의 data source로는 OpenSearch를 활용하고 있습니다. 인터넷 검색은 tavily를 사용하고 날씨 API를 추가로 활용합니다.
+전체적인 architecture는 아래와 같습니다. Streamlit이 설치된 EC2는 private subnet에 있고, CloudFront-ALB를 이용해 외부와 연결됩니다. RAG는 Knowledge base를 이용해 손쉽게 동기화 및 문서관리가 가능합니다. 이때 Knowledge base의 data source로는 OpenSearch를 활용하고 있습니다. 인터넷 검색은 tavily를 사용하고 날씨 API를 추가로 활용합니다.
 
 <img width="800" alt="image" src="https://github.com/user-attachments/assets/ac1dc2a8-3bb8-4d77-8d15-cf708e3541ab" />
 
