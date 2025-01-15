@@ -78,7 +78,7 @@ print('stream: ', stream)
 
 ### RAG
 
-여기에서는 RAG 구현을 위하여 Amazon Bedrock의 knowledge base를 이용합니다. Amazon S3에 필요한 문서를 올려놓고, knowledge base에서 동기화를 하면, OpenSearch에 문서들이 chunk 단위로 저장되므로 문서를 쉽게 RAG로 올리고 편하게 사용할 수 있습니다. 또한 Hiearchical chunk을 위하여 검색 정확도를 높이면서 필요한 context를 충분히 제공합니다. 
+여기에서는 RAG 구현을 위하여 Amazon Bedrock의 knowledge base를 이용합니다. Amazon S3에 필요한 문서를 올려놓고, knowledge base에서 동기화를 하면, OpenSearch에 문서들이 chunk 단위로 저장되므로 문서를 쉽게 RAG로 올리고 편하게 사용할 수 있습니다. 또한 Hiearchical chunk을 이용하여 검색 정확도를 높이면서 필요한 context를 충분히 제공합니다. 
 
 
 LangChain의 [AmazonKnowledgeBasesRetriever](https://api.python.langchain.com/en/latest/community/retrievers/langchain_community.retrievers.bedrock.AmazonKnowledgeBasesRetriever.html)을 이용하여 retriever를 등록합니다. 
