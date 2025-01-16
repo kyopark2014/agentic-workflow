@@ -1,7 +1,7 @@
 # Nova Pro로 Agentic Workflow 활용하기
 
 <p align="left">
-    <a href="https://hits.seeyoufarm.com"><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fkyopark2014%2Flanggraph-nova&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false")](https://hits.seeyoufarm.com"/></a>
+    <a href="https://hits.seeyoufarm.com"><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fkyopark2014%2Fagentic-workflow&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false")](https://hits.seeyoufarm.com"/></a>
     <img alt="License" src="https://img.shields.io/badge/LICENSE-MIT-green">
 </p>
 
@@ -532,7 +532,7 @@ EC2는 Private Subnet에 있으므로 SSL로 접속할 수 없습니다. 따라�
 Github에서 app에 대한 코드를 업데이트 하였다면, session manager에 접속하여 아래 명령어로 업데이트 합니다. 
 
 ```text
-sudo runuser -l ec2-user -c 'cd /home/ec2-user/langgraph-nova && git pull'
+sudo runuser -l ec2-user -c 'cd /home/ec2-user/agentic-workflow && git pull'
 ```
 
 Streamlit의 재시작이 필요하다면 아래 명령어로 service를 stop/start 시키고 동작을 확인할 수 있습니다.
@@ -560,7 +560,7 @@ sudo systemctl stop streamlit
 이후 EC2를 session manager를 이용해 접속한 이후에 아래 명령어를 이용해 실행하면 로그를 보면서 수정을 할 수 있습니다. 
 
 ```text
-sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-user/langgraph-nova/application/app.py"
+sudo runuser -l ec2-user -c "/home/ec2-user/.local/bin/streamlit run /home/ec2-user/agentic-workflow/application/app.py"
 ```
 
 
@@ -617,7 +617,7 @@ RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주
 
 메뉴에서 multi-agent collaboration을 선택한 후에 "지방 조직이 분비하는 exosome들이 어떻게 면역체계에 역할을 하고 어떻게 하면 좋은 exosome들을 분비시켜 당뇨나 병을 예방할수 있는지 알려주세요."라고 입력합니다. 이때 생성된 결과는 아래와 같습니다.
 
-[지방 조직이 분비하는 exosome들이 어떻게 면역체계에 역할을 하고 어떻게 하면 좋은 exosome들을 분비시켜 당뇨나 병을 예방할수 있는지 알려주세요.](https://github.com/kyopark2014/langgraph-nova/blob/main/contents/%EC%A7%80%EB%B0%A9_%EC%A1%B0%EC%A7%81_exosome%EC%9D%98_%EB%A9%B4%EC%97%AD_%EC%97%AD%ED%95%A0_%EB%B0%8F_%EC%98%88%EB%B0%A9_%EB%B0%A9%EB%B2%95.md)
+[지방 조직이 분비하는 exosome들이 어떻게 면역체계에 역할을 하고 어떻게 하면 좋은 exosome들을 분비시켜 당뇨나 병을 예방할수 있는지 알려주세요.](https://github.com/kyopark2014/agentic-workflow/blob/main/contents/%EC%A7%80%EB%B0%A9_%EC%A1%B0%EC%A7%81_exosome%EC%9D%98_%EB%A9%B4%EC%97%AD_%EC%97%AD%ED%95%A0_%EB%B0%8F_%EC%98%88%EB%B0%A9_%EB%B0%A9%EB%B2%95.md)
 
 
 
