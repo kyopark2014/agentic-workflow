@@ -362,7 +362,7 @@ def reflect(state: State, config):
 
 Planning 패턴에서는 plan, execute, reflan을 통해 논리적인 글을 쓰거나 복잡한 문제를 해결할 수 있습니다.
 
-<img width="98" alt="image" src="https://github.com/user-attachments/assets/58aa8302-cb56-45e3-b225-f6c9c7a6ab66" />
+<img width="200" alt="image" src="https://github.com/user-attachments/assets/cee8559f-d2c9-4d7a-82a9-83772dba086f" />
 
 아래와 같이 planning을 위한 workflow를 정의합니다.
 
