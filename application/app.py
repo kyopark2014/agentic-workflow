@@ -189,7 +189,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             chat.save_chat_history(prompt, response)
 
         elif mode == 'RAG':
-            with st.status("thinking...", expanded=True, state="running") as status:
+            with st.status("running...", expanded=True, state="running") as status:
                 response, reference_docs = chat.run_rag_with_knowledge_base(prompt, st, debugMode)        
                 st.write(response)
                 print('response: ', response)
