@@ -3659,11 +3659,11 @@ def run_long_form_writing_agent(query, st, debugMode):
         )
         # print('response: ', response)
         
-        markdown_url = f"{path}{markdown_key}"
+        markdown_url = f"{path}/{markdown_key}"
         print('markdown_url: ', markdown_url)
         
         # html file
-        html_key = '/markdown/'+f"{subject}.html"
+        html_key = 'markdown/'+f"{subject}.html"
             
         html_body = markdown_to_html(final_doc)
         print('html_body: ', html_body)
