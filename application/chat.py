@@ -12,6 +12,8 @@ import logging
 import base64
 import operator
 import info
+import PyPDF2
+import csv
 
 from io import BytesIO
 from PIL import Image
@@ -39,6 +41,7 @@ from urllib import parse
 from pydantic.v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 try:
     with open("/home/config.json", "r", encoding="utf-8") as f:
@@ -813,7 +816,7 @@ def load_document(file_type, s3_file_name):
             raw_text.append(page.extract_text())
         contents = '\n'.join(raw_text)    
         
-    elif file_type == 'txt':        
+    elif file_type == 'txt' or file_type == 'md':        
         contents = doc.get()['Body'].read().decode('utf-8')
         
     print('contents: ', contents)
@@ -970,27 +973,30 @@ def get_summary_of_uploaded_file(file_name, st):
     elif file_type == 'pdf' or file_type == 'txt' or file_type == 'md' or file_type == 'pptx' or file_type == 'docx':
         texts = load_document(file_type, file_name)
 
-        docs = []
-        for i in range(len(texts)):
-            docs.append(
-                Document(
-                    page_content=texts[i],
-                    metadata={
-                        'name': file_name,
-                        # 'page':i+1,
-                        'url': path+doc_prefix+parse.quote(file_name)
-                    }
+        if len(texts):
+            docs = []
+            for i in range(len(texts)):
+                docs.append(
+                    Document(
+                        page_content=texts[i],
+                        metadata={
+                            'name': file_name,
+                            # 'page':i+1,
+                            'url': path+doc_prefix+parse.quote(file_name)
+                        }
+                    )
                 )
-            )
-        print('docs[0]: ', docs[0])    
-        print('docs size: ', len(docs))
+            print('docs[0]: ', docs[0])    
+            print('docs size: ', len(docs))
 
-        contexts = []
-        for doc in docs:
-            contexts.append(doc.page_content)
-        print('contexts: ', contexts)
+            contexts = []
+            for doc in docs:
+                contexts.append(doc.page_content)
+            print('contexts: ', contexts)
 
-        msg = get_summary(contexts)
+            msg = get_summary(contexts)
+        else:
+            msg = "문서 로딩에 실패하였습니다."
         
     elif file_type == 'py' or file_type == 'js':
         s3r = boto3.resource("s3")
@@ -1413,7 +1419,7 @@ def retrieve_documents_from_knowledge_base(query, top_k):
                 name = link[pos+len(doc_prefix)+1:]
                 encoded_name = parse.quote(name)
                 # print('name:', name)
-                link = f"{path}{doc_prefix}{encoded_name}"
+                link = f"{path}/{doc_prefix}{encoded_name}"
                 
             elif "webLocation" in doc.metadata["location"]:
                 link = doc.metadata["location"]["webLocation"]["url"] if doc.metadata["location"]["webLocation"]["url"] is not None else ""
@@ -1434,6 +1440,19 @@ def retrieve_documents_from_knowledge_base(query, top_k):
                 )
             )    
     return relevant_docs
+
+def sync_data_source():
+    if knowledge_base_id and data_source_id:
+        try:
+            client = boto3.client('bedrock-agent')
+            response = client.start_ingestion_job(
+                knowledgeBaseId=knowledge_base_id,
+                dataSourceId=data_source_id
+            )
+            print('(start_ingestion_job) response: ', response)
+        except Exception:
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg)
 
 def get_rag_prompt(text):
     # print("###### get_rag_prompt ######")
@@ -3677,7 +3696,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         )
         # print('response: ', response)
         
-        html_url = f"{path}{html_key}"
+        html_url = f"{path}/{html_key}"
         print('html_url: ', html_url)
 
         final_doc += f"\n[미리보기 링크]({html_url})\n\n[다운로드 링크 - {subject}.md]({markdown_url})"

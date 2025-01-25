@@ -67,11 +67,11 @@ with st.sidebar:
 
     st.subheader("📋 문서 업로드")
     # print('fileId: ', chat.fileId)
-    uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "doc", "docx", "ppt", "pptx", "png", "jpg", "jpeg", "txt", "py", "md", "csv"], key=chat.fileId)
+    uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv"], key=chat.fileId)
 
     st.success("Connected to Nova Pro", icon="💚")
     clear_button = st.button("대화 초기화", key="clear")
-    # print('clear_button: ', clear_button)
+    # print('clear_button: ', clear_but
 
 st.title('🔮 '+ mode)
 
@@ -85,13 +85,15 @@ if uploaded_file is not None and clear_button==False:
         chat.initiate()
 
         if debugMode=='Enable':
-            status = '이미지를 업로드합니다.'
+            status = '선택한 파일을 업로드합니다.'
             print('status: ', status)
             st.info(status)
 
         file_name = uploaded_file.name
         file_url = chat.upload_to_s3(uploaded_file.getvalue(), file_name)
         print('file_url: ', file_url) 
+
+        chat.sync_data_source()  # sync uploaded files
             
         status = f'선택한 "{file_name}"의 내용을 요약합니다.'
         # my_bar = st.sidebar.progress(0, text=status)
