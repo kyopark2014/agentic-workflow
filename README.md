@@ -290,7 +290,7 @@ tool_node = ToolNode(tools)
 
 Reflection은 generate, reflect, revise의 과정을 통해 초안(draft)을 향상시킵니다.
 
-<img width="205" alt="image" src="https://github.com/user-attachments/assets/5a9b547f-afc8-427e-9172-9dc5648ec512" />
+<img width="300" alt="image" src="https://github.com/user-attachments/assets/68365969-73ef-40ed-a306-1a1d147dfd4e" />
 
 아래와 같이 generate, reflect, revise_answer로 된 노드를 구성하고 conditional edge인 should_continue()을 통해 max_revision만큼 반복합니다.
 
