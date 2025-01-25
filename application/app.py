@@ -42,11 +42,32 @@ with st.sidebar:
     st.info(mode_descriptions[mode][0])    
     # print('mode: ', mode)
 
-    # debug Mode
-    debugMode = st.selectbox(
-        '🖊️ 디버그 모드를 설정하세요',
-        ('Debug', 'Normal')
+    # model selection box
+    modelName = st.selectbox(
+        '🖊️ 사용 모델을 선택하세요',
+        ('Nova Pro', 'Nova Lite', 'Claude Sonnet 3.5', 'Claude Sonnet 3.0', 'Claude Haiku 3.5')
     )
+
+    # debug checkbox
+    select_debugMode = st.checkbox('Debug Mode', value=True)
+    debugMode = 'Enable' if select_debugMode else 'Disable'
+    #print('debugMode: ', debugMode)
+
+    # multi region check box
+    select_multiRegion = st.checkbox('Multi Region', value=True)
+    multiRegion = 'Enable' if select_multiRegion else 'Disable'
+    #print('multiRegion: ', multiRegion)
+
+    # chart checkbox 
+    selected_chart = st.checkbox('Chart', value=True)
+    chart = 'Enable' if selected_chart else 'Disable'
+    #print('chart: ', chart)
+
+    chat.update(modelName, debugMode, multiRegion)
+
+    st.subheader("📋 문서 업로드")
+    print('fileId: ', chat.fileId)
+    uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "doc", "docx", "ppt", "pptx", "png", "jpg", "jpeg", "txt", "py", "md", "csv"], key=chat.fileId)
 
     st.success("Connected to Nova Pro", icon="💚")
     clear_button = st.button("대화 초기화", key="clear")
@@ -56,6 +77,36 @@ st.title('🔮 '+ mode)
 
 if clear_button==True:
     chat.initiate()
+
+# Preview the uploaded image in the sidebar
+file_name = ""
+if uploaded_file is not None and clear_button==False:
+    if uploaded_file.name:
+        chat.initiate()
+
+        if debugMode=='Enable':
+            status = '이미지를 업로드합니다.'
+            print('status: ', status)
+            st.info(status)
+
+        file_name = uploaded_file.name
+        file_url = chat.upload_to_s3(uploaded_file.getvalue(), file_name)
+        print('file_url: ', file_url) 
+            
+        status = f'선택한 "{file_name}"의 내용을 요약합니다.'
+        # my_bar = st.sidebar.progress(0, text=status)
+        
+        # for percent_complete in range(100):
+        #     time.sleep(0.2)
+        #     my_bar.progress(percent_complete + 1, text=status)
+        if debugMode=='Enable':
+            print('status: ', status)
+            st.info(status)
+    
+        msg = chat.get_summary_of_uploaded_file(file_name, st)
+        st.session_state.messages.append({"role": "assistant", "content": f"선택한 문서({file_name})를 요약하면 아래와 같습니다.\n\n{msg}"})    
+        print('msg: ', msg)
+        st.rerun()
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -72,6 +123,13 @@ def display_chat_messages() -> None:
             st.markdown(message["content"])
 
 display_chat_messages()
+
+def show_references(reference_docs):
+    if debugMode == "Enable" and reference_docs:
+        with st.expander(f"답변에서 참조한 {len(reference_docs)}개의 문서입니다."):
+            for i, doc in enumerate(reference_docs):
+                st.markdown(f"**{doc.metadata['name']}**: {doc.page_content}")
+                st.markdown("---")
 
 # Greet user
 if not st.session_state.greetings:
@@ -90,7 +148,25 @@ if clear_button or "messages" not in st.session_state:
     st.rerun()
 
     chat.clear_chat_history()
-        
+
+if chart == 'Enable':
+    if mode == 'Agent (Tool Use)':
+        col1, col2, col3 = st.columns([0.1, 0.25, 0.1])
+        url = "https://raw.githubusercontent.com/kyopark2014/agentic-workflow/main/contents/tool_use.png"
+        col2.image(url)
+    elif mode == 'Agent (Reflection)':
+        col1, col2, col3 = st.columns([0.2, 0.3, 0.2])
+        url = "https://raw.githubusercontent.com/kyopark2014/agentic-workflow/main/contents/reflection.png"
+        col2.image(url)    
+    elif mode == 'Agent (Planning)':
+        col1, col2, col3 = st.columns([0.1, 2.0, 0.1])
+        url = "https://raw.githubusercontent.com/kyopark2014/agentic-workflow/main/contents/planning.png"
+        col2.image(url)
+    elif mode == 'Agent (Multi-agent Collaboration)':
+        col1, col2, col3 = st.columns([0.1, 2.0, 0.1])    
+        url = "https://raw.githubusercontent.com/kyopark2014/agentic-workflow/main/contents/multi_agent_collaboration.png"
+        col2.image(url)
+
 # Always show the chat input
 if prompt := st.chat_input("메시지를 입력하세요."):
     with st.chat_message("user"):  # display user message in chat message container
@@ -112,36 +188,35 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'RAG':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_rag_with_knowledge_base(prompt, st, debugMode)        
+                response, reference_docs = chat.run_rag_with_knowledge_base(prompt, st, debugMode)        
                 st.write(response)
                 print('response: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                if debugMode != "Debug":
+                if debugMode != "Enable":
                     st.rerun()
 
                 chat.save_chat_history(prompt, response)
+            
+            show_references(reference_docs) 
 
         elif mode == 'Agent (Tool Use)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_agent_executor(prompt, st, debugMode)
+                response, reference_docs = chat.run_agent_executor(prompt, st, debugMode)
                 st.write(response)
                 print('response: ', response)
 
-                if response.find('<thinking>') != -1:
-                    print('Remove <thinking> tag.')
-                    response = response[response.find('</thinking>')+12:]
-                    print('response without tag: ', response)
-
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                if debugMode != "Debug":
+                if debugMode != "Enable":
                     st.rerun()
 
                 chat.save_chat_history(prompt, response)
+            
+            show_references(reference_docs) 
         
         elif mode == 'Agent (Reflection)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_knowledge_guru(prompt, st, debugMode)
+                response, reference_docs = chat.run_knowledge_guru(prompt, st, debugMode)
                 st.write(response)
                 print('response: ', response)
 
@@ -151,14 +226,16 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     print('response without tag: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                if debugMode != "Debug":
+                if debugMode != "Enable":
                     st.rerun()
 
                 chat.save_chat_history(prompt, response)
+            
+            show_references(reference_docs) 
 
         elif mode == 'Agent (Planning)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_planning(prompt, st, debugMode)
+                response, reference_docs = chat.run_planning(prompt, st, debugMode)
                 st.write(response)
                 print('response: ', response)
 
@@ -168,14 +245,16 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     print('response without tag: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                if debugMode != "Debug":
+                if debugMode != "Enable":
                     st.rerun()
 
                 chat.save_chat_history(prompt, response)
+            
+            show_references(reference_docs) 
 
         elif mode == 'Agent (Multi-agent Collaboration)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response = chat.run_long_form_writing_agent(prompt, st, debugMode)
+                response, reference_docs = chat.run_long_form_writing_agent(prompt, st, debugMode)
                 st.write(response)
                 print('response: ', response)
 
@@ -185,10 +264,12 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     print('response without tag: ', response)
 
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                if debugMode != "Debug":
+                if debugMode != "Enable":
                     st.rerun()
 
                 chat.save_chat_history(prompt, response)
+            
+            show_references(reference_docs) 
 
         else:
             stream = chat.general_conversation(prompt)

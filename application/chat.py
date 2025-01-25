@@ -11,6 +11,7 @@ import time
 import logging
 import base64
 import operator
+import info
 
 from io import BytesIO
 from PIL import Image
@@ -60,9 +61,6 @@ if accountId is None:
 region = config["region"] if "region" in config else "us-west-2"
 print('region: ', region)
 
-bucketName = config["bucketName"] if "bucketName" in config else f"storage-for-{projectName}-{accountId}-{region}" 
-print('bucketName: ', bucketName)
-
 s3_prefix = 'docs'
 
 knowledge_base_role = config["knowledge_base_role"] if "knowledge_base_role" in config else None
@@ -91,6 +89,10 @@ s3_arn = config["s3_arn"] if "s3_arn" in config else None
 if s3_arn is None:
     raise Exception ("No S3 ARN")
 
+s3_bucket = config["s3_bucket"] if "s3_bucket" in config else None
+if s3_bucket is None:
+    raise Exception ("No storage!")
+
 parsingModelArn = f"arn:aws:bedrock:{region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
 embeddingModelArn = f"arn:aws:bedrock:{region}::foundation-model/amazon.titan-embed-text-v2:0"
 
@@ -104,30 +106,43 @@ parallel_processing = 'disable'
 doc_prefix = s3_prefix+'/'
 useEnhancedSearch = False
 
-parallel_processing_models = [   # Nova Pro
-    {   
-        "bedrock_region": "us-west-2", # Oregon
-        "model_type": "nova",
-        "model_id": "us.amazon.nova-pro-v1:0"
-    },
-    {
-        "bedrock_region": "us-east-1", # N.Virginia
-        "model_type": "nova",
-        "model_id": "us.amazon.nova-pro-v1:0"
-    },
-    {
-        "bedrock_region": "us-east-2", # Ohio
-        "model_type": "nova",
-        "model_id": "us.amazon.nova-pro-v1:0"
-    }
-]
-selected_chat = 0
-number_of_models = len(parallel_processing_models)
-STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
-
 userId = "demo"
 map_chain = dict() 
 
+model_name = "Nova Pro"
+model_type = "nova"
+multi_region = 'Enable'
+contextual_embedding = "Disable"
+debug_mode = "Enable"
+
+models = info.get_model_info(model_name)
+number_of_models = len(models)
+selected_chat = 0
+
+def update(modelName, debugMode, multiRegion):    
+    global model_name, debug_mode, multi_region     
+    global selected_chat, selected_embedding, models, number_of_models
+    
+    if model_name != modelName:
+        model_name = modelName
+        print('model_name: ', model_name)
+        
+        selected_chat = 0
+        selected_embedding = 0
+        models = info.get_model_info(model_name)
+        number_of_models = len(models)
+        
+    if debug_mode != debugMode:
+        debug_mode = debugMode
+        print('debug_mode: ', debug_mode)
+
+    if multi_region != multiRegion:
+        multi_region = multiRegion
+        print('multi_region: ', multi_region)
+        
+        selected_chat = 0
+        selected_embedding = 0
+        
 def initiate():
     global userId
     global memory_chain
@@ -157,14 +172,21 @@ def save_chat_history(text, msg):
         memory_chain.chat_memory.add_ai_message(msg) 
 
 def get_chat():
-    global selected_chat
-    
-    profile = parallel_processing_models[selected_chat]
+    global selected_chat, model_type
+
+    profile = models[selected_chat]
+    # print('profile: ', profile)
         
     bedrock_region =  profile['bedrock_region']
     modelId = profile['model_id']
     maxOutputTokens = 4096
-    print(f'LLM: {selected_chat}, bedrock_region: {bedrock_region}, modelId: {modelId}')
+    model_type = profile['model_type']
+    print(f'LLM: {selected_chat}, bedrock_region: {bedrock_region}, modelId: {modelId}, model_type: {model_type}')
+
+    if profile['model_type'] == 'nova':
+        STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
+    elif profile['model_type'] == 'claude':
+        STOP_SEQUENCE = "\n\nHuman:" 
                           
     # bedrock   
     boto3_bedrock = boto3.client(
@@ -192,18 +214,28 @@ def get_chat():
         region_name=bedrock_region
     )    
     
-    selected_chat = selected_chat + 1
-    if selected_chat == number_of_models:
+    if multi_region=='Enable':
+        selected_chat = selected_chat + 1
+        if selected_chat == number_of_models:
+            selected_chat = 0
+    else:
         selected_chat = 0
-    
+
     return chat
 
 def get_parallel_processing_chat(models, selected):
+    global model_type
     profile = models[selected]
     bedrock_region =  profile['bedrock_region']
     modelId = profile['model_id']
+    model_type = profile['model_type']
     maxOutputTokens = 4096
-    print(f'selected_chat: {selected}, bedrock_region: {bedrock_region}, modelId: {modelId}')
+    print(f'selected_chat: {selected}, bedrock_region: {bedrock_region}, modelId: {modelId}, model_type: {model_type}')
+
+    if profile['model_type'] == 'nova':
+        STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
+    elif profile['model_type'] == 'claude':
+        STOP_SEQUENCE = "\n\nHuman:" 
                           
     # bedrock   
     boto3_bedrock = boto3.client(
@@ -354,7 +386,69 @@ def traslation(chat, text, input_language, output_language):
         raise Exception ("Not able to request to LLM")
 
     return msg[msg.find('<result>')+8:len(msg)-9] # remove <result> tag
+
+def upload_to_s3(file_bytes, file_name):
+    """
+    Upload a file to S3 and return the URL
+    """
+    try:
+        s3_client = boto3.client(
+            service_name='s3',
+            region_name=bedrock_region
+        )
+
+        # Generate a unique file name to avoid collisions
+        #timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        #unique_id = str(uuid.uuid4())[:8]
+        #s3_key = f"uploaded_images/{timestamp}_{unique_id}_{file_name}"
+        s3_key = f"{s3_prefix}/{file_name}"
+
+        if file_name.lower().endswith((".jpg", ".jpeg")):
+            content_type = "image/jpeg"
+        elif file_name.lower().endswith((".pdf")):
+            content_type = "application/pdf"
+        elif file_name.lower().endswith((".txt")):
+            content_type = "text/plain"
+        elif file_name.lower().endswith((".csv")):
+            content_type = "text/csv"
+        elif file_name.lower().endswith((".ppt", ".pptx")):
+            content_type = "application/vnd.ms-powerpoint"
+        elif file_name.lower().endswith((".doc", ".docx")):
+            content_type = "application/msword"
+        elif file_name.lower().endswith((".xls")):
+            content_type = "application/vnd.ms-excel"
+        elif file_name.lower().endswith((".py")):
+            content_type = "text/x-python"
+        elif file_name.lower().endswith((".js")):
+            content_type = "application/javascript"
+        elif file_name.lower().endswith((".md")):
+            content_type = "text/markdown"
+        elif file_name.lower().endswith((".png")):
+            content_type = "image/png"
+        
+        user_meta = {  # user-defined metadata
+            "content_type": content_type,
+            "model_name": model_name,
+            "multi_region": multi_region
+        }
+        
+        response = s3_client.put_object(
+            Bucket=s3_bucket, 
+            Key=s3_key, 
+            ContentType=content_type,
+            Metadata = user_meta,
+            Body=file_bytes            
+        )
+        print('upload response: ', response)
+
+        url = f"https://{s3_bucket}.s3.amazonaws.com/{s3_key}"
+        return url
     
+    except Exception as e:
+        err_msg = f"Error uploading to S3: {str(e)}"
+        print(err_msg)
+        return None
+
 def grade_document_based_on_relevance(conn, question, doc, models, selected):     
     chat = get_parallel_processing_chat(models, selected)
     retrieval_grader = get_retrieval_grader(chat)
@@ -384,7 +478,7 @@ def grade_documents_using_parallel_processing(question, documents):
         parent_conn, child_conn = Pipe()
         parent_connections.append(parent_conn)
             
-        process = Process(target=grade_document_based_on_relevance, args=(child_conn, question, doc, parallel_processing_models, selected_chat))
+        process = Process(target=grade_document_based_on_relevance, args=(child_conn, question, doc, models, selected_chat))
         processes.append(process)
 
         selected_chat = selected_chat + 1
@@ -433,7 +527,7 @@ def grade_documents(question, documents):
     
     if grade_state == "LLM":
         filtered_docs = []
-        if parallel_processing == 'enable':  # parallel processing        
+        if parallel_processing == 'Enable':  # parallel processing        
             filtered_docs = grade_documents_using_parallel_processing(question, documents)
 
         else:
@@ -478,10 +572,12 @@ def check_duplication(docs):
             continue
         contentList.append(doc.page_content)
         updated_docs.append(doc)            
-    length_updateed_docs = len(updated_docs)     
+    length_updated_docs = len(updated_docs)   
     
-    if length_original == length_updateed_docs:
+    if length_original == length_updated_docs:
         print('no duplication')
+    else:
+        print('length of updated relevant_docs: ', length_updated_docs)
     
     return updated_docs
 
@@ -502,26 +598,27 @@ def retrieve_documents_from_tavily(query, top_k):
         output = search.invoke(query)
         print('tavily output: ', output)
 
-        #if output.find("429 Client Error: Too Many Requests for url"):
-        #    raise Exception ("Tavily error: Too Many Requests for url")
-            
-        print(f"--> tavily query: {query}")
-        for i, result in enumerate(output):
-            print(f"{i}: {result}")
-            if result:
-                content = result.get("content")
-                url = result.get("url")
-                
-                relevant_documents.append(
-                    Document(
-                        page_content=content,
-                        metadata={
-                            'name': 'WWW',
-                            'url': url,
-                            'from': 'tavily'
-                        },
-                    )
-                )                
+        if output[:9] == "HTTPError":
+            print('output: ', output)
+            raise Exception ("Not able to request to tavily")
+        else:        
+            print(f"--> tavily query: {query}")
+            for i, result in enumerate(output):
+                print(f"{i}: {result}")
+                if result:
+                    content = result.get("content")
+                    url = result.get("url")
+                    
+                    relevant_documents.append(
+                        Document(
+                            page_content=content,
+                            metadata={
+                                'name': 'WWW',
+                                'url': url,
+                                'from': 'tavily'
+                            },
+                        )
+                    )                   
     
     except Exception:
         err_msg = traceback.format_exc()
@@ -573,9 +670,9 @@ def get_references(docs):
         print('excerpt(quotation removed): ', excerpt)
         
         if page:                
-            reference += f"{i+1}. {page}page in [{name}]({url})), {excerpt[:40]}...\n"
+            reference += f"{i+1}. {page}page in [{name}]({url})), {excerpt[:30]}...\n"
         else:
-            reference += f"{i+1}. [{name}]({url}), {excerpt[:40]}...\n"
+            reference += f"{i+1}. [{name}]({url}), {excerpt[:30]}...\n"
 
     if reference: 
         reference = "\n\n#### 관련 문서\n"+reference
@@ -610,6 +707,375 @@ def tavily_search(query, k):
         print('Exception: ', e)
 
     return docs
+
+def extract_thinking_tag(response, st):
+    if response.find('<thinking>') != -1:
+        status = response[response.find('<thinking>')+11:response.find('</thinking>')]
+        print('agent_thinking: ', status)
+        
+        if debug_mode=="Enable":
+            st.info(status)
+
+        if response.find('<thinking>') == 0:
+            msg = response[response.find('</thinking>')+13:]
+        else:
+            msg = response[:response.find('<thinking>')]
+        print('msg: ', msg)
+    else:
+        msg = response
+
+    return msg
+
+# load csv documents from s3
+def load_csv_document(s3_file_name):
+    s3r = boto3.resource("s3")
+    doc = s3r.Object(s3_bucket, s3_prefix+'/'+s3_file_name)
+
+    lines = doc.get()['Body'].read().decode('utf-8').split('\n')   # read csv per line
+    print('lins: ', len(lines))
+        
+    columns = lines[0].split(',')  # get columns
+    #columns = ["Category", "Information"]  
+    #columns_to_metadata = ["type","Source"]
+    print('columns: ', columns)
+    
+    docs = []
+    n = 0
+    for row in csv.DictReader(lines, delimiter=',',quotechar='"'):
+        # print('row: ', row)
+        #to_metadata = {col: row[col] for col in columns_to_metadata if col in row}
+        values = {k: row[k] for k in columns if k in row}
+        content = "\n".join(f"{k.strip()}: {v.strip()}" for k, v in values.items())
+        doc = Document(
+            page_content=content,
+            metadata={
+                'name': s3_file_name,
+                'row': n+1,
+            }
+            #metadata=to_metadata
+        )
+        docs.append(doc)
+        n = n+1
+    print('docs[0]: ', docs[0])
+
+    return docs
+
+def get_summary(docs):    
+    chat = get_chat()
+
+    text = ""
+    for doc in docs:
+        text = text + doc
+    
+    if isKorean(text)==True:
+        system = (
+            "다음의 <article> tag안의 문장을 요약해서 500자 이내로 설명하세오."
+        )
+    else: 
+        system = (
+            "Here is pieces of article, contained in <article> tags. Write a concise summary within 500 characters."
+        )
+    
+    human = "<article>{text}</article>"
+    
+    prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
+    # print('prompt: ', prompt)
+    
+    chain = prompt | chat    
+    try: 
+        result = chain.invoke(
+            {
+                "text": text
+            }
+        )
+        
+        summary = result.content
+        print('result of summarization: ', summary)
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)                    
+        raise Exception ("Not able to request to LLM")
+    
+    return summary
+
+# load documents from s3 for pdf and txt
+def load_document(file_type, s3_file_name):
+    s3r = boto3.resource("s3")
+    doc = s3r.Object(s3_bucket, s3_prefix+'/'+s3_file_name)
+    
+    contents = ""
+    if file_type == 'pdf':
+        contents = doc.get()['Body'].read()
+        reader = PyPDF2.PdfReader(BytesIO(contents))
+        
+        raw_text = []
+        for page in reader.pages:
+            raw_text.append(page.extract_text())
+        contents = '\n'.join(raw_text)    
+        
+    elif file_type == 'txt':        
+        contents = doc.get()['Body'].read().decode('utf-8')
+        
+    print('contents: ', contents)
+    new_contents = str(contents).replace("\n"," ") 
+    print('length: ', len(new_contents))
+
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=100,
+        separators=["\n\n", "\n", ".", " ", ""],
+        length_function = len,
+    ) 
+    texts = text_splitter.split_text(new_contents) 
+    if texts:
+        print('texts[0]: ', texts[0])
+    
+    return texts
+
+def summary_of_code(code, mode):
+    if mode == 'py':
+        system = (
+            "다음의 <article> tag에는 python code가 있습니다."
+            "code의 전반적인 목적에 대해 설명하고, 각 함수의 기능과 역할을 자세하게 한국어 500자 이내로 설명하세요."
+        )
+    elif mode == 'js':
+        system = (
+            "다음의 <article> tag에는 node.js code가 있습니다." 
+            "code의 전반적인 목적에 대해 설명하고, 각 함수의 기능과 역할을 자세하게 한국어 500자 이내로 설명하세요."
+        )
+    else:
+        system = (
+            "다음의 <article> tag에는 code가 있습니다."
+            "code의 전반적인 목적에 대해 설명하고, 각 함수의 기능과 역할을 자세하게 한국어 500자 이내로 설명하세요."
+        )
+    
+    human = "<article>{code}</article>"
+    
+    prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
+    # print('prompt: ', prompt)
+    
+    chat = get_chat()
+
+    chain = prompt | chat    
+    try: 
+        result = chain.invoke(
+            {
+                "code": code
+            }
+        )
+        
+        summary = result.content
+        print('result of code summarization: ', summary)
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)                    
+        raise Exception ("Not able to request to LLM")
+    
+    return summary
+
+def summary_image(img_base64, instruction):      
+    chat = get_chat()
+
+    if instruction:
+        print('instruction: ', instruction)  
+        query = f"{instruction}. <result> tag를 붙여주세요."
+    else:
+        query = "이미지가 의미하는 내용을 풀어서 자세히 알려주세요. markdown 포맷으로 답변을 작성합니다."
+    
+    messages = [
+        HumanMessage(
+            content=[
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{img_base64}", 
+                    },
+                },
+                {
+                    "type": "text", "text": query
+                },
+            ]
+        )
+    ]
+    
+    for attempt in range(5):
+        print('attempt: ', attempt)
+        try: 
+            result = chat.invoke(messages)
+            
+            extracted_text = result.content
+            # print('summary from an image: ', extracted_text)
+            break
+        except Exception:
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg)                    
+            raise Exception ("Not able to request to LLM")
+        
+    return extracted_text
+
+def extract_text(img_base64):    
+    multimodal = get_chat()
+    query = "텍스트를 추출해서 markdown 포맷으로 변환하세요. <result> tag를 붙여주세요."
+    
+    messages = [
+        HumanMessage(
+            content=[
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{img_base64}", 
+                    },
+                },
+                {
+                    "type": "text", "text": query
+                },
+            ]
+        )
+    ]
+    
+    for attempt in range(5):
+        print('attempt: ', attempt)
+        try: 
+            result = multimodal.invoke(messages)
+            
+            extracted_text = result.content
+            # print('result of text extraction from an image: ', extracted_text)
+            break
+        except Exception:
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg)                    
+            raise Exception ("Not able to request to LLM")
+    
+    print('extracted_text: ', extracted_text)
+    if len(extracted_text)<10:
+        extracted_text = "텍스트를 추출하지 못하였습니다."    
+
+    return extracted_text
+
+fileId = uuid.uuid4().hex
+# print('fileId: ', fileId)
+def get_summary_of_uploaded_file(file_name, st):
+    file_type = file_name[file_name.rfind('.')+1:len(file_name)]            
+    print('file_type: ', file_type)
+    
+    if file_type == 'csv':
+        docs = load_csv_document(file_name)
+        contexts = []
+        for doc in docs:
+            contexts.append(doc.page_content)
+        print('contexts: ', contexts)
+    
+        msg = get_summary(contexts)
+
+    elif file_type == 'pdf' or file_type == 'txt' or file_type == 'md' or file_type == 'pptx' or file_type == 'docx':
+        texts = load_document(file_type, file_name)
+
+        docs = []
+        for i in range(len(texts)):
+            docs.append(
+                Document(
+                    page_content=texts[i],
+                    metadata={
+                        'name': file_name,
+                        # 'page':i+1,
+                        'url': path+doc_prefix+parse.quote(file_name)
+                    }
+                )
+            )
+        print('docs[0]: ', docs[0])    
+        print('docs size: ', len(docs))
+
+        contexts = []
+        for doc in docs:
+            contexts.append(doc.page_content)
+        print('contexts: ', contexts)
+
+        msg = get_summary(contexts)
+        
+    elif file_type == 'py' or file_type == 'js':
+        s3r = boto3.resource("s3")
+        doc = s3r.Object(s3_bucket, s3_prefix+'/'+file_name)
+        
+        contents = doc.get()['Body'].read().decode('utf-8')
+        
+        #contents = load_code(file_type, object)                
+                        
+        msg = summary_of_code(contents, file_type)                  
+        
+    elif file_type == 'png' or file_type == 'jpeg' or file_type == 'jpg':
+        print('multimodal: ', file_name)
+        
+        s3_client = boto3.client('s3') 
+            
+        if debug_mode=="Enable":
+            status = "이미지를 가져옵니다."
+            print('status: ', status)
+            st.info(status)
+            
+        image_obj = s3_client.get_object(Bucket=s3_bucket, Key=s3_prefix+'/'+file_name)
+        # print('image_obj: ', image_obj)
+        
+        image_content = image_obj['Body'].read()
+        img = Image.open(BytesIO(image_content))
+        
+        width, height = img.size 
+        print(f"width: {width}, height: {height}, size: {width*height}")
+        
+        isResized = False
+        while(width*height > 5242880):                    
+            width = int(width/2)
+            height = int(height/2)
+            isResized = True
+            print(f"width: {width}, height: {height}, size: {width*height}")
+        
+        if isResized:
+            img = img.resize((width, height))
+        
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+               
+        # extract text from the image
+        if debug_mode=="Enable":
+            status = "이미지에서 텍스트를 추출합니다."
+            print('status: ', status)
+            st.info(status)
+        
+        text = extract_text(img_base64)
+        # print('extracted text: ', text)
+
+        if text.find('<result>') != -1:
+            extracted_text = text[text.find('<result>')+8:text.find('</result>')] # remove <result> tag
+            # print('extracted_text: ', extracted_text)
+        else:
+            extracted_text = text
+
+        if debug_mode=="Enable":
+            status = f"### 추출된 텍스트\n\n{extracted_text}"
+            print('status: ', status)
+            st.info(status)
+    
+        if debug_mode=="Enable":
+            status = "이미지의 내용을 분석합니다."
+            print('status: ', status)
+            st.info(status)
+
+        image_summary = summary_image(img_base64, "")
+        print('image summary: ', image_summary)
+            
+        if len(extracted_text) > 10:
+            contents = f"## 이미지 분석\n\n{image_summary}\n\n## 추출된 텍스트\n\n{extracted_text}"
+        else:
+            contents = f"## 이미지 분석\n\n{image_summary}"
+        print('image contents: ', contents)
+
+        msg = contents
+
+    global fileId
+    fileId = uuid.uuid4().hex
+    # print('fileId: ', fileId)
+
+    return msg
 
 ####################### LangChain #######################
 # General Conversation
@@ -832,7 +1298,7 @@ def initiate_knowledge_base():
     #########################
     # data source      
     #########################
-    data_source_name = bucketName  
+    data_source_name = s3_bucket  
     try: 
         response = client.list_data_sources(
             knowledgeBaseId=knowledge_base_id,
@@ -865,7 +1331,7 @@ def initiate_knowledge_base():
                     },
                     'type': 'S3'
                 },
-                description = f"S3 data source: {bucketName}",
+                description = f"S3 data source: {s3_bucket}",
                 knowledgeBaseId = knowledge_base_id,
                 name = data_source_name,
                 vectorIngestionConfiguration={
@@ -969,55 +1435,68 @@ def retrieve_documents_from_knowledge_base(query, top_k):
             )    
     return relevant_docs
 
-def generate_answer_using_RAG(chat, context, question):    
-    if isKorean(question)==True:
-        system = (
-            "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
-            "다음의 Reference texts을 이용하여 user의 질문에 답변합니다."
-            "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-            "답변의 이유를 풀어서 명확하게 설명합니다."
-            "결과는 <result> tag를 붙여주세요."
-        )
-    else: 
-        system = (
-            "You will be acting as a thoughtful advisor."
-            "Provide a concise answer to the question at the end using reference texts." 
-            "If you don't know the answer, just say that you don't know, don't try to make up an answer."
-            "You will only answer in text format, using markdown format is not allowed."
-            "Put it in <result> tags."
-        )
+def get_rag_prompt(text):
+    # print("###### get_rag_prompt ######")
+    chat = get_chat()
+    # print('model_type: ', model_type)
     
-    human = (
-        "Question: {input}"
+    if model_type == "nova":
+        if isKorean(text)==True:
+            system = (
+                "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
+                "다음의 Reference texts을 이용하여 user의 질문에 답변합니다."
+                "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+                "답변의 이유를 풀어서 명확하게 설명합니다."
+            )
+        else: 
+            system = (
+                "You will be acting as a thoughtful advisor."
+                "Provide a concise answer to the question at the end using reference texts." 
+                "If you don't know the answer, just say that you don't know, don't try to make up an answer."
+                "You will only answer in text format, using markdown format is not allowed."
+            )    
+    
+        human = (
+            "Question: {question}"
 
-        "Reference texts: "
-        "{context}"
-    )
-    
+            "Reference texts: "
+            "{context}"
+        ) 
+        
+    elif model_type == "claude":
+        if isKorean(text)==True:
+            system = (
+                "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
+                "다음의 <context> tag안의 참고자료를 이용하여 상황에 맞는 구체적인 세부 정보를 충분히 제공합니다." 
+                "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+                "답변의 이유를 풀어서 명확하게 설명합니다."
+                "결과는 <result> tag를 붙여주세요."
+            )
+        else: 
+            system = (
+                "You will be acting as a thoughtful advisor."
+                "Here is pieces of context, contained in <context> tags." 
+                "If you don't know the answer, just say that you don't know, don't try to make up an answer."
+                "You will only answer in text format, using markdown format is not allowed."
+                "Put it in <result> tags."
+            )    
+
+        human = (
+            "<question>"
+            "{question}"
+            "</question>"
+
+            "<context>"
+            "{context}"
+            "</context>"
+        )
+
     prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
     # print('prompt: ', prompt)
-                   
-    chain = prompt | chat
     
-    try: 
-        output = chain.invoke(
-            {
-                "context": context,
-                "input": question,
-            }
-        )
-        msg = output.content
-        print('msg: ', msg)
+    rag_chain = prompt | chat
 
-        if msg.find('<result>')!=-1:
-            msg = msg[msg.find('<result>')+8:msg.find('</result>')]
-            
-    except Exception:
-        err_msg = traceback.format_exc()
-        print('error message: ', err_msg)    
-        raise Exception ("Not able to request to LLM: "+err_msg)
-
-    return msg
+    return rag_chain
 
 def run_rag_with_knowledge_base(text, st, debugMode):
     global reference_docs, contentList
@@ -1030,15 +1509,15 @@ def run_rag_with_knowledge_base(text, st, debugMode):
     top_k = numberOfDocs
     
     # retrieve
-    if debugMode == "Debug":
-        st.info(f"검색을 수행합니다. 검색어: {text}")
+    if debug_mode == "Enable":
+        st.info(f"RAG 검색을 수행합니다. 검색어: {text}")  
     
     relevant_docs = retrieve_documents_from_knowledge_base(text, top_k=top_k)
     # relevant_docs += retrieve_documents_from_tavily(text, top_k=top_k)
 
     # grade   
-    if debugMode == "Debug":
-        st.info(f"가져온 문서를 평가하고 있습니다.")
+    if debug_mode == "Enable":
+        st.info(f"가져온 {len(relevant_docs)}개의 문서를 평가하고 있습니다.") 
 
     # docs = []
     # for doc in relevant_docs:
@@ -1053,42 +1532,47 @@ def run_rag_with_knowledge_base(text, st, debugMode):
     filtered_docs = grade_documents(text, relevant_docs)
     
     filtered_docs = check_duplication(filtered_docs) # duplication checker
-            
-    relevant_context = ""
-    for i, document in enumerate(filtered_docs):
-        print(f"{i}: {document}")
-        if document.page_content:
-            content = document.page_content
-            
-        relevant_context = relevant_context + content + "\n\n"
-        
-    print('relevant_context: ', relevant_context)
 
-    # generate
-    if debugMode == "Debug":
-        st.info(f"결과를 생성중입니다.")
-
-    msg = generate_answer_using_RAG(chat, relevant_context, text)
-    
     if len(filtered_docs):
         reference_docs += filtered_docs 
 
+    if debug_mode == "Enable":
+        st.info(f"{len(filtered_docs)}개의 문서가 선택되었습니다.")
+    
+    # generate
+    if debug_mode == "Enable":
+        st.info(f"결과를 생성중입니다.")
+    relevant_context = ""
+    for document in filtered_docs:
+        relevant_context = relevant_context + document.page_content + "\n\n"        
+    # print('relevant_context: ', relevant_context)
+
+    rag_chain = get_rag_prompt(text)
+                       
+    msg = ""    
+    try: 
+        result = rag_chain.invoke(
+            {
+                "question": text,
+                "context": relevant_context                
+            }
+        )
+        print('result: ', result)
+
+        msg = result.content        
+        if msg.find('<result>')!=-1:
+            msg = msg[msg.find('<result>')+8:msg.find('</result>')]
+        
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)                    
+        raise Exception ("Not able to request to LLM")
+    
     reference = ""
     if reference_docs:
         reference = get_references(reference_docs)
 
-    return msg+reference
-
-def extract_thinking_tag(msg, st, debugMode):
-    if msg.find('<thinking>') != -1:
-        print('Remove <thinking> tag.')
-        status = msg[msg.find('<thinking>')+11:msg.find('</thinking>')]
-        print('status without tag: ', status)
-        msg = msg[msg.find('</thinking>')+12:]
-
-        if debugMode=="Debug":
-            st.info(status)
-    return msg
+    return msg+reference, reference_docs
 
 ####################### LangGraph #######################
 # Agentic Workflow: Tool Use
@@ -1284,9 +1768,10 @@ def search_by_knowledge_base(keyword: str) -> str:
         reference_docs += filtered_docs
         return relevant_context
     else:        
-        no_content_msg = "No relevant documents found."
-        print(f"--> {no_content_msg}")
-        return no_content_msg
+        # relevant_context = "No relevant documents found."
+        relevant_context = "관련된 정보를 찾지 못하였습니다."
+        print(f"--> {relevant_context}")
+        return relevant_context
     
 @tool
 def search_by_tavily(keyword: str) -> str:
@@ -1312,31 +1797,40 @@ def search_by_tavily(keyword: str) -> str:
                     
         try: 
             output = search.invoke(keyword)
-            print('tavily output: ', output)
-            
-            for result in output:
-                print('result: ', result)
-                if result:
-                    content = result.get("content")
-                    url = result.get("url")
-                    
-                    reference_docs.append(
-                        Document(
-                            page_content=content,
-                            metadata={
-                                'name': 'WWW',
-                                'url': url,
-                                'from': 'tavily'
-                            },
-                        )
-                    )                
-                    answer = answer + f"{content}, URL: {url}\n"
-        
+            if output[:9] == "HTTPError":
+                print('output: ', output)
+                raise Exception ("Not able to request to tavily")
+            else:        
+                print('tavily output: ', output)
+                if output == "HTTPError('429 Client Error: Too Many Requests for url: https://api.tavily.com/search')":            
+                    raise Exception ("Not able to request to tavily")
+                
+                for result in output:
+                    print('result: ', result)
+                    if result:
+                        content = result.get("content")
+                        url = result.get("url")
+                        
+                        reference_docs.append(
+                            Document(
+                                page_content=content,
+                                metadata={
+                                    'name': 'WWW',
+                                    'url': url,
+                                    'from': 'tavily'
+                                },
+                            )
+                        )                
+                        answer = answer + f"{content}, URL: {url}\n"        
         except Exception:
             err_msg = traceback.format_exc()
             print('error message: ', err_msg)           
-            # raise Exception ("Not able to request to tavily")   
-        
+            # raise Exception ("Not able to request to tavily")  
+
+    if answer == "":
+        # answer = "No relevant documents found." 
+        answer = "관련된 정보를 찾지 못하였습니다."
+                     
     return answer
 
 tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base]        
@@ -1434,13 +1928,13 @@ def run_agent_executor(query, st, debugMode):
                                     status = status[status.find('<thinking>')+11:status.find('</thinking>')]
                                     print('status without tag: ', status)
 
-                                if debugMode=="Debug":
+                                if debugMode=="Enable":
                                     st.info(status)
                                 
                             elif re['type'] == 'tool_use':                
                                 print(f"--> {re['type']}: {re['name']}, {re['input']}")
 
-                                if debugMode=="Debug":
+                                if debugMode=="Enable":
                                     st.info(f"{re['type']}: {re['name']}, {re['input']}")
                             else:
                                 print(re)
@@ -1501,9 +1995,9 @@ def run_agent_executor(query, st, debugMode):
     if reference_docs:
         reference = get_references(reference_docs)
 
-    msg = extract_thinking_tag(msg, st, debugMode)
+    msg = extract_thinking_tag(msg, st)
     
-    return msg+reference
+    return msg+reference, reference_docs
 
 ####################### LangGraph #######################
 # Agentic Workflow: Tool Use (partial tool을 활용)
@@ -1575,13 +2069,13 @@ def run_agent_executor2(query, st, debugMode):
                             status = status[status.find('<thinking>')+11:status.find('</thinking>')]
                             print('status without tag: ', status)
 
-                        if debugMode=="Debug":
+                        if debugMode=="Enable":
                             st.info(status)
 
                     elif re['type'] == 'tool_use':                
                         print(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
 
-                        if debugMode=="Debug":
+                        if debugMode=="Enable":
                             st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
                     else:
                         print(re)
@@ -1683,7 +2177,7 @@ def run_agent_executor2(query, st, debugMode):
 
     msg = output['answer']
 
-    return msg
+    return msg, reference_docs
 
 def get_basic_answer(query):
     print('#### get_basic_answer ####')
@@ -1788,7 +2282,7 @@ def init_enhanced_search(st, debugMode):
             if toolinfo['type'] == 'tool_call':
                 print('tool name: ', toolinfo['name'])         
 
-            if debugMode=="Debug":
+            if debugMode=="Enable":
                 st.info(f"{response.tool_calls[-1]['name']}: {response.tool_calls[-1]['args']}")
                    
         return {"messages": [response]}
@@ -1840,13 +2334,13 @@ def run_knowledge_guru(query, st, debugMode):
         print('state: ', state["messages"])
         print('task: ', state['messages'][0].content)
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"검색을 수행합니다. 검색어: {state['messages'][0].content}")
         
         draft = enhanced_search(state['messages'][0].content, config, st, debugMode)  
         print('draft: ', draft)
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"생성된 초안: {draft}")
         
         return {
@@ -1884,7 +2378,7 @@ def run_knowledge_guru(query, st, debugMode):
         print('state: ', state["messages"])    
         print('draft: ', state["messages"][-1].content)
         
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info('초안을 검토하여 부족하거나 보강할 내용을 찾고, 추가 검색어를 추출합니다.')
 
         reflection = []
@@ -1908,7 +2402,7 @@ def run_knowledge_guru(query, st, debugMode):
                 print('reflection: ', parsed_info.reflection)            
                 print('search_queries: ', search_queries)      
 
-                if debugMode=="Debug":  
+                if debugMode=="Enable":  
                     st.info(f'개선할 사항: {parsed_info.reflection}')
                     st.info(f'추가 검색어: {search_queries}')        
                 break
@@ -1922,7 +2416,7 @@ def run_knowledge_guru(query, st, debugMode):
     def revise_answer(state: State, config):   
         print("###### revise_answer ######")
         
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info("개선할 사항을 반영하여 답변을 생성중입니다.")
         human = (
             "Revise your previous answer using the new information."
@@ -2059,7 +2553,7 @@ def run_knowledge_guru(query, st, debugMode):
     if reference_docs:
         reference = get_references(reference_docs)
 
-    return msg+reference
+    return msg+reference, reference_docs
 
 
 ####################### LangGraph #######################
@@ -2077,7 +2571,7 @@ def run_planning(query, st, debugMode):
         print("###### plan ######")
         print('input: ', state["input"])
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"계획을 생성합니다. 요청사항: {state['input']}")
         
         system = (
@@ -2115,7 +2609,7 @@ def run_planning(query, st, debugMode):
         planning_steps = plan.split('\n')
         print('planning_steps: ', planning_steps)
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"생성된 계획: {planning_steps}")
         
         return {
@@ -2129,7 +2623,7 @@ def run_planning(query, st, debugMode):
             relevant_context = relevant_context + document.page_content + "\n\n"        
         # print('relevant_context: ', relevant_context)
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"계획을 수행합니다. 현재 계획 {text}")
 
         # generating
@@ -2181,7 +2675,7 @@ def run_planning(query, st, debugMode):
         
         chat = get_chat()
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"검색을 수행합니다. 검색어 {plan[0]}")
         
         # retrieve
@@ -2202,7 +2696,7 @@ def run_planning(query, st, debugMode):
         if len(filtered_docs):
             reference_docs += filtered_docs
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"현 단계의 결과 {result}")
         
         # print('plan: ', state["plan"])
@@ -2222,7 +2716,7 @@ def run_planning(query, st, debugMode):
             print('last plan: ', state["plan"])
             return {"response":state["info"][-1]}
         
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"새로운 계획을 생성합니다.")
         
         system = (
@@ -2280,7 +2774,7 @@ def run_planning(query, st, debugMode):
             planning_steps = plans.split('\n')
             print('planning_steps: ', planning_steps)
 
-            if debugMode=="Debug":
+            if debugMode=="Enable":
                 st.info(f"새로운 계획: {planning_steps}")
 
             return {"plan": planning_steps}
@@ -2309,7 +2803,7 @@ def run_planning(query, st, debugMode):
         query = state['input']
         print('query: ', query)
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"최종 답변을 생성합니다.")
         
         if isKorean(query)==True:
@@ -2408,7 +2902,7 @@ def run_planning(query, st, debugMode):
     if reference_docs:
         reference = get_references(reference_docs)
     
-    return value["answer"]+reference
+    return value["answer"]+reference, reference_docs
 
     
 ####################### LangGraph #######################
@@ -2457,7 +2951,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         idx = config.get("configurable", {}).get("idx")
         print('reflect_node idx: ', idx)
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"{idx}: draft에서 개선 사항을 도출합니다.")
     
         reflection = []
@@ -2480,7 +2974,7 @@ def run_long_form_writing_agent(query, st, debugMode):
                     reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
                     search_queries = parsed_info.search_queries
 
-                    if debugMode=="Debug":
+                    if debugMode=="Enable":
                         st.info(f"{idx}: 개선사항: {reflection}")
                     
                     print('reflection: ', parsed_info.reflection)
@@ -2499,7 +2993,7 @@ def run_long_form_writing_agent(query, st, debugMode):
                         print('translated_search: ', translated_search)
                         search_queries += translated_search
 
-                    if debugMode=="Debug":
+                    if debugMode=="Enable":
                         st.info(f"검색어: {search_queries}")
 
                     print('search_queries (mixed): ', search_queries)
@@ -2521,7 +3015,7 @@ def run_long_form_writing_agent(query, st, debugMode):
     def retrieve_for_writing(conn, q, config):
         idx = config.get("configurable", {}).get("idx") 
          
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"검색을 수행합니다. 검색어: {q}")
 
         relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
@@ -2582,7 +3076,7 @@ def run_long_form_writing_agent(query, st, debugMode):
             docs = parallel_retriever(search_queries, config)
         else:
             for q in search_queries:      
-                if debugMode=="Debug":
+                if debugMode=="Enable":
                     st.info(f"검색을 수행합니다. 검색어: {q}")
 
                 relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
@@ -2610,7 +3104,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         idx = config.get("configurable", {}).get("idx")
         print('revise_draft idx: ', idx)
         
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"{idx}: 개선사항을 반영하여 새로운 답변을 생성합니다.")
         
         # reference = state['reference'] if 'reference' in state else []     
@@ -2756,7 +3250,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         instruction = state["instruction"]
         print('subject: ', instruction)
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"계획을 생성합니다. 요청사항: {instruction}")
         
         if isKorean(instruction):
@@ -2817,7 +3311,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         planning_steps = plan.split('\n')        
         print('planning_steps: ', planning_steps)
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info(f"생성된 계획: {planning_steps}")
             
         return {
@@ -2921,7 +3415,7 @@ def run_long_form_writing_agent(query, st, debugMode):
             output = result.content
             # print('output: ', output)
 
-            if debugMode=="Debug":
+            if debugMode=="Enable":
                 st.info(f"수행단계: {step}")
             
             if output.find('<result>')==-1:
@@ -2929,7 +3423,7 @@ def run_long_form_writing_agent(query, st, debugMode):
             else:
                 draft = output[output.find('<result>')+8:output.find('</result>')]
 
-            if debugMode=="Debug":
+            if debugMode=="Enable":
                 st.info(f"생성결과: {draft}")
                                               
             print(f"--> step: {step}")
@@ -3106,7 +3600,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         parallel_revise = config.get("configurable", {}).get("parallel_revise", "enable")
         print('parallel_revise: ', parallel_revise)
 
-        if debugMode=="Debug":
+        if debugMode=="Enable":
             st.info("문서를 개선합니다.")
         
         # reflection
@@ -3158,7 +3652,7 @@ def run_long_form_writing_agent(query, st, debugMode):
                 
         s3_client = boto3.client('s3')  
         response = s3_client.put_object(
-            Bucket=bucketName,
+            Bucket=s3_bucket,
             Key=markdown_key,
             ContentType='text/markdown',
             Body=final_doc.encode('utf-8')
@@ -3176,7 +3670,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         
         s3_client = boto3.client('s3')  
         response = s3_client.put_object(
-            Bucket=bucketName,
+            Bucket=s3_bucket,
             Key=html_key,
             ContentType='text/html',
             Body=html_body
@@ -3228,7 +3722,7 @@ def run_long_form_writing_agent(query, st, debugMode):
     output = app.invoke(inputs, config)
     print('output: ', output)
     
-    return output['final_doc']
+    return output['final_doc'], reference_docs
 
 
 # Test 
@@ -3297,7 +3791,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #         print('search_queries: ', search_queries)
 #         print('reflection: ', reflection)
 
-#         if debugMode=="Debug":
+#         if debugMode=="Enable":
 #             st.info(f"개선사항을 반영하여 새로운 답변을 생성합니다.")
                             
 #         # reference = state['reference'] if 'reference' in state else []     
@@ -3402,7 +3896,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #         print("###### reflect ######")
 #         draft = state['draft']
         
-#         if debugMode=="Debug":
+#         if debugMode=="Enable":
 #             st.info(f"draft에서 개선 사항을 도출합니다.")
     
 #         reflection = []
@@ -3425,7 +3919,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #                     reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
 #                     search_queries = parsed_info.search_queries
 
-#                     if debugMode=="Debug":
+#                     if debugMode=="Enable":
 #                         st.info(f"개선사항: {reflection}")
                     
 #                     print('reflection: ', parsed_info.reflection)
@@ -3444,7 +3938,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #                         print('translated_search: ', translated_search)
 #                         search_queries += translated_search
 
-#                     if debugMode=="Debug":
+#                     if debugMode=="Enable":
 #                         st.info(f"검색어: {search_queries}")
 
 #                     print('search_queries (mixed): ', search_queries)
@@ -3470,7 +3964,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #         docs = []        
 
 #         for q in search_queries:      
-#             if debugMode=="Debug":
+#             if debugMode=="Enable":
 #                 st.info(f"검색을 수행합니다. 검색어: {q}")
 
 #             #docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)

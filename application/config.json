@@ -6,5 +6,6 @@
     "collectionArn":"arn:aws:aoss:us-west-2:262976740991:collection/v39oort3iir943ppd961",
     "opensearch_url":"https://v39oort3iir943ppd961.us-west-2.aoss.amazonaws.com",
     "s3_arn":"arn:aws:s3:::storage-for-agentic-workflow-262976740991-us-west-2",
-    "sharing_url":"https://d13sxl73cmyz1t.cloudfront.net"
+    "sharing_url":"https://d13sxl73cmyz1t.cloudfront.net",
+    "s3_bucket": "storage-for-agentic-workflow-262976740991-us-west-2"
  }
