@@ -66,7 +66,7 @@ with st.sidebar:
     chat.update(modelName, debugMode, multiRegion)
 
     st.subheader("📋 문서 업로드")
-    print('fileId: ', chat.fileId)
+    # print('fileId: ', chat.fileId)
     uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "doc", "docx", "ppt", "pptx", "png", "jpg", "jpeg", "txt", "py", "md", "csv"], key=chat.fileId)
 
     st.success("Connected to Nova Pro", icon="💚")
@@ -159,7 +159,7 @@ if chart == 'Enable':
         url = "https://raw.githubusercontent.com/kyopark2014/agentic-workflow/main/contents/reflection.png"
         col2.image(url)    
     elif mode == 'Agent (Planning)':
-        col1, col2, col3 = st.columns([0.1, 2.0, 0.1])
+        col1, col2, col3 = st.columns([0.2, 0.3, 0.2])
         url = "https://raw.githubusercontent.com/kyopark2014/agentic-workflow/main/contents/planning.png"
         col2.image(url)
     elif mode == 'Agent (Multi-agent Collaboration)':
