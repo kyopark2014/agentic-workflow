@@ -106,7 +106,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             response = st.write_stream(stream)
             print('response: ', response)
             st.session_state.messages.append({"role": "assistant", "content": response})
-            st.rerun()
+            # st.rerun()
 
             chat.save_chat_history(prompt, response)
 

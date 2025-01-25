@@ -37,7 +37,7 @@ from multiprocessing import Process, Pipe
 from urllib import parse
 from pydantic.v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
-from langchain.utilities.tavily_search import TavilySearchAPIWrapper
+from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 
 try:
     with open("/home/config.json", "r", encoding="utf-8") as f:
@@ -99,7 +99,7 @@ knowledge_base_name = projectName
 numberOfDocs = 4
 MSG_LENGTH = 100    
 grade_state = "LLM" # LLM, PRIORITY_SEARCH, OTHERS
-parallel_processing = 'enable'
+parallel_processing = 'disable'
 
 doc_prefix = s3_prefix+'/'
 useEnhancedSearch = False
