@@ -399,7 +399,6 @@ def upload_to_s3(file_bytes, file_name):
             service_name='s3',
             region_name=bedrock_region
         )
-
         # Generate a unique file name to avoid collisions
         #timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         #unique_id = str(uuid.uuid4())[:8]
@@ -1011,8 +1010,10 @@ def get_summary_of_uploaded_file(file_name, st):
     elif file_type == 'png' or file_type == 'jpeg' or file_type == 'jpg':
         print('multimodal: ', file_name)
         
-        s3_client = boto3.client('s3') 
-            
+        s3_client = boto3.client(
+            service_name='s3',
+            region_name=bedrock_region
+        )             
         if debug_mode=="Enable":
             status = "이미지를 가져옵니다."
             print('status: ', status)
@@ -1237,7 +1238,6 @@ def initiate_knowledge_base():
             service_name='bedrock-agent',
             region_name=bedrock_region
         )   
-
         response = client.list_knowledge_bases(
             maxResults=10
         )
@@ -1444,7 +1444,10 @@ def retrieve_documents_from_knowledge_base(query, top_k):
 def sync_data_source():
     if knowledge_base_id and data_source_id:
         try:
-            client = boto3.client('bedrock-agent')
+            client = boto3.client(
+                service_name='bedrock-agent',
+                region_name=bedrock_region                
+            )
             response = client.start_ingestion_job(
                 knowledgeBaseId=knowledge_base_id,
                 dataSourceId=data_source_id
@@ -3669,7 +3672,10 @@ def run_long_form_writing_agent(query, st, debugMode):
 
             final_doc += markdown_reference
                 
-        s3_client = boto3.client('s3')  
+        s3_client = boto3.client(
+            service_name='s3',
+            region_name=bedrock_region
+        )  
         response = s3_client.put_object(
             Bucket=s3_bucket,
             Key=markdown_key,
@@ -3687,7 +3693,10 @@ def run_long_form_writing_agent(query, st, debugMode):
         html_body = markdown_to_html(final_doc)
         print('html_body: ', html_body)
         
-        s3_client = boto3.client('s3')  
+        s3_client = boto3.client(
+            service_name='s3',
+            region_name=bedrock_region
+        )  
         response = s3_client.put_object(
             Bucket=s3_bucket,
             Key=html_key,
