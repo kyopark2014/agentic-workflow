@@ -981,7 +981,7 @@ def get_summary_of_uploaded_file(file_name, st):
                         metadata={
                             'name': file_name,
                             # 'page':i+1,
-                            'url': path+doc_prefix+parse.quote(file_name)
+                            'url': path+'/'+doc_prefix+parse.quote(file_name)
                         }
                     )
                 )
@@ -1426,7 +1426,7 @@ def retrieve_documents_from_knowledge_base(query, top_k):
                 name = "WEB"
 
             url = link
-            # print('url:', url)
+            print('url:', url)
             
             relevant_docs.append(
                 Document(
@@ -1520,7 +1520,7 @@ def get_rag_prompt(text):
 
     return rag_chain
 
-def run_rag_with_knowledge_base(text, st, debugMode):
+def run_rag_with_knowledge_base(text, st):
     global reference_docs, contentList
     reference_docs = []
     contentList = []
@@ -1753,7 +1753,7 @@ def search_by_knowledge_base(keyword: str) -> str:
                 name = link[pos+len(doc_prefix)+1:]
                 encoded_name = parse.quote(name)
                 # print('name:', name)
-                link = f"{path}{doc_prefix}{encoded_name}"
+                link = f"{path}/{doc_prefix}{encoded_name}"
                 
             elif "webLocation" in doc.metadata["location"]:
                 link = doc.metadata["location"]["webLocation"]["url"] if doc.metadata["location"]["webLocation"]["url"] is not None else ""
@@ -1860,7 +1860,7 @@ tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, se
 ####################### LangGraph #######################
 # Chat Agent Executor
 #########################################################
-def run_agent_executor(query, st, debugMode):
+def run_agent_executor(query, st):
     chatModel = get_chat()     
     model = chatModel.bind_tools(tools)
 
@@ -1950,13 +1950,13 @@ def run_agent_executor(query, st, debugMode):
                                     status = status[status.find('<thinking>')+11:status.find('</thinking>')]
                                     print('status without tag: ', status)
 
-                                if debugMode=="Enable":
+                                if debug_mode=="Enable":
                                     st.info(status)
                                 
                             elif re['type'] == 'tool_use':                
                                 print(f"--> {re['type']}: {re['name']}, {re['input']}")
 
-                                if debugMode=="Enable":
+                                if debug_mode=="Enable":
                                     st.info(f"{re['type']}: {re['name']}, {re['input']}")
                             else:
                                 print(re)
@@ -2025,7 +2025,7 @@ def run_agent_executor(query, st, debugMode):
 # Agentic Workflow: Tool Use (partial tool을 활용)
 #########################################################
 
-def run_agent_executor2(query, st, debugMode):        
+def run_agent_executor2(query, st):        
     class State(TypedDict):
         messages: Annotated[list, add_messages]
         answer: str
@@ -2091,13 +2091,13 @@ def run_agent_executor2(query, st, debugMode):
                             status = status[status.find('<thinking>')+11:status.find('</thinking>')]
                             print('status without tag: ', status)
 
-                        if debugMode=="Enable":
+                        if debug_mode=="Enable":
                             st.info(status)
 
                     elif re['type'] == 'tool_use':                
                         print(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
 
-                        if debugMode=="Enable":
+                        if debug_mode=="Enable":
                             st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
                     else:
                         print(re)
@@ -2230,12 +2230,315 @@ def get_basic_answer(query):
 
     return output.content
 
-
 ####################### LangGraph #######################
-# Agentic Workflow: Reflection 
+# Agentic Workflow: Reflection
 #########################################################
 
-def init_enhanced_search(st, debugMode):
+def run_reflection(query, st):
+    class State(TypedDict):
+        task: str
+        draft: str
+        reflection: list
+        search_queries: list
+            
+    def generate(state: State, config):    
+        print("###### generate ######")
+        print('task: ', state['task'])
+
+        global reference_docs
+
+        query = state['task']
+
+        # grade   
+        if debug_mode == "Enable":
+            st.info(f"초안(draft)를 생성하기 위하여, knowledge base를 조회합니다.") 
+
+        top_k = 4
+        relevant_docs = retrieve_documents_from_knowledge_base(query, top_k=top_k)
+    
+        # grade   
+        if debug_mode == "Enable":
+            st.info(f"가져온 {len(relevant_docs)}개의 문서를 평가하고 있습니다.") 
+
+        filtered_docs = grade_documents(query, relevant_docs)    
+        filtered_docs = check_duplication(filtered_docs) # duplication checker
+        if len(filtered_docs):
+            reference_docs += filtered_docs 
+
+        if debug_mode == "Enable":
+            st.info(f"{len(filtered_docs)}개의 문서가 선택되었습니다.")
+        
+        # generate
+        if debug_mode == "Enable":
+            st.info(f"초안을 생성중입니다.")
+        
+        relevant_context = ""
+        for document in filtered_docs:
+            relevant_context = relevant_context + document.page_content + "\n\n"        
+        # print('relevant_context: ', relevant_context)
+
+        rag_chain = get_rag_prompt(query)
+                        
+        draft = ""    
+        try: 
+            result = rag_chain.invoke(
+                {
+                    "question": query,
+                    "context": relevant_context                
+                }
+            )
+            print('result: ', result)
+
+            draft = result.content        
+            if draft.find('<result>')!=-1:
+                draft = draft[draft.find('<result>')+8:draft.find('</result>')]
+            
+            if debug_mode=="Enable":
+                st.info(f"생성된 초안: {draft}")
+            
+        except Exception:
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg)                    
+            raise Exception ("Not able to request to LLM")
+        
+        return {"draft":draft}
+    
+    class Reflection(BaseModel):
+        missing: str = Field(description="Critique of what is missing.")
+        advisable: str = Field(description="Critique of what is helpful for better answer")
+        superfluous: str = Field(description="Critique of what is superfluous")
+
+    class Research(BaseModel):
+        """Provide reflection and then follow up with search queries to improve the answer."""
+
+        reflection: Reflection = Field(description="Your reflection on the initial answer.")
+        search_queries: list[str] = Field(
+            description="1-3 search queries for researching improvements to address the critique of your current answer."
+        )
+    
+    class ReflectionKor(BaseModel):
+        missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
+        advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
+        superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
+
+    class ResearchKor(BaseModel):
+        """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
+
+        reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
+        search_queries: list[str] = Field(
+            description="도출된 비평을 해결하기 위한 3개 이내의 검색어"            
+        )    
+
+    def reflect(state: State, config):
+        print("###### reflect ######")
+        print('draft: ', state["draft"])
+
+        draft = state["draft"]
+        
+        if debug_mode=="Enable":
+            st.info('초안을 검토하여 부족하거나 보강할 내용을 찾고, 추가 검색어를 추출합니다.')
+
+        reflection = []
+        search_queries = []
+        for attempt in range(5):
+            try:
+                chat = get_chat()
+                if isKorean(draft):
+                    structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
+                else:
+                    structured_llm = chat.with_structured_output(Research, include_raw=True)
+                
+                info = structured_llm.invoke(draft)
+                print(f'attempt: {attempt}, info: {info}')
+                    
+                if not info['parsed'] == None:
+                    parsed_info = info['parsed']
+                    # print('reflection: ', parsed_info.reflection)                
+                    reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
+                    search_queries = parsed_info.search_queries
+                    
+                    print('reflection: ', parsed_info.reflection)            
+                    print('search_queries: ', search_queries)      
+
+                    if debug_mode=="Enable":  
+                        st.info(f'개선할 사항: {parsed_info.reflection}')
+                        st.info(f'추가 검색어: {search_queries}')        
+                    break
+            except Exception:
+                err_msg = traceback.format_exc()
+                print('error message: ', err_msg) 
+        
+        return {
+            "reflection": reflection,
+            "search_queries": search_queries
+        }
+    
+    def get_revise_prompt(text):
+        chat = get_chat()
+
+        if isKorean(text):
+            system = (
+                "당신은 장문 작성에 능숙한 유능한 글쓰기 도우미입니다."                
+                "draft를 critique과 information 참조하여 수정하세오."
+                "최종 결과는 한국어로 작성하고 <result> tag를 붙여주세요."
+            )
+            human = (
+                "draft:"
+                "{draft}"
+                            
+                "critique:"
+                "{reflection}"
+
+                "information:"
+                "{content}"
+            )
+        else:
+            system = (
+                "You are an excellent writing assistant." 
+                "Revise this draft using the critique and additional information."
+                "Provide the final answer with <result> tag."
+            )
+            human = (
+                "draft:"
+                "{draft}"
+                            
+                "critique:"
+                "{reflection}"
+
+                "information:"
+                "{content}"
+            )                    
+        revise_prompt = ChatPromptTemplate.from_messages(
+            [
+                ('system', system),
+                ("human", human),
+            ]
+        )                    
+        revise_chain = revise_prompt | chat
+
+        return revise_chain
+    
+    def revise_answer(state: State, config):           
+        print("###### revise_answer ######")
+
+        if debug_mode=="Enable":
+            st.info("개선할 사항을 반영하여 답변을 생성중입니다.")
+        
+        top_k = 2
+        relevant_docs = []
+        for q in state["search_queries"]:
+            relevant_docs += retrieve_documents_from_tavily(q, top_k)
+
+        content = ""
+        if len(relevant_docs):
+            for d in relevant_docs:
+                content += d.page_content+'\n\n'
+            print('content: ', content)
+
+        for attempt in range(5):
+            print(f'attempt: {attempt}')
+
+            revise_chain = get_revise_prompt(state['task'])
+            try:
+                res = revise_chain.invoke(
+                    {
+                        "draft": state['draft'],
+                        "reflection": state["reflection"],
+                        "content": content
+                    }
+                )
+                output = res.content
+                print('output: ', output)
+
+                if output.find('<result>')==-1:
+                    draft = output
+                else:
+                    draft = output[output.find('<result>')+8:output.find('</result>')]
+
+                print('revised_answer: ', draft)
+                break
+
+            except Exception:
+                err_msg = traceback.format_exc()
+                print('error message: ', err_msg)
+                
+        global reference_docs
+        if relevant_docs:
+            reference_docs += relevant_docs
+
+        revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
+        return {
+            "draft": draft, 
+            "revision_number": revision_number + 1
+        }
+    
+    MAX_REVISIONS = 1
+    def should_continue(state: State, config):
+        print("###### should_continue ######")
+        max_revisions = config.get("configurable", {}).get("max_revisions", MAX_REVISIONS)
+        print("max_revisions: ", max_revisions)
+            
+        if state["revision_number"] > max_revisions:
+            return "end"
+        return "continue"
+
+    def buildReflection():    
+        workflow = StateGraph(State)
+
+        workflow.add_node("generate", generate)
+        workflow.add_node("reflect", reflect)
+        workflow.add_node("revise_answer", revise_answer)
+
+        workflow.set_entry_point("generate")
+
+        workflow.add_conditional_edges(
+            "revise_answer", 
+            should_continue, 
+            {
+                "end": END, 
+                "continue": "reflect"}
+        )
+
+        workflow.add_edge("generate", "reflect")
+        workflow.add_edge("reflect", "revise_answer")
+        
+        app = workflow.compile()
+        
+        return app
+    
+    # initiate
+    global contentList, reference_docs
+    contentList = []
+    reference_docs = []
+
+    # workflow
+    app = buildReflection()
+        
+    inputs = {
+        "task": query
+    } 
+    config = {
+        "recursion_limit": 50,
+        "max_revisions": MAX_REVISIONS,
+        "parallel_processing": parallel_processing
+    }
+    
+    output = app.invoke(inputs, config)
+    print('output: ', output)
+        
+    msg = output["draft"]
+
+    reference = ""
+    if reference_docs:
+        reference = get_references(reference_docs)
+
+    return msg+reference, reference_docs
+
+####################### LangGraph #######################
+# Agentic Workflow: Reflection (run_knowledge_guru)
+#########################################################
+
+def init_enhanced_search(st):
     chat = get_chat() 
 
     model = chat.bind_tools(tools)
@@ -2304,7 +2607,7 @@ def init_enhanced_search(st, debugMode):
             if toolinfo['type'] == 'tool_call':
                 print('tool name: ', toolinfo['name'])         
 
-            if debugMode=="Enable":
+            if debug_mode=="Enable":
                 st.info(f"{response.tool_calls[-1]['name']}: {response.tool_calls[-1]['args']}")
                    
         return {"messages": [response]}
@@ -2329,11 +2632,11 @@ def init_enhanced_search(st, debugMode):
     
     return buildChatAgent()
 
-def enhanced_search(query, config, st, debugMode):
+def enhanced_search(query, config, st):
     print("###### enhanced_search ######")
     inputs = [HumanMessage(content=query)]
 
-    app_enhanced_search = init_enhanced_search(st, debugMode)        
+    app_enhanced_search = init_enhanced_search(st)        
     result = app_enhanced_search.invoke({"messages": inputs}, config)   
     print('result: ', result)
             
@@ -2345,7 +2648,7 @@ def enhanced_search(query, config, st, debugMode):
     else:
         return message.content[message.content.find('<result>')+8:message.content.find('</result>')]
     
-def run_knowledge_guru(query, st, debugMode):
+def run_knowledge_guru(query, st):
     class State(TypedDict):
         messages: Annotated[list, add_messages]
         reflection: list
@@ -2356,13 +2659,13 @@ def run_knowledge_guru(query, st, debugMode):
         print('state: ', state["messages"])
         print('task: ', state['messages'][0].content)
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"검색을 수행합니다. 검색어: {state['messages'][0].content}")
         
-        draft = enhanced_search(state['messages'][0].content, config, st, debugMode)  
+        draft = enhanced_search(state['messages'][0].content, config, st)  
         print('draft: ', draft)
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"생성된 초안: {draft}")
         
         return {
@@ -2394,71 +2697,97 @@ def run_knowledge_guru(query, st, debugMode):
         search_queries: list[str] = Field(
             description="도출된 비평을 해결하기 위한 3개 이내의 검색어"            
         )    
-    
+
     def reflect(state: State, config):
         print("###### reflect ######")
         print('state: ', state["messages"])    
         print('draft: ', state["messages"][-1].content)
         
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info('초안을 검토하여 부족하거나 보강할 내용을 찾고, 추가 검색어를 추출합니다.')
 
         reflection = []
         search_queries = []
-        for attempt in range(20):
-            chat = get_chat()
-            if isKorean(state["messages"][-1].content):
-                structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
-            else:
-                structured_llm = chat.with_structured_output(Research, include_raw=True)
-            
-            info = structured_llm.invoke(state["messages"][-1].content)
-            print(f'attempt: {attempt}, info: {info}')
+        for attempt in range(5):
+            try:
+                chat = get_chat()
+                if isKorean(state["messages"][-1].content):
+                    structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
+                else:
+                    structured_llm = chat.with_structured_output(Research, include_raw=True)
                 
-            if not info['parsed'] == None:
-                parsed_info = info['parsed']
-                # print('reflection: ', parsed_info.reflection)                
-                reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
-                search_queries = parsed_info.search_queries
-                
-                print('reflection: ', parsed_info.reflection)            
-                print('search_queries: ', search_queries)      
+                info = structured_llm.invoke(state["messages"][-1].content)
+                print(f'attempt: {attempt}, info: {info}')
+                    
+                if not info['parsed'] == None:
+                    parsed_info = info['parsed']
+                    # print('reflection: ', parsed_info.reflection)                
+                    reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
+                    search_queries = parsed_info.search_queries
+                    
+                    print('reflection: ', parsed_info.reflection)            
+                    print('search_queries: ', search_queries)      
 
-                if debugMode=="Enable":  
-                    st.info(f'개선할 사항: {parsed_info.reflection}')
-                    st.info(f'추가 검색어: {search_queries}')        
-                break
+                    if debug_mode=="Enable":  
+                        st.info(f'개선할 사항: {parsed_info.reflection}')
+                        st.info(f'추가 검색어: {search_queries}')        
+                    break
+            except Exception:
+                err_msg = traceback.format_exc()
+                print('error message: ', err_msg) 
         
         return {
             "messages": state["messages"],
             "reflection": reflection,
             "search_queries": search_queries
         }
+    
+    def get_revise_prompt(text):
+        chat = get_chat()
 
-    def revise_answer(state: State, config):   
-        print("###### revise_answer ######")
-        
-        if debugMode=="Enable":
-            st.info("개선할 사항을 반영하여 답변을 생성중입니다.")
-        human = (
-            "Revise your previous answer using the new information."
-            "You should use the previous critique to add important information to your answer." 
-            "provide the final answer with <result> tag."
+        if isKorean(text):
+            system = (
+                "당신은 장문 작성에 능숙한 유능한 글쓰기 도우미입니다."                
+                "critique과 information 참조하여 답변을 수정하십시오."
+                "최종 결과는 한국어로 작성하고 <result> tag를 붙여주세요."
+            )
+            human = (
+                "critique:"
+                "{reflection}"
 
-            "critique:"
-            "{reflection}"
+                "information:"
+                "{content}"
+            )
+        else:
+            system = (
+                "You are an excellent writing assistant." 
+                "Revise this draft using the critique and additional information."
+                "Provide the final answer with <result> tag."
+            )
+            human = (
+                "critique:"
+                "{reflection}"
 
-            "information:"
-            "{content}"
-        )
-                    
-        reflection_prompt = ChatPromptTemplate.from_messages(
+                "information:"
+                "{content}"
+            )                    
+        revise_prompt = ChatPromptTemplate.from_messages(
             [
+                ('system', system),
                 MessagesPlaceholder(variable_name="messages"),
                 ("human", human),
             ]
-        )
-            
+        )                    
+        revise_chain = revise_prompt | chat
+
+        return revise_chain
+    
+    def revise_answer(state: State, config):   
+        print("###### revise_answer ######")
+        
+        if debug_mode=="Enable":
+            st.info("개선할 사항을 반영하여 답변을 생성중입니다.")
+                    
         content = []        
         if useEnhancedSearch: # search agent
             for q in state["search_queries"]:
@@ -2480,32 +2809,38 @@ def run_knowledge_guru(query, st, debugMode):
                     if 'content' in r:
                         content.append(r['content'])     
 
-        chat = get_chat()
-        reflect = reflection_prompt | chat
+        for attempt in range(5):
+            print(f'attempt: {attempt}')
+            messages = state["messages"]
+            cls_map = {"ai": HumanMessage, "human": AIMessage}
+            translated = [messages[0]] + [
+                cls_map[msg.type](content=msg.content) for msg in messages[1:]
+            ]
+            print('translated: ', translated)     
             
-        messages = state["messages"]
-        cls_map = {"ai": HumanMessage, "human": AIMessage}
-        translated = [messages[0]] + [
-            cls_map[msg.type](content=msg.content) for msg in messages[1:]
-        ]
-        print('translated: ', translated)     
-           
-        res = reflect.invoke(
-            {
-                "messages": translated,
-                "reflection": state["reflection"],
-                "content": content
-            }
-        )    
-        output = res.content
+            revise_chain = get_revise_prompt(content)
+            try:
+                res = revise_chain.invoke(
+                    {
+                        "messages": translated,
+                        "reflection": state["reflection"],
+                        "content": content
+                    }
+                )    
+                output = res.content
 
-        if output.find('<result>')==-1:
-            answer = output
-        else:
-            answer = output[output.find('<result>')+8:output.find('</result>')]
+                if output.find('<result>')==-1:
+                    answer = output
+                else:
+                    answer = output[output.find('<result>')+8:output.find('</result>')]
+            
+                response = HumanMessage(content=answer)
+                print('revised_answer: ', response.content)            
+                break
 
-        response = HumanMessage(content=answer)
-        print('revised_answer: ', response.content)
+            except Exception:
+                err_msg = traceback.format_exc()
+                print('error message: ', err_msg)            
                 
         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
         return {
@@ -2581,7 +2916,7 @@ def run_knowledge_guru(query, st, debugMode):
 ####################### LangGraph #######################
 # Agentic Workflow: Planning (Advanced CoT)
 #########################################################
-def run_planning(query, st, debugMode):
+def run_planning(query, st):
     class State(TypedDict):
         input: str
         plan: list[str]
@@ -2593,7 +2928,7 @@ def run_planning(query, st, debugMode):
         print("###### plan ######")
         print('input: ', state["input"])
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"계획을 생성합니다. 요청사항: {state['input']}")
         
         system = (
@@ -2631,7 +2966,7 @@ def run_planning(query, st, debugMode):
         planning_steps = plan.split('\n')
         print('planning_steps: ', planning_steps)
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"생성된 계획: {planning_steps}")
         
         return {
@@ -2645,7 +2980,7 @@ def run_planning(query, st, debugMode):
             relevant_context = relevant_context + document.page_content + "\n\n"        
         # print('relevant_context: ', relevant_context)
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"계획을 수행합니다. 현재 계획 {text}")
 
         # generating
@@ -2697,18 +3032,24 @@ def run_planning(query, st, debugMode):
         
         chat = get_chat()
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"검색을 수행합니다. 검색어 {plan[0]}")
         
         # retrieve
         relevant_docs = retrieve_documents_from_knowledge_base(plan[0], top_k=4)
         relevant_docs += retrieve_documents_from_tavily(plan[0], top_k=4)
-            
-        # grade
+        
+        # grade   
+        if debug_mode == "Enable":
+            st.info(f"가져온 {len(relevant_docs)}개의 문서를 평가하고 있습니다.") 
+
         filtered_docs = grade_documents(plan[0], relevant_docs) # grading    
         filtered_docs = check_duplication(filtered_docs) # check duplication
                 
         # generate
+        if debug_mode == "Enable":
+            st.info(f"결과를 생성중입니다.")
+
         result = generate_answer(chat, relevant_docs, plan[0])
         
         print('task: ', plan[0])
@@ -2718,7 +3059,7 @@ def run_planning(query, st, debugMode):
         if len(filtered_docs):
             reference_docs += filtered_docs
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"현 단계의 결과 {result}")
         
         # print('plan: ', state["plan"])
@@ -2738,7 +3079,7 @@ def run_planning(query, st, debugMode):
             print('last plan: ', state["plan"])
             return {"response":state["info"][-1]}
         
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"새로운 계획을 생성합니다.")
         
         system = (
@@ -2796,7 +3137,7 @@ def run_planning(query, st, debugMode):
             planning_steps = plans.split('\n')
             print('planning_steps: ', planning_steps)
 
-            if debugMode=="Enable":
+            if debug_mode=="Enable":
                 st.info(f"새로운 계획: {planning_steps}")
 
             return {"plan": planning_steps}
@@ -2825,7 +3166,7 @@ def run_planning(query, st, debugMode):
         query = state['input']
         print('query: ', query)
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"최종 답변을 생성합니다.")
         
         if isKorean(query)==True:
@@ -2930,7 +3271,7 @@ def run_planning(query, st, debugMode):
 ####################### LangGraph #######################
 # Agentic Workflow Multi-agent Collaboration 
 #########################################################
-def run_long_form_writing_agent(query, st, debugMode):
+def run_long_form_writing_agent(query, st):
     # Workflow - Reflection
     class ReflectionState(TypedDict):
         draft : str
@@ -2973,7 +3314,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         idx = config.get("configurable", {}).get("idx")
         print('reflect_node idx: ', idx)
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"{idx}: draft에서 개선 사항을 도출합니다.")
     
         reflection = []
@@ -2996,7 +3337,7 @@ def run_long_form_writing_agent(query, st, debugMode):
                     reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
                     search_queries = parsed_info.search_queries
 
-                    if debugMode=="Enable":
+                    if debug_mode=="Enable":
                         st.info(f"{idx}: 개선사항: {reflection}")
                     
                     print('reflection: ', parsed_info.reflection)
@@ -3015,7 +3356,7 @@ def run_long_form_writing_agent(query, st, debugMode):
                         print('translated_search: ', translated_search)
                         search_queries += translated_search
 
-                    if debugMode=="Enable":
+                    if debug_mode=="Enable":
                         st.info(f"검색어: {search_queries}")
 
                     print('search_queries (mixed): ', search_queries)
@@ -3037,7 +3378,7 @@ def run_long_form_writing_agent(query, st, debugMode):
     def retrieve_for_writing(conn, q, config):
         idx = config.get("configurable", {}).get("idx") 
          
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"검색을 수행합니다. 검색어: {q}")
 
         relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
@@ -3098,7 +3439,7 @@ def run_long_form_writing_agent(query, st, debugMode):
             docs = parallel_retriever(search_queries, config)
         else:
             for q in search_queries:      
-                if debugMode=="Enable":
+                if debug_mode=="Enable":
                     st.info(f"검색을 수행합니다. 검색어: {q}")
 
                 relevant_docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
@@ -3113,6 +3454,52 @@ def run_long_form_writing_agent(query, st, debugMode):
                             
         return docs
         
+    def get_revise_prompt(draft):
+        chat = get_chat()
+
+        if isKorean(draft):
+            system = (
+                "당신은 장문 작성에 능숙한 유능한 글쓰기 도우미입니다."                
+                "draft을 critique과 information 사용하여 수정하십시오."
+                "최종 결과는 한국어로 작성하고 <result> tag를 붙여주세요."
+            )
+            human = (
+                "draft:"
+                "{draft}"
+                            
+                "critique:"
+                "{reflection}"
+
+                "information:"
+                "{content}"
+            )
+        else:    
+            system = (
+                "You are an excellent writing assistant." 
+                "Revise this draft using the critique and additional information."
+                "Provide the final answer with <result> tag."
+            )
+            human = (                            
+                "draft:"
+                "{draft}"
+                            
+                "critique:"
+                "{reflection}"
+
+                "information:"
+                "{content}"
+            )
+                    
+        revise_prompt = ChatPromptTemplate([
+            ('system', system),
+            ('human', human)
+        ])
+
+        chat = get_chat()
+        reflect_chain = revise_prompt | chat
+
+        return reflect_chain
+        
     def revise_draft(state: ReflectionState, config):   
         print("###### revise_draft ######")
         
@@ -3126,7 +3513,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         idx = config.get("configurable", {}).get("idx")
         print('revise_draft idx: ', idx)
         
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"{idx}: 개선사항을 반영하여 새로운 답변을 생성합니다.")
         
         # reference = state['reference'] if 'reference' in state else []     
@@ -3145,48 +3532,8 @@ def run_long_form_writing_agent(query, st, debugMode):
                     content.append(d.page_content)            
                 print('content: ', content)
                                     
-                if isKorean(draft):
-                    system = (
-                        "당신은 장문 작성에 능숙한 유능한 글쓰기 도우미입니다."                
-                        "draft을 critique과 information 사용하여 수정하십시오."
-                        "최종 결과는 한국어로 작성하고 <result> tag를 붙여주세요."
-                    )
-                    human = (
-                        "draft:"
-                        "{draft}"
-                                    
-                        "critique:"
-                        "{reflection}"
-
-                        "information:"
-                        "{content}"
-                    )
-                else:    
-                    system = (
-                        "You are an excellent writing assistant." 
-                        "Revise this draft using the critique and additional information."
-                        "Provide the final answer with <result> tag."
-                    )
-                    human = (                            
-                        "draft:"
-                        "{draft}"
-                                    
-                        "critique:"
-                        "{reflection}"
-
-                        "information:"
-                        "{content}"
-                    )
-                            
-                revise_prompt = ChatPromptTemplate([
-                    ('system', system),
-                    ('human', human)
-                ])
-
-                chat = get_chat()
-                reflect = revise_prompt | chat
-                
-                res = reflect.invoke(
+                revise_chain = get_revise_prompt(content)
+                res = revise_chain.invoke(
                     {
                         "draft": draft,
                         "reflection": reflection,
@@ -3272,7 +3619,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         instruction = state["instruction"]
         print('subject: ', instruction)
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"계획을 생성합니다. 요청사항: {instruction}")
         
         if isKorean(instruction):
@@ -3333,7 +3680,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         planning_steps = plan.split('\n')        
         print('planning_steps: ', planning_steps)
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info(f"생성된 계획: {planning_steps}")
             
         return {
@@ -3437,7 +3784,7 @@ def run_long_form_writing_agent(query, st, debugMode):
             output = result.content
             # print('output: ', output)
 
-            if debugMode=="Enable":
+            if debug_mode=="Enable":
                 st.info(f"수행단계: {step}")
             
             if output.find('<result>')==-1:
@@ -3445,7 +3792,7 @@ def run_long_form_writing_agent(query, st, debugMode):
             else:
                 draft = output[output.find('<result>')+8:output.find('</result>')]
 
-            if debugMode=="Enable":
+            if debug_mode=="Enable":
                 st.info(f"생성결과: {draft}")
                                               
             print(f"--> step: {step}")
@@ -3622,7 +3969,7 @@ def run_long_form_writing_agent(query, st, debugMode):
         parallel_revise = config.get("configurable", {}).get("parallel_revise", "enable")
         print('parallel_revise: ', parallel_revise)
 
-        if debugMode=="Enable":
+        if debug_mode=="Enable":
             st.info("문서를 개선합니다.")
         
         # reflection
@@ -3765,7 +4112,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 # 이러한 방법을 통해 건강한 exosome의 분비를 촉진함으로써, 당뇨병과 같은 대사 질환의 예방과 치료에 중요한 역할을 할 수 있습니다. 예를 들어, 건강한 exosome의 분비를 촉진함으로써, 인슐린 감수성을 개선하고 염증 반응을 조절할 수 있습니다. 이는 당뇨병의 발병을 예방하고 진행을 늦출 수 있는 중요한 전략이 될 수 있습니다. 또한, 건강한 exosome의 분비를 촉진함으로써, 당뇨병의 합병증을 예방하고 치료할 수 있습니다. 이러한 연구는 현재 활발히 진행되고 있으며, 미래에는 더 많은 가능성을 열어줄 것으로 기대됩니다. 따라서, 건강한 exosome의 분비를 촉진하는 방법을 탐구함으로써, 당뇨병과 같은 질병의 예방과 치료에 중요한 역할을 할 수 있습니다."""
 
 
-# def run_long_form_writing_agent2(query, st, debugMode):
+# def run_long_form_writing_agent2(query, st):
 #     class ReflectionState(TypedDict):
 #         draft : str
 #         reflection : List[str]
@@ -3819,7 +4166,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #         print('search_queries: ', search_queries)
 #         print('reflection: ', reflection)
 
-#         if debugMode=="Enable":
+#         if debug_mode=="Enable":
 #             st.info(f"개선사항을 반영하여 새로운 답변을 생성합니다.")
                             
 #         # reference = state['reference'] if 'reference' in state else []     
@@ -3924,7 +4271,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #         print("###### reflect ######")
 #         draft = state['draft']
         
-#         if debugMode=="Enable":
+#         if debug_mode=="Enable":
 #             st.info(f"draft에서 개선 사항을 도출합니다.")
     
 #         reflection = []
@@ -3947,7 +4294,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #                     reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
 #                     search_queries = parsed_info.search_queries
 
-#                     if debugMode=="Enable":
+#                     if debug_mode=="Enable":
 #                         st.info(f"개선사항: {reflection}")
                     
 #                     print('reflection: ', parsed_info.reflection)
@@ -3966,7 +4313,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #                         print('translated_search: ', translated_search)
 #                         search_queries += translated_search
 
-#                     if debugMode=="Enable":
+#                     if debug_mode=="Enable":
 #                         st.info(f"검색어: {search_queries}")
 
 #                     print('search_queries (mixed): ', search_queries)
@@ -3992,7 +4339,7 @@ def run_long_form_writing_agent(query, st, debugMode):
 #         docs = []        
 
 #         for q in search_queries:      
-#             if debugMode=="Enable":
+#             if debug_mode=="Enable":
 #                 st.info(f"검색을 수행합니다. 검색어: {q}")
 
 #             #docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)

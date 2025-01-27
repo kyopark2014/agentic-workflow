@@ -190,7 +190,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'RAG':
             with st.status("running...", expanded=True, state="running") as status:
-                response, reference_docs = chat.run_rag_with_knowledge_base(prompt, st, debugMode)        
+                response, reference_docs = chat.run_rag_with_knowledge_base(prompt, st)                           
                 st.write(response)
                 print('response: ', response)
 
@@ -204,7 +204,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Agent (Tool Use)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, reference_docs = chat.run_agent_executor(prompt, st, debugMode)
+                response, reference_docs = chat.run_agent_executor(prompt, st)
                 st.write(response)
                 print('response: ', response)
 
@@ -218,7 +218,8 @@ if prompt := st.chat_input("메시지를 입력하세요."):
         
         elif mode == 'Agent (Reflection)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, reference_docs = chat.run_knowledge_guru(prompt, st, debugMode)
+                # response, reference_docs = chat.run_knowledge_guru(prompt, st)
+                response, reference_docs = chat.run_reflection(prompt, st)     
                 st.write(response)
                 print('response: ', response)
 
@@ -237,7 +238,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Agent (Planning)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, reference_docs = chat.run_planning(prompt, st, debugMode)
+                response, reference_docs = chat.run_planning(prompt, st)
                 st.write(response)
                 print('response: ', response)
 
@@ -256,7 +257,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Agent (Multi-agent Collaboration)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, reference_docs = chat.run_long_form_writing_agent(prompt, st, debugMode)
+                response, reference_docs = chat.run_long_form_writing_agent(prompt, st)
                 st.write(response)
                 print('response: ', response)
 
