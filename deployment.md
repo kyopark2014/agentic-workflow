@@ -35,10 +35,9 @@ Instance Type은 "m5.large"를 선택하고, Key pair는 "Proceeding without a k
 편의상 C-Shell로 변경후 필요한 패키지로 git, node.js, npm, docker를 설치하고 환경을 설절정합니다. 
 
 ```text
-csh
 cd && sudo yum install git nodejs npm docker -y
-sudo usermod -a -G docker $USER
-newgrp docker
+sudo usermod -a -G docker ec2-user
+sudo newgrp docker
 sudo service docker start
 sudo npm install -g aws-cdk --prefix /usr/local
 ```
