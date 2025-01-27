@@ -24,8 +24,10 @@ Agentic workflow (tool use)는 아래와 같이 구현할 수 있습니다. 상�
 일반적인 대화는 아래와 같이 stream으로 결과를 얻을 수 있습니다. 여기에서는 LangChain의 ChatBedrock과 Nova Pro의 모델명인 "us.amazon.nova-pro-v1:0"을 활용하고 있습니다.
 
 ```python
-modelId = "us.amazon.nova-pro-v1:0"
 bedrock_region = "us-west-2"
+modelId = "us.amazon.nova-pro-v1:0"
+stop_sequences = ["\n\n<thinking>", "\n<thinking>", " <thinking>"]
+
 boto3_bedrock = boto3.client(
     service_name='bedrock-runtime',
     region_name=bedrock_region,
@@ -40,7 +42,7 @@ parameters = {
     "temperature":0.1,
     "top_k":250,
     "top_p":0.9,
-    "stop_sequences": ["\n\n<thinking>", "\n<thinking>", " <thinking>"]
+    "stop_sequences": stop_sequences
 }
 
 chat = ChatBedrock(  
