@@ -218,7 +218,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
         
         elif mode == 'Agent (Reflection)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                # response, reference_docs = chat.run_knowledge_guru(prompt, st)
+                # esponse, reference_docs = chat.run_knowledge_guru(prompt, st)
                 response, reference_docs = chat.run_reflection(prompt, st)     
                 st.write(response)
                 print('response: ', response)
