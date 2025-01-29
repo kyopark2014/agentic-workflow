@@ -526,6 +526,7 @@ EOF"`,
         `runuser -l ec2-user -c 'cat <<EOF > /home/ec2-user/.streamlit/config.toml
 [server]
 port=${targetPort}
+maxUploadSize = 50
 
 [theme]
 base="dark"
