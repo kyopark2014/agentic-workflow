@@ -114,7 +114,6 @@ map_chain = dict()
 model_name = "Nova Pro"
 model_type = "nova"
 multi_region = 'Enable'
-contextual_embedding = "Disable"
 debug_mode = "Enable"
 
 models = info.get_model_info(model_name)
@@ -123,14 +122,13 @@ selected_chat = 0
 
 def update(modelName, debugMode, multiRegion):    
     global model_name, debug_mode, multi_region     
-    global selected_chat, selected_embedding, models, number_of_models
+    global selected_chat, models, number_of_models
     
     if model_name != modelName:
         model_name = modelName
         print('model_name: ', model_name)
         
         selected_chat = 0
-        selected_embedding = 0
         models = info.get_model_info(model_name)
         number_of_models = len(models)
         
@@ -143,7 +141,6 @@ def update(modelName, debugMode, multiRegion):
         print('multi_region: ', multi_region)
         
         selected_chat = 0
-        selected_embedding = 0
         
 def initiate():
     global userId
