@@ -506,9 +506,11 @@ class GradeDocuments(BaseModel):
     binary_score: str = Field(description="Documents are relevant to the question, 'yes' or 'no'")
 
 def get_retrieval_grader(chat):
-    system = """You are a grader assessing relevance of a retrieved document to a user question. \n 
-    If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant. \n
-    Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question."""
+    system = (
+        "You are a grader assessing relevance of a retrieved document to a user question."
+        "If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant."
+        "Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question."
+    )
 
     grade_prompt = ChatPromptTemplate.from_messages(
         [
@@ -2233,6 +2235,152 @@ def get_basic_answer(query):
 ####################### LangGraph #######################
 # Agentic Workflow: Reflection
 #########################################################
+def extract_reflection(draft):
+    class Reflection(BaseModel):
+        missing: str = Field(description="Critique of what is missing.")
+        advisable: str = Field(description="Critique of what is helpful for better answer")
+        superfluous: str = Field(description="Critique of what is superfluous")
+
+    class Research(BaseModel):
+        """Provide reflection and then follow up with search queries to improve the answer."""
+
+        reflection: Reflection = Field(description="Your reflection on the initial answer.")
+        search_queries: list[str] = Field(
+            description="1-3 search queries for researching improvements to address the critique of your current answer."
+        )
+    
+    class ReflectionKor(BaseModel):
+        missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
+        advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
+        superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
+
+    class ResearchKor(BaseModel):
+        """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
+
+        reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
+        search_queries: list[str] = Field(
+            description="도출된 비평을 해결하기 위한 3개 이내의 검색어"            
+        )    
+
+    reflection = []
+    search_queries = []
+    for attempt in range(5):
+        try:
+            chat = get_chat()
+            if isKorean(draft):
+                structured_llm = chat.with_structured_output(Research, include_raw=True)
+            else:
+                structured_llm = chat.with_structured_output(Research, include_raw=True)
+            
+            info = structured_llm.invoke(draft)
+            print(f'attempt: {attempt}, info: {info}')
+                
+            if not info['parsed'] == None:
+                parsed_info = info['parsed']
+                print('parsed_info: ', parsed_info)
+                reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
+                search_queries = parsed_info.search_queries
+                
+                print('reflection: ', parsed_info.reflection)            
+                print('search_queries: ', search_queries)      
+
+        except Exception:
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg) 
+
+        return reflection, search_queries
+
+def extract_reflection2(draft):
+    system = (
+        "주어진 문장을 향상시키기 위하여 아래와 같은 항목으로 개선사항을 추출합니다."
+        "missing: 작성된 글에 있어야하는데 빠진 내용이나 단점"
+        "advisable: 더 좋은 글이 되기 위해 추가하여야 할 내용"
+        "superfluous: 글의 길이나 스타일에 대한 비평"    
+        "<result> tag를 붙여주세요."
+    )
+    critique_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", "{draft}"),
+        ]
+    )
+
+    reflection = ""
+    for attempt in range(5):
+        try:
+            chat = get_chat()
+            chain = critique_prompt | chat
+            result = chain.invoke({
+                "draft": draft
+            })
+            print("result: ", result)
+
+            output = result.content
+
+            if output.find('<result>') != -1:
+                output = output[output.find('<result>')+8:output.find('</result>')]
+            print('output: ', output)
+
+            reflection = output            
+            break
+                
+        except Exception:
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg) 
+
+    # search queries
+    search_queries = []
+    class Queries(BaseModel):
+        """Provide reflection and then follow up with search queries to improve the answer."""
+
+        search_queries: list[str] = Field(
+            description="1-3 search queries for researching improvements to address the critique of your current answer."
+        )
+    class QueriesKor(BaseModel):
+        """글쓰기를 개선하기 위한 검색어를 제공합니다."""
+
+        search_queries: list[str] = Field(
+            description="주어진 비평을 해결하기 위한 3개 이내의 검색어"            
+        )    
+
+    system = (
+        "당신은 주어진 Draft를 개선하여 더 좋은 글쓰기를 하고자 합니다."
+        "주어진 비평을 반영하여 초안을 개선하기 위한 3개 이내의 검색어를 추천합니다."
+    )
+    queries_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", "Draft: {draft} \n\n Critiques: {reflection}"),
+        ]
+    )
+    for attempt in range(5):
+        try:
+            chat = get_chat()
+            if isKorean(draft):
+                structured_llm_queries = chat.with_structured_output(QueriesKor, include_raw=True)
+            else:
+                structured_llm_queries = chat.with_structured_output(Queries, include_raw=True)
+
+            retrieval_quries = queries_prompt | structured_llm_queries
+            
+            info = retrieval_quries.invoke({
+                "draft": draft,
+                "reflection": reflection
+            })
+            print(f'attempt: {attempt}, info: {info}')
+                
+            if not info['parsed'] == None:
+                parsed_info = info['parsed']
+                print('parsed_info: ', parsed_info)
+                search_queries = parsed_info.search_queries
+                print("search_queries: ", search_queries)
+            break
+                
+        except Exception:
+            err_msg = traceback.format_exc()
+            print('error message: ', err_msg) 
+
+    return reflection, search_queries
 
 def run_reflection(query, st):
     class State(TypedDict):
@@ -2303,32 +2451,6 @@ def run_reflection(query, st):
         
         return {"draft":draft}
     
-    class Reflection(BaseModel):
-        missing: str = Field(description="Critique of what is missing.")
-        advisable: str = Field(description="Critique of what is helpful for better answer")
-        superfluous: str = Field(description="Critique of what is superfluous")
-
-    class Research(BaseModel):
-        """Provide reflection and then follow up with search queries to improve the answer."""
-
-        reflection: Reflection = Field(description="Your reflection on the initial answer.")
-        search_queries: list[str] = Field(
-            description="1-3 search queries for researching improvements to address the critique of your current answer."
-        )
-    
-    class ReflectionKor(BaseModel):
-        missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
-        advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
-        superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
-
-    class ResearchKor(BaseModel):
-        """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
-
-        reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
-        search_queries: list[str] = Field(
-            description="도출된 비평을 해결하기 위한 3개 이내의 검색어"            
-        )    
-
     def reflect(state: State, config):
         print("###### reflect ######")
         print('draft: ', state["draft"])
@@ -2338,36 +2460,11 @@ def run_reflection(query, st):
         if debug_mode=="Enable":
             st.info('초안을 검토하여 부족하거나 보강할 내용을 찾고, 추가 검색어를 추출합니다.')
 
-        reflection = []
-        search_queries = []
-        for attempt in range(5):
-            try:
-                chat = get_chat()
-                if isKorean(draft):
-                    structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
-                else:
-                    structured_llm = chat.with_structured_output(Research, include_raw=True)
-                
-                info = structured_llm.invoke(draft)
-                print(f'attempt: {attempt}, info: {info}')
-                    
-                if not info['parsed'] == None:
-                    parsed_info = info['parsed']
-                    # print('reflection: ', parsed_info.reflection)                
-                    reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
-                    search_queries = parsed_info.search_queries
-                    
-                    print('reflection: ', parsed_info.reflection)            
-                    print('search_queries: ', search_queries)      
+        reflection, search_queries = extract_reflection2(draft)
+        if debug_mode=="Enable":  
+            st.info(f'개선할 사항: {reflection}')
+            st.info(f'추가 검색어: {search_queries}')        
 
-                    if debug_mode=="Enable":  
-                        st.info(f'개선할 사항: {parsed_info.reflection}')
-                        st.info(f'추가 검색어: {search_queries}')        
-                    break
-            except Exception:
-                err_msg = traceback.format_exc()
-                print('error message: ', err_msg) 
-        
         return {
             "reflection": reflection,
             "search_queries": search_queries
@@ -3280,34 +3377,34 @@ def run_long_form_writing_agent(query, st):
         revised_draft: str
         revision_number: int
         reference: List[str]
-        
-    class Reflection(BaseModel):
-        missing: str = Field(description="Critique of what is missing.")
-        advisable: str = Field(description="Critique of what is helpful for better writing")
-        superfluous: str = Field(description="Critique of what is superfluous")
-
-    class Research(BaseModel):
-        """Provide reflection and then follow up with search queries to improve the writing."""
-
-        reflection: Reflection = Field(description="Your reflection on the initial writing.")
-        search_queries: list[str] = Field(
-            description="1-3 search queries for researching improvements to address the critique of your current writing."
-        )
-
-    class ReflectionKor(BaseModel):
-        missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
-        advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
-        superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
-
-    class ResearchKor(BaseModel):
-        """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
-
-        reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
-        search_queries: list[str] = Field(
-            description="도출된 비평을 해결하기 위한 3개 이내의 검색어"            
-        )    
-        
+                
     def reflect_node(state: ReflectionState, config):
+        class ReflectionKor(BaseModel):
+            missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
+            advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
+            superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
+
+        class ResearchKor(BaseModel):
+            """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
+
+            reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
+            search_queries: list[str] = Field(
+                description="도출된 비평을 해결하기 위한 3개 이내의 검색어"            
+            )    
+
+        class Reflection(BaseModel):
+            missing: str = Field(description="Critique of what is missing.")
+            advisable: str = Field(description="Critique of what is helpful for better writing")
+            superfluous: str = Field(description="Critique of what is superfluous")
+
+        class Research(BaseModel):
+            """Provide reflection and then follow up with search queries to improve the writing."""
+
+            reflection: Reflection = Field(description="Your reflection on the initial writing.")
+            search_queries: list[str] = Field(
+                description="1-3 search queries for researching improvements to address the critique of your current writing."
+            )
+        
         print("###### reflect ######")
         draft = state['draft']
         
@@ -3368,6 +3465,41 @@ def run_long_form_writing_agent(query, st):
                 print('error message: ', err_msg)
                 # raise Exception ("Not able to request to LLM")
             
+        revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
+        return {
+            "reflection": reflection,
+            "search_queries": search_queries,
+            "revision_number": revision_number + 1
+        }
+    
+    def reflect_node2(state: ReflectionState, config):        
+        print("###### reflect ######")
+        draft = state['draft']
+        
+        idx = config.get("configurable", {}).get("idx")
+        print('reflect_node idx: ', idx)
+
+        if debug_mode=="Enable":
+            st.info(f"{idx}: draft에서 개선 사항을 도출합니다.")
+    
+        reflection, search_queries = extract_reflection2(draft)
+        if debug_mode=="Enable":  
+            st.info(f'개선할 사항: {reflection}')
+            st.info(f'추가 검색어: {search_queries}')    
+
+        if isKorean(draft):
+            translated_search = []
+            for q in search_queries:
+                chat = get_chat()
+                if isKorean(q):
+                    search = traslation(chat, q, "Korean", "English")
+                else:
+                    search = traslation(chat, q, "English", "Korean")
+                translated_search.append(search)
+                
+            print('translated_search: ', translated_search)
+            search_queries += translated_search
+
         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
         return {
             "reflection": reflection,
@@ -3585,7 +3717,7 @@ def run_long_form_writing_agent(query, st):
         workflow = StateGraph(ReflectionState)
 
         # Add nodes
-        workflow.add_node("reflect_node", reflect_node)
+        workflow.add_node("reflect_node", reflect_node2)
         workflow.add_node("revise_draft", revise_draft)
 
         # Set entry point
