@@ -128,11 +128,11 @@ def get_model_info(model_name):
         models = nova_lite_models
     elif model_name == "Nova Micro":
         models = nova_micro_models
-    elif model_name == "Claude Sonnet 3.0":
+    elif model_name == "Claude 3.0 Sonnet":
         models = claude_sonnet_3_0_models
-    elif model_name == "Claude Sonnet 3.5":
+    elif model_name == "Claude 3.5 Sonnet":
         models = claude_sonnet_3_5_v2_models
-    elif model_name == "Claude Haiku 3.5":
+    elif model_name == "Claude 3.5 Haiku":
         models = claude_haiku_3_5_models
 
     return models
