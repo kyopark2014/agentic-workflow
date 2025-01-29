@@ -622,6 +622,8 @@ RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주
 [지방 조직이 분비하는 exosome들이 어떻게 면역체계에 역할을 하고 어떻게 하면 좋은 exosome들을 분비시켜 당뇨나 병을 예방할수 있는지 알려주세요.](https://github.com/kyopark2014/agentic-workflow/blob/main/contents/%EC%A7%80%EB%B0%A9_%EC%A1%B0%EC%A7%81_exosome%EC%9D%98_%EB%A9%B4%EC%97%AD_%EC%97%AD%ED%95%A0_%EB%B0%8F_%EC%98%88%EB%B0%A9_%EB%B0%A9%EB%B2%95.md)
 
 
+[(V2) 지방 조직이 분비하는 exosome들이 어떻게 면역체계에 역할을 하고 어떻게 하면 좋은 exosome들을 분비시켜 당뇨나 병을 예방할수 있는지 알려주세요.](./contents/지방_조직_exosome의_면역_역할과_예방_방법.md)
+
 
 ### Reference 
 
