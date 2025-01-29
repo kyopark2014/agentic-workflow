@@ -69,7 +69,7 @@ with st.sidebar:
     # print('fileId: ', chat.fileId)
     uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv"], key=chat.fileId)
 
-    st.success("Connected to Nova Pro", icon="💚")
+    st.success(f"Connected to {modelName}", icon="💚")
     clear_button = st.button("대화 초기화", key="clear")
     # print('clear_button: ', clear_but
 

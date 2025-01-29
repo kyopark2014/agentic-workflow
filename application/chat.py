@@ -103,8 +103,7 @@ knowledge_base_name = projectName
 
 numberOfDocs = 4
 MSG_LENGTH = 100    
-grade_state = "LLM" # LLM, PRIORITY_SEARCH, OTHERS
-parallel_processing = 'disable'
+grade_state = "LLM" # LLM, OTHERS
 
 doc_prefix = s3_prefix+'/'
 useEnhancedSearch = False
@@ -531,7 +530,7 @@ def grade_documents(question, documents):
     
     if grade_state == "LLM":
         filtered_docs = []
-        if parallel_processing == 'Enable':  # parallel processing        
+        if multi_region == 'Enable':  # parallel processing        
             filtered_docs = grade_documents_using_parallel_processing(question, documents)
 
         else:
