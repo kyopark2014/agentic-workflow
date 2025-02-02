@@ -2403,7 +2403,7 @@ def run_reflection(query, st):
 
         # grade   
         if debug_mode == "Enable":
-            st.info(f"초안(draft)를 생성하기 위하여, knowledge base를 조회합니다.") 
+            st.info(f"초안(draft)를 생성하기 위하여, RAG를 조회합니다.") 
 
         top_k = 4
         relevant_docs = retrieve_documents_from_knowledge_base(query, top_k=top_k)
@@ -3146,6 +3146,9 @@ def run_planning(query, st):
 
         filtered_docs = grade_documents(plan[0], relevant_docs) # grading    
         filtered_docs = check_duplication(filtered_docs) # check duplication
+
+        if debug_mode == "Enable":
+            st.info(f"{len(filtered_docs)}개의 문서가 선택되었습니다.")
                 
         # generate
         if debug_mode == "Enable":
@@ -4227,7 +4230,7 @@ def run_long_form_writing_agent(query, st):
     }    
     config = {
         "recursion_limit": 100,
-        "parallel_revise": parallel_processing
+        "parallel_revise": multi_region
     }
     
     output = app.invoke(inputs, config)
