@@ -2621,7 +2621,7 @@ def run_reflection(query, st):
     config = {
         "recursion_limit": 50,
         "max_revisions": MAX_REVISIONS,
-        "parallel_processing": parallel_processing
+        "parallel_processing": multi_region
     }
     
     output = app.invoke(inputs, config)
