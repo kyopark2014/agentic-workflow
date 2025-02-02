@@ -2525,10 +2525,36 @@ def run_reflection(query, st):
         if debug_mode=="Enable":
             st.info("개선할 사항을 반영하여 답변을 생성중입니다.")
         
-        top_k = 2
-        relevant_docs = []
+        top_k = 2        
+        selected_docs = []
         for q in state["search_queries"]:
+            relevant_docs = []
+            filtered_docs = []
+            if debug_mode=="Enable":
+                st.info(f"검색을 수행합니다. 검색어: {q}")
+        
+            relevant_docs = retrieve_documents_from_knowledge_base(q, top_k)
             relevant_docs += retrieve_documents_from_tavily(q, top_k)
+
+            # grade   
+            if debug_mode == "Enable":
+                st.info(f"가져온 {len(relevant_docs)}개의 문서를 평가하고 있습니다.") 
+
+            filtered_docs += grade_documents(q, relevant_docs) # grading    
+
+            if debug_mode == "Enable":
+                st.info(f"{len(filtered_docs)}개의 문서가 선택되었습니다.")
+
+            selected_docs += filtered_docs
+
+        selected_docs += check_duplication(selected_docs) # check duplication
+        
+        global reference_docs
+        if relevant_docs:
+            reference_docs += selected_docs
+
+        if debug_mode == "Enable":
+            st.info(f"최종으로 {len(reference_docs)}개의 문서가 선택되었습니다.")
 
         content = ""
         if len(relevant_docs):
@@ -2563,10 +2589,6 @@ def run_reflection(query, st):
                 err_msg = traceback.format_exc()
                 print('error message: ', err_msg)
                 
-        global reference_docs
-        if relevant_docs:
-            reference_docs += relevant_docs
-
         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
         return {
             "draft": draft, 
@@ -3147,6 +3169,10 @@ def run_planning(query, st):
         filtered_docs = grade_documents(plan[0], relevant_docs) # grading    
         filtered_docs = check_duplication(filtered_docs) # check duplication
 
+        global reference_docs
+        if len(filtered_docs):
+            reference_docs += filtered_docs
+
         if debug_mode == "Enable":
             st.info(f"{len(filtered_docs)}개의 문서가 선택되었습니다.")
                 
@@ -3158,10 +3184,6 @@ def run_planning(query, st):
         
         print('task: ', plan[0])
         print('executor output: ', result)
-
-        global reference_docs
-        if len(filtered_docs):
-            reference_docs += filtered_docs
 
         if debug_mode=="Enable":
             st.info(f"현 단계의 결과 {result}")
