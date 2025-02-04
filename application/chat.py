@@ -4316,20 +4316,25 @@ def solve_CSAT_problem(contents, st):
         
     msg = ""  
     total_score = 0
+    scores = []
     for question_group in json_data:
         problems = question_group["problems"]
+        local_score = 0
         for problem in problems:
-            total_score += int(problem["score"])
+            local_score += int(problem["score"])
+        total_score += local_score
+        scores.append(local_score)
     print('total_score: ', total_score)
+    st.info(f'주어진 문제는 모두 {len(json_data)}개의 절을 가지고 있고, 각 절의 점수 분포는 {scores}이며, 전체 점수는 {total_score}점 입니다.')
                             
     if multi_region=="Enable":
         msg, earn_score = solve_problems_using_parallel_processing(json_data, st)
 
     else:
         total_idx = len(json_data)+1
-        earn_score = available_score = 0
-        
+        earn_score = total_available_score = 0
         for idx, question_group in enumerate(json_data[:2]):
+        #for idx, question_group in enumerate(json_data):
             paragraph = question_group["paragraph"]
             print('paragraph: ', paragraph)
             
@@ -4350,14 +4355,14 @@ def solve_CSAT_problem(contents, st):
             
             msg += message
             earn_score += score
-            available_score += score
+            total_available_score += available_score
             
             msg += "\n\n"
         
-            st.warning(f"{idx+1}절까지 수행한 결과는 {earn_score} / {available_score}점입니다.")
+            st.warning(f"{idx+1}절까지 수행한 결과는 {earn_score} / {total_available_score}점입니다.")
         
     print('score: ', earn_score)
-    msg += f"\n점수: {earn_score}점 / {total_score}점\n"
+    msg += f"\n점수: {earn_score}점 / {total_available_score}점\n"
     
     st.info(f"{msg}")
 
@@ -4419,17 +4424,17 @@ def solve_problems_using_parallel_processing(json_data, st):
     for idx in range(total_idx):
         messages.append("")
         
-    for idx, question_group in enumerate(json_data):
+    for idx, question_group in enumerate(json_data[:1]):
         parent_conn, child_conn = Pipe()
         parent_connections.append(parent_conn)
         
         print(f"idx:{idx} --> data:{question_group}")
         
         paragraph = question_group["paragraph"]
-        print('paragraph: ', paragraph)
+        # print('paragraph: ', paragraph)
                     
         problems = question_group["problems"]
-        print('problems: ', json.dumps(problems))
+        # print('problems: ', json.dumps(problems))
         
         process = Process(target=solve_problems, args=(child_conn, paragraph, problems, idx, total_idx, st))
         processes.append(process)
@@ -4478,10 +4483,13 @@ def solve_problems(conn, paragraph, problems, idx, total_idx, st):
             print('question_plus: ', question_plus)
         choices = problem["choices"]
         print('choices: ', choices)
-        answer = int(problem["answer"])
+        correct_answer = problem["answer"]
+        print('correct_answer: ', correct_answer)
         score = problem["score"]
+        print('score: ', score)
+        available_score += score
 
-        selected_answer = solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, n, answer, score, st)
+        selected_answer = solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, n, correct_answer, score, st)
         print('selected_answer: ', selected_answer)
         
         # if output.isnumeric():
@@ -4523,6 +4531,17 @@ def solve_problems(conn, paragraph, problems, idx, total_idx, st):
     })
     
     conn.close()
+
+def string_to_int(output):
+    com = re.compile('\d') 
+    value = com.findall(output)
+    result = ""
+    for v in value:
+        result += v
+    print('result: ', result)
+    answer = int(result)
+
+    return answer
 
 def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, correct_answer, score, st):    
     class State(TypedDict):
@@ -4665,7 +4684,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
             "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
             "최종 결과의 번호에 <result> tag를 붙여주세요."
-            "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+            "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                                 
             "주어진 문장:"
             "<paragraph>"
@@ -4719,26 +4738,23 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         result = response.content
 
         if not result.find('<confidence>')==-1:
-            confidence = result[result.find('<confidence>')+12:result.find('</confidence>')]
+            output = result[result.find('<confidence>')+12:result.find('</confidence>')]
+            print('output: ', output)
+            confidence = string_to_int(output)
             print('confidence: ', confidence)
 
         if not result.find('<result>')==-1:
             output = result[result.find('<result>')+8:result.find('</result>')]
             print('output: ', output)
+            choice = string_to_int(output)
+            print('choice: ', choice)
         
         transaction = [HumanMessage(content=task), AIMessage(content=result)]
         # print('transaction: ', transaction)
         
-        if confidence == "5":
-            plan = []
-
-            com = re.compile('\d') 
-            value = com.findall(output)
-            result = ""
-            for v in value:
-                result += v
-            print('result: ', result)
-            answer = int(result)
+        if confidence >= 9:
+            plan = []            
+            answer = choice
             
         else:
             plan = state["plan"]
@@ -4917,7 +4933,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
             "답변의 이유를 풀어서 명확하게 설명합니다."
             "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
-            "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+            "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
             
             "이전 단계에서 검토한 결과:"
             "<context>"
@@ -4959,21 +4975,17 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         st.info(f"({idx}-{nth}) 최종으로 얻어진 결과:\n\n{result}")
 
         if not result.find('<confidence>')==-1:
-            confidence = result[result.find('<confidence>')+12:result.find('</confidence>')]
+            output = result[result.find('<confidence>')+12:result.find('</confidence>')]
+            print('output: ', output)
+
+            confidence = string_to_int(output)
             print('confidence: ', confidence)
 
         if not result.find('<result>')==-1:
             output = result[result.find('<result>')+8:result.find('</result>')]
             print('output: ', output)
-
-            com = re.compile('\d') 
-            value = com.findall(output)
-            result = ""
-            for v in value:
-                result += v
-            print('result: ', result)
-            
-        answer = int(result)
+            answer = string_to_int(output)
+            print('answer: ', answer)
 
         print(f'answer: {answer}, correct_answer: {correct_answer}')
         print(f'Type--> answer: {answer.__class__}, correct_answer: {correct_answer.__class__}')
