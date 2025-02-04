@@ -4869,8 +4869,8 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 #"당신의 목표는 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지에서 찾는것입니다."
                 "당신의 원래 계획을 상황에 맞게 수정하세요."
                 "주어진 문장과 주어진 질문을 참조하여 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
-                "원래 계획에서 아직 수행되지 않은 단계를 새로운 계획에 포함하세요."
-                "완료한 단계는 계획에 포함하지 마세요."
+                "Original Plan에서 아직 수행되지 않은 단계를 새로운 계획에 포함하세요."
+                "Past Steps의 단계들은 계획에 포함하지 마세요."
                 "새로운 계획에는 <plan> tag를 붙여주세요."
                 
                 "주어진 문장:"
@@ -4884,10 +4884,10 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "선택지:"
                 "{list_choices}"
                 
-                "원래 계획:" 
+                "Original Plan:" 
                 "{plan}"
                 
-                "완료한 단계:"
+                "Past Steps:"
                 "{past_steps}"
                 
                 "새로운 계획의 형식은 아래와 같습니다."
