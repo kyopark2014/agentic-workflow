@@ -5035,9 +5035,10 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             print(f"Finished: {key}")
             #print("value: ", value)            
     print('value: ', value)    
-    st.info(f"{idx}-{nth}) 최종 답변은 {value["answer"]}입니다.")
 
     final_answer = value["answer"]
     print('final answwer: ', final_answer)
+    
+    st.info(f"({idx}-{nth}) 최종 답변은 {final_answer}입니다.")
         
     return final_answer
