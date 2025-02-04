@@ -4330,6 +4330,9 @@ def solve_CSAT_problem(contents, st):
     if multi_region=="Enable":
         msg, earn_score = solve_problems_using_parallel_processing(json_data, st)
 
+        print('score: ', earn_score)
+        msg += f"\n점수: {earn_score}점 / {total_score}점\n"
+
     else:
         total_idx = len(json_data)+1
         earn_score = total_available_score = 0
@@ -4361,8 +4364,8 @@ def solve_CSAT_problem(contents, st):
         
             st.warning(f"{idx+1}절까지 수행한 결과는 {earn_score} / {total_available_score}점입니다.")
         
-    print('score: ', earn_score)
-    msg += f"\n점수: {earn_score}점 / {total_available_score}점\n"
+        print('score: ', earn_score)
+        msg += f"\n점수: {earn_score}점 / {total_available_score}점\n"
     
     st.info(f"{msg}")
 
