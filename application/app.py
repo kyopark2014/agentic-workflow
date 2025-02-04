@@ -91,8 +91,6 @@ if uploaded_file is not None and clear_button==False:
     print("uploaded_file.name: ", uploaded_file.name)
     print("CSAT_evaluator: ", CSAT_evaluator)
 
-    if uploaded_file.name:
-        print("json type? ",uploaded_file.name.lower().endswith((".json")))
     if uploaded_file.name and CSAT_evaluator=="Disable":
         chat.initiate()
 

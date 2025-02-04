@@ -431,6 +431,8 @@ def upload_to_s3(file_bytes, file_name):
             content_type = "text/markdown"
         elif file_name.lower().endswith((".png")):
             content_type = "image/png"
+        elif file_name.lower().endswith((".json")):
+            content_type = "application/json"
         
         user_meta = {  # user-defined metadata
             "content_type": content_type,
@@ -737,7 +739,9 @@ def extract_thinking_tag(response, st):
 # load csv documents from s3
 def load_csv_document(s3_file_name):
     s3r = boto3.resource("s3")
-    doc = s3r.Object(s3_bucket, s3_prefix+'/'+s3_file_name)
+    key = s3_prefix+'/'+s3_file_name
+    print(f"bucket: {s3_bucket}, key: {key}")
+    doc = s3r.Object(s3_bucket, key)
 
     lines = doc.get()['Body'].read().decode('utf-8').split('\n')   # read csv per line
     print('lins: ', len(lines))
@@ -4264,52 +4268,6 @@ def run_long_form_writing_agent(query, st):
 ####################### LangGraph #######################
 # Agentic Solver for Korean CSAT
 #########################################################
-def get_llm(select):
-    global model_type
-    profile = models[select]
-    # print('profile: ', profile)
-        
-    bedrock_region =  profile['bedrock_region']
-    modelId = profile['model_id']
-    model_type = profile['model_type']
-    if model_type == 'claude':
-        maxOutputTokens = 4096 # 4k
-    else:
-        maxOutputTokens = 5120 # 5k
-    print(f'LLM: {select}, bedrock_region: {bedrock_region}, modelId: {modelId}, model_type: {model_type}')
-
-    if profile['model_type'] == 'nova':
-        STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
-    elif profile['model_type'] == 'claude':
-        STOP_SEQUENCE = "\n\nHuman:" 
-                          
-    # bedrock   
-    boto3_bedrock = boto3.client(
-        service_name='bedrock-runtime',
-        region_name=bedrock_region,
-        config=Config(
-            retries = {
-                'max_attempts': 30
-            }
-        )
-    )
-    parameters = {
-        "max_tokens":maxOutputTokens,     
-        "temperature":0.1,
-        "top_k":250,
-        "top_p":0.9,
-        "stop_sequences": [STOP_SEQUENCE]
-    }
-    # print('parameters: ', parameters)
-
-    chat = ChatBedrock(   # new chat model
-        model_id=modelId,
-        client=boto3_bedrock, 
-        model_kwargs=parameters,
-        region_name=bedrock_region
-    )
-    return chat, select
-
 def solve_CSAT_problem(contents, st):
     json_data = json.loads(contents)
     # print('json_data: ', json_data)
@@ -4336,8 +4294,8 @@ def solve_CSAT_problem(contents, st):
     else:
         total_idx = len(json_data)+1
         earn_score = total_available_score = 0
-        for idx, question_group in enumerate(json_data[:2]):
-        #for idx, question_group in enumerate(json_data):
+        #for idx, question_group in enumerate(json_data[:2]):
+        for idx, question_group in enumerate(json_data):
             paragraph = question_group["paragraph"]
             print('paragraph: ', paragraph)
             
@@ -4561,7 +4519,6 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         question_plus: str
         choices: list[str]
         answer: int
-        select: int
 
     def plan_node(state: State, config):
         print("###### plan ######")
@@ -4604,27 +4561,43 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "..."                
         )
         
-        human = (
-            "<paragraph> tag의 주어진 문장을 참조하여 <question> tag의 질문에 대한 적절한 답변을 <choice> tag안에서 선택하가 위한 단계별 계획을 세우세요."
-            # "단계별 계획에 <result> tag를 붙여주세요."
-            
-            "주어진 문장:"
-            "<paragraph>"
-            "{paragraph}"
-            "</paragraph>"
+        if model_type=="clause":
+            human = (
+                "<paragraph> tag의 주어진 문장을 참조하여 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 찾기 위한 단계별 계획을 세우세요."
+                # "단계별 계획에 <result> tag를 붙여주세요."
+                
+                "주어진 문장:"
+                "<paragraph>"
+                "{paragraph}"
 
-            "질문:"
-            "<question>"
-            "{question}"
-                            
-            "{question_plus}"                
-            "</question>"
+                "{question_plus}"
+                "</paragraph>"
 
-            "선택지:"
-            "<choices>"
-            "{list_choices}"
-            "</choices>"
-        )
+                "주어진 질문:"
+                "<question>"
+                "{question}"                                
+                "</question>"
+
+                "선택지:"
+                "<choices>"
+                "{list_choices}"
+                "</choices>"
+            )
+        else:
+            human = (
+                "주어진 문장을 참조하여 주어진 질문에 대한 적절한 답변을 선택지 안에서 찾기 위한 단계별 계획을 세우세요."
+                
+                "주어진 문장:"
+                "{paragraph}"
+
+                "{question_plus}"
+
+                "주어진 질문:"
+                "{question}"
+                                                
+                "선택지:"
+                "{list_choices}"
+            )
                             
         planner_prompt = ChatPromptTemplate.from_messages(
             [
@@ -4632,7 +4605,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 ("human", human),
             ]
         )
-        chat, select = get_llm(state["select"])
+        chat = get_chat()
         planner = planner_prompt | chat
         response = planner.invoke({
             "paragraph": paragraph,
@@ -4655,8 +4628,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         st.info(notification)
         
         return {
-            "plan": planning_steps,
-            "select": select
+            "plan": planning_steps
         }
 
     def execute_node(state: State, config):
@@ -4691,49 +4663,80 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         system = (
             "당신은 국어 수능문제를 푸는 일타강사입니다."
         )
-        human = (
-            "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지에서 찾는것입니다."
-            "<previous_result> tag에 있는 이전 단계의 결과를 참조하여, <task> tag의 실행 단계를 수행하고 적절한 답변을 구합니다."
-            "문제를 풀이할 때 모든 선택지마다 근거를 주어진 문장에서 찾아 설명하세요."
-            "선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
-            "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
-            "최종 결과의 번호에 <result> tag를 붙여주세요."
-            "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
-                                
-            "주어진 문장:"
-            "<paragraph>"
-            "{paragraph}"
-            "</paragraph>"
-                
-            "주어진 질문:"
-            "<question>"
-            "{question}"
-                
-            "{question_plus}"
-            "</question>"
-            
-            "선택지:"
-            "<choices>"
-            "{list_choices}"
-            "</choices>"
-            
-            "이전 단계의 결과"
-            "<previous_result>"
-            "{info}"
-            "</previous_result>"
 
-            "실행 단계:"
-            "<task>"
-            "{task}"
-            "</task>"
-        )
+        if model_type=="clause":
+            human = (
+                "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지에서 찾는것입니다."
+                "<previous_result> tag에 있는 이전 단계의 결과를 참조하여, <task> tag의 실행 단계를 수행하고 적절한 답변을 구합니다."
+                "문제를 풀이할 때 모든 선택지마다 근거를 주어진 문장에서 찾아 설명하세요."
+                "선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
+                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
+                "최종 결과의 번호에 <result> tag를 붙여주세요."
+                "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+                                    
+                "주어진 문장:"
+                "<paragraph>"
+                "{paragraph}"
+
+                "{question_plus}"
+                "</paragraph>"
+                    
+                "주어진 질문:"
+                "<question>"
+                "{question}"                    
+                "</question>"
+                
+                "선택지:"
+                "<choices>"
+                "{list_choices}"
+                "</choices>"
+                
+                "이전 단계의 결과"
+                "<previous_result>"
+                "{info}"
+                "</previous_result>"
+
+                "실행 단계:"
+                "<task>"
+                "{task}"
+                "</task>"
+            )
+        
+        else:
+            human = (
+                "당신의 목표는 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지에서 찾는것입니다."
+                "이전 단계의 결과를 참조하여, 실행 단계를 수행하고 적절한 답변을 구합니다."
+                "문제를 풀이할 때 모든 선택지마다 근거를 주어진 문장에서 찾아 설명하세요."
+                "선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
+                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
+                "최종 결과의 번호에 <result> tag를 붙여주세요."
+                "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+                                    
+                "주어진 문장:"
+                "{paragraph}"
+
+                "{question_plus}"
+                    
+                "주어진 질문:"
+                "{question}"
+                                
+                "선택지:"
+                "{list_choices}"
+                
+                "이전 단계의 결과:"
+                "{info}"
+
+                "실행 단계:"
+                "{task}"
+            )
+          
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
                 ("human", human),
             ]
         )
-        chat, select = get_llm(state["select"])
+        chat = get_chat()
         chain = prompt | chat                        
         response = chain.invoke({
             "paragraph": state["paragraph"],
@@ -4781,8 +4784,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "plan": plan,
             "info": transaction,
             "past_steps": [task],
-            "answer": answer,
-            "select": select
+            "answer": answer
         }
 
     def replan_node(state: State, config):
@@ -4809,54 +4811,88 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         system = (
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
         )        
-        human = (
-            "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택지에서 찾는것입니다."
-            
-            "주어진 문장:"
-            "<paragraph>"
-            "{paragraph}"
-            "</paragraph>"
-            
-            "주어진 질문:"
-            "<question>"
-            "{question}"
-            
-            "{question_plus}"
-            "</question>"
-            
-            "선택지:"
-            "<list_choices>"
-            "{list_choices}"
-            "</list_choices>"
-            
-            "당신의 원래 계획은 아래와 같습니다." 
-            "<original_plan>"                
-            "{plan}"
-            "</original_plan>"
 
-            "완료한 단계는 아래와 같습니다."
-            "<past_steps>"
-            "{past_steps}"
-            "</past_steps>"
-            
-            "당신은 <original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
-            "계획에 아직 해야 할 단계만 추가하세요. 이전에 완료한 단계는 계획에 포함하지 마세요."                
-            "수정된 계획에는 <plan> tag를 붙여주세요."
-            "만약 더 이상 계획을 세우지 않아도 <question> tag의 주어진 질문에 답변할 있다면, 최종 결과로 <question>에 대한 답변을 <result> tag를 붙여 전달합니다."
-            
-            "수정된 계획의 형식은 아래와 같습니다."
-            "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
-            "1. [질문을 해결하기 위한 단계]"
-            "2. [질문을 해결하기 위한 단계]"
-            "..."         
-        )                    
+        if model_type=="clause":
+            human = (
+                "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택지에서 찾는것입니다."
+                
+                "주어진 문장:"
+                "<paragraph>"
+                "{paragraph}"
+                "</paragraph>"
+                
+                "주어진 질문:"
+                "<question>"
+                "{question}"
+                
+                "{question_plus}"
+                "</question>"
+                
+                "선택지:"
+                "<list_choices>"
+                "{list_choices}"
+                "</list_choices>"
+                
+                "당신의 원래 계획은 아래와 같습니다." 
+                "<original_plan>"                
+                "{plan}"
+                "</original_plan>"
+
+                "완료한 단계는 아래와 같습니다."
+                "<past_steps>"
+                "{past_steps}"
+                "</past_steps>"
+                
+                "당신은 <original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
+                "계획에 아직 해야 할 단계만 추가하세요. 이전에 완료한 단계는 계획에 포함하지 마세요."                
+                "수정된 계획에는 <plan> tag를 붙여주세요."
+                "만약 더 이상 계획을 세우지 않아도 <question> tag의 주어진 질문에 답변할 있다면, 최종 결과로 <question>에 대한 답변을 <result> tag를 붙여 전달합니다."
+                
+                "수정된 계획의 형식은 아래와 같습니다."
+                "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
+                "1. [질문을 해결하기 위한 단계]"
+                "2. [질문을 해결하기 위한 단계]"
+                "..."         
+            )
+        else:
+            human = (
+                "당신의 목표는 주어진 문장으로 부터 질문에 대한 적절한 답변을 선택지에서 찾는것입니다."
+                
+                "주어진 문장:"
+                "{paragraph}"
+                
+                "주어진 질문:"
+                "{question}"
+                
+                "{question_plus}"
+                
+                "선택지:"
+                "{list_choices}"
+                
+                "당신의 원래 계획:" 
+                "{plan}"
+                
+                "완료한 단계:"
+                "{past_steps}"
+                
+                "당신은 원래 계획을 상황에 맞게 수정하세요."
+                "계획에 아직 해야 할 단계만 추가하세요. 이전에 완료한 단계는 계획에 포함하지 마세요."                
+                "수정된 계획에는 <plan> tag를 붙여주세요."
+                "만약 더 이상 계획을 세우지 않아도 <question> tag의 주어진 질문에 답변할 수 있다면, 최종 답변에 <result> tag를 붙여 전달합니다."
+                
+                "수정된 계획의 형식은 아래와 같습니다."
+                "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
+                "1. [질문을 해결하기 위한 단계]"
+                "2. [질문을 해결하기 위한 단계]"
+                "..."         
+            )                    
         replanner_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
                 ("human", human),
             ]
         )        
-        chat, select = get_llm(state["select"])
+        chat = get_chat()
         replanner = replanner_prompt | chat        
         response = replanner.invoke({
             "paragraph": state["paragraph"],
@@ -4873,7 +4909,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             print('result: ', result)
             st.info(result)
             
-            return {"plan":[], "select":select}
+            return {"plan":[]}
         else:
             output = result[result.find('<plan>')+6:result.find('</plan>')]
             print('plan output: ', output)
@@ -4886,7 +4922,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             print('notification: ', notification)
             st.info(notification)
         
-            return {"plan": planning_steps, "select":select}
+            return {"plan": planning_steps}
                 
     def should_end(state: State) -> Literal["continue", "end"]:
         print('#### should_end ####')
@@ -4951,39 +4987,65 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         system = (
             "당신은 국어 수능문제를 푸는 일타강사입니다."                
-        )        
-        human = (
-            "<context> tag에 있는 검토 결과를 활용하여, <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택하려고 합니다."
-            "가장 가까운 선택지를 골라서 반드시 번호로 답변 합니다."
-            "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
-            "답변의 이유를 풀어서 명확하게 설명합니다."
-            "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
-            "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
-            
-            "이전 단계에서 검토한 결과:"
-            "<context>"
-            "{context}"
-            "</context>"
-                            
-            "주어진 문장:"
-            "<paragraph>"
-            "{paragraph}"
-            "</paragraph>"
+        )    
 
-            "주어진 질문:"
-            "<question>"
-            "{question}"
-                            
-            "{question_plus}"                
-            "</question>"
+        if model_type=="clause":    
+            human = (
+                "<context> tag에 있는 검토 결과를 활용하여, <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지 안에서 선택하려고 합니다."
+                "가장 가까운 선택지를 골라서 반드시 번호로 답변 합니다."
+                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
+                "답변의 이유를 풀어서 명확하게 설명합니다."
+                "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
+                "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+                
+                "이전 단계에서 검토한 결과:"
+                "<context>"
+                "{context}"
+                "</context>"
+                                
+                "주어진 문장:"
+                "<paragraph>"
+                "{paragraph}"
+                
+                "{question_plus}"                
+                "</paragraph>"
 
-            "선택지:"
-            "<choices>"
-            "{list_choices}"
-            "</choices>"       
-        )
+                "주어진 질문:"
+                "<question>"
+                "{question}"
+                "</question>"
+
+                "선택지:"
+                "<choices>"
+                "{list_choices}"
+                "</choices>"       
+            )
+        else:
+            human = (
+                "당신은 이전 단계에서 검토한 결과를 활용하여, 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지 안에서 선택하려고 합니다."
+                "가장 가까운 선택지를 골라서 반드시 번호로 답변 합니다."
+                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
+                "답변의 이유를 풀어서 명확하게 설명합니다."
+                "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
+                "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+                
+                "이전 단계에서 검토한 결과:"
+                "{context}"
+                                
+                "주어진 문장:"
+                "{paragraph}"
+
+                "{question_plus}"
+
+                "주어진 질문:"
+                "{question}"
+                
+                "선택지:"
+                "{list_choices}"
+            )
+                
         prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
-        chat, select = get_llm(state["select"])
+        chat = get_chat()
         chain = prompt | chat        
         response = chain.invoke(
             {
@@ -5021,7 +5083,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         else:
             st.error(f"({idx}-{nth}) 오답입니다. 정답은 {correct_answer}입니다. (score: {score})")
 
-        return {"answer":answer, "select":select}  
+        return {"answer":answer}  
 
     def buildPlanAndExecute():
         workflow = StateGraph(State)
@@ -5045,21 +5107,14 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
 
         return workflow.compile()
 
-    # run graph
-    selection = idx+nth+2*nth
-    if selection>=len(models):
-        selection-=len(models)
-    print('selection: ', selection)
-    
+    # run graph   
     app = buildPlanAndExecute()    
     
     inputs = {
         "question": question,
         "question_plus": question_plus,
         "paragraph": paragraph,
-        "choices": choices,
-        #"select": selection
-        "select": 0
+        "choices": choices
     }
     config = {
         "idx": idx,
@@ -5075,11 +5130,11 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             #print("value: ", value)            
     print('value: ', value)    
 
-    final_answer = value["answer"]
-    print('final answwer: ', final_answer)
+    answer = value["answer"]
+    print('final answer: ', answer)
     
-    notification = f"({idx}-{nth}) 최종 답변은 {final_answer}입니다."
+    notification = f"({idx}-{nth}) 최종 답변은 {answer}입니다."
     print('notification: ', notification)
     st.info(notification)
         
-    return final_answer
+    return answer
