@@ -3230,7 +3230,7 @@ def run_planning(query, st):
             "당신은 Original Plan의 원래 계획을 상황에 맞게 수정하세요."
             "계획에 아직 해야 할 단계만 추가하세요. 이전에 완료한 계획는 계획에 포함하지 마세요."                
             "수정된 계획에는 <plan> tag를 붙여주세요."
-            "만약 더 이상 계획을 세우지 않아도 Question의 주어진 질문에 답변할 있다면, 최종 결과로 Question에 대한 답변을 <result> tag를 붙여 전달합니다."
+            "만약 더 이상 계획을 세우지 않아도 Question에 답변할 수 있다면, 최종 결과로 Question에 대한 답변을 <result> tag를 붙여 전달합니다."
             
             "수정된 계획의 형식은 아래와 같습니다."
             "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
@@ -4589,18 +4589,18 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             )
         else:
             human = (
-                "주어진 문장을 참조하여 주어진 질문에 대한 적절한 답변을 선택지 안에서 찾기 위한 단계별 계획을 세우세요."
+                "Paragraph을 참조하여 Question에 대한 적절한 답변을 List Choices 안에서 찾기 위한 단계별 계획을 세우세요."
                 "결과에 <plan> tag를 붙여주세요."
                 
-                "주어진 문장:"
+                "Paragraph:"
                 "{paragraph}"
 
                 "{question_plus}"
 
-                "주어진 질문:"
+                "Question:"
                 "{question}"
                                                 
-                "선택지:"
+                "List Choices:"
                 "{list_choices}"
             )
                             
@@ -4677,8 +4677,8 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지에서 찾는것입니다."
                 "<previous_result> tag에 있는 이전 단계의 결과를 참조하여, <task> tag의 실행 단계를 수행하고 적절한 답변을 구합니다."
                 "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
-                "문제를 풀이할 때 모든 선택지마다 근거를 주어진 문장에서 찾아 설명하세요."
-                "선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
+                "문제를 풀이할 때 모든 <choices> tag의 선택지마다 근거를 주어진 문장에서 찾아 설명하세요."
+                "<choices> tag의 선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
                 "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                                     
@@ -4712,29 +4712,29 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         else:
             human = (
-                "당신의 목표는 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지에서 찾는것입니다."
-                "이전 단계의 결과를 참조하여, 실행 단계를 수행하고 적절한 답변을 구합니다."
-                "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
-                "문제를 풀이할 때 모든 선택지마다 근거를 주어진 문장에서 찾아 설명하세요."
-                "선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
+                "당신의 목표는 Paragraph으로 부터 Question에 대한 적절한 답변을 Question에서 찾는것입니다."
+                "Past Results를 참조하여, Task를 수행하고 적절한 답변을 구합니다."
+                "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 List Choices중에 하나를 선택하여 답변합니다."
+                "문제를 풀이할 때 모든 List Choices마다 근거를 주어진 문장에서 찾아 설명하세요."
+                "List Choices의 주요 단어들의 의미를 Paragraph과 비교해서 꼼꼼히 차이점을 찾습니다."
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
                 "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                                     
-                "주어진 문장:"
+                "Paragraph:"
                 "{paragraph}"
 
                 "{question_plus}"
                     
-                "주어진 질문:"
+                "Question:"
                 "{question}"
                                 
-                "선택지:"
+                "List Choices:"
                 "{list_choices}"
                 
-                "이전 단계의 결과:"
+                "Past Results:"
                 "{info}"
 
-                "실행 단계:"
+                "Task:"
                 "{task}"
             )
           
@@ -4808,13 +4808,13 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         idx = config.get("configurable", {}).get("idx")
         nth = config.get("configurable", {}).get("nth")
-
-        notification = f"({idx}-{nth}) 새로운 계획을 생성합니다..."
-        print('notification: ', notification)
-        st.info(notification)
         
         if len(state["plan"])==0:
             return {"plan": []}
+        
+        notification = f"({idx}-{nth}) 새로운 계획을 생성합니다..."
+        print('notification: ', notification)
+        st.info(notification)
         
         system = (
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
@@ -4823,7 +4823,13 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         if model_type=="clause":
             human = (
                 #"당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택지에서 찾는것입니다."
-                
+                "당신은 <original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
+                "<paragraph> tag의 주어진 문장과 <question> tag의 주어진 질문을 참조하여 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
+                "<original_plan> tag에 있는 당신의 원래 계획에서 아직 수행되지 않은 계획들을 수정된 계획에 포함하세요."
+                "수정된 계획에는 <past_steps> tag의 완료한 단계는 포함하지 마세요."
+                #"수정된 계획은 주어진 질문을 해결하기 위한 step by step 단계들을 포함합니다."                
+                "새로운 계획에는 <plan> tag를 붙여주세요."
+
                 "주어진 문장:"
                 "<paragraph>"
                 "{paragraph}"
@@ -4849,14 +4855,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "완료한 단계:"
                 "<past_steps>"
                 "{past_steps}"
-                "</past_steps>"
-                
-                "당신은 <original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
-                "<paragraph> tag의 주어진 문장과 <question> tag의 주어진 질문을 참조하여 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
-                "<original_plan> tag에 있는 당신의 원래 계획에서 아직 수행되지 않은 계획들을 수정된 계획에 포함하세요."
-                "수정된 계획에는 <past_steps> tag의 완료한 단계는 포함하지 마세요."
-                #"수정된 계획은 주어진 질문을 해결하기 위한 step by step 단계들을 포함합니다."                
-                "새로운 계획에는 <plan> tag를 붙여주세요."
+                "</past_steps>"                                
                 
                 "수정된 계획의 형식은 아래와 같습니다."
                 "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
@@ -4867,21 +4866,21 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         else:
             human = (
                 #"당신의 목표는 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지에서 찾는것입니다."
-                "당신의 원래 계획을 상황에 맞게 수정하세요."
-                "주어진 문장과 주어진 질문을 참조하여 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
+                "당신의 Original Plan을 상황에 맞게 수정하세요."
+                "Paragraph과 Question을 참조하여 List Choices에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
                 "Original Plan에서 아직 수행되지 않은 단계를 새로운 계획에 포함하세요."
                 "Past Steps의 단계들은 계획에 포함하지 마세요."
                 "새로운 계획에는 <plan> tag를 붙여주세요."
                 
-                "주어진 문장:"
+                "Paragraph:"
                 "{paragraph}"
 
                 "{question_plus}"
                 
-                "주어진 질문:"
+                "Question:"
                 "{question}"
                 
-                "선택지:"
+                "List Choices:"
                 "{list_choices}"
                 
                 "Original Plan:" 
@@ -5033,25 +5032,25 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             )
         else:
             human = (
-                "당신은 이전 단계에서 검토한 결과를 활용하여, 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지 안에서 선택하려고 합니다."
-                "가장 가까운 선택지를 골라서 반드시 번호로 답변 합니다."
-                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 항목을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
+                "당신은 Past Results를 활용하여, Paragraph으로 부터 Question에 대한 적절한 답변을 List Choices 안에서 선택하려고 합니다."
+                "가장 가까운 List Choices를 골라서 반드시 번호로 답변 합니다."
+                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 항목을 선택합니다. 무조건 List Choices중에 하나를 선택하여 답변합니다."
                 "답변의 이유를 풀어서 명확하게 설명합니다."
                 "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
                 "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                 
-                "이전 단계에서 검토한 결과:"
+                "Past Results:"
                 "{context}"
                                 
-                "주어진 문장:"
+                "Paragraph:"
                 "{paragraph}"
 
                 "{question_plus}"
 
-                "주어진 질문:"
+                "Question:"
                 "{question}"
                 
-                "선택지:"
+                "List Choices:"
                 "{list_choices}"
             )
                 
