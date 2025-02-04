@@ -4557,7 +4557,6 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         system = (
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
-            "매우 어려운 문제이므로 세부적인 계획을 자세히 세워야합니다."
             
             "문제를 충분히 이해하고, 문제 해결을 위한 계획을 다음 형식으로 4단계 이하의 계획을 세웁니다."                
             "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
@@ -4569,7 +4568,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         if model_type=="clause":
             human = (
                 "<paragraph> tag의 주어진 문장을 참조하여 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 찾기 위한 단계별 계획을 세우세요."
-                # "단계별 계획에 <result> tag를 붙여주세요."
+                "단계별 계획에 <plan> tag를 붙여주세요."
                 
                 "주어진 문장:"
                 "<paragraph>"
@@ -4621,8 +4620,10 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         print('response.content: ', response.content)
         result = response.content
         
-        #output = result[result.find('<result>')+8:result.find('</result>')]
-        output = result
+        if not result.find('<plan>')==-1:
+            output = result[result.find('<plan>')+6:result.find('</plan>')]
+        else:
+            output = result
         
         plan = output.strip().replace('\n\n', '\n')
         planning_steps = plan.split('\n')
@@ -4816,7 +4817,6 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         system = (
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
-            "매우 어려운 문제이므로 세부적인 계획을 자세히 세워야합니다."
         )        
 
         if model_type=="clause":
