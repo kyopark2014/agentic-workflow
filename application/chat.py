@@ -4553,7 +4553,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         system = (
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
-            "지금 푸는 문제는 복잡하고 어려운 문제입니다. 문제를 반드시 풀수 있도록 충분히 생각하고, 심사숙고하여 답변하세요."
+            "매우 어려운 문제이므로 세부적인 계획을 자세히 세워야합니다."
             
             "문제를 충분히 이해하고, 문제 해결을 위한 계획을 다음 형식으로 4단계 이하의 계획을 세웁니다."                
             "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
@@ -4663,7 +4663,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                         
         system = (
             "당신은 국어 수능문제를 푸는 일타강사입니다."
-            "지금 푸는 문제는 복잡하고 어려운 문제입니다. 문제를 반드시 풀수 있도록 충분히 생각하고, 심사숙고하여 답변하세요."
+            "매우 어려운 문제이므로 step by step으로 충분히 생각하고 답변합니다."
         )
 
         if model_type=="clause":
@@ -4812,7 +4812,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         system = (
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
-            "지금 푸는 문제는 복잡하고 어려운 문제입니다. 문제를 반드시 풀수 있도록 충분히 생각하고, 심사숙고하여 답변하세요."
+            "매우 어려운 문제이므로 세부적인 계획을 자세히 세워야합니다."
         )        
 
         if model_type=="clause":
@@ -4859,7 +4859,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             )
         else:
             human = (
-                "당신의 목표는 주어진 문장으로 부터 질문에 대한 적절한 답변을 선택지에서 찾는것입니다."
+                "당신의 목표는 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지에서 찾는것입니다."
                 
                 "주어진 문장:"
                 "{paragraph}"
@@ -4990,7 +4990,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         system = (
             "당신은 국어 수능문제를 푸는 일타강사입니다."
-            "지금 푸는 문제는 복잡하고 어려운 문제입니다. 문제를 반드시 풀수 있도록 충분히 생각하고, 심사숙고하여 답변하세요."         
+            "매우 어려운 문제이므로 step by step으로 충분히 생각하고 답변합니다."
         )    
 
         if model_type=="clause":    
