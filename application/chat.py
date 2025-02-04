@@ -4680,7 +4680,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "문제를 풀이할 때 모든 <choices> tag의 선택지마다 근거를 주어진 문장에서 찾아 설명하세요."
                 "<choices> tag의 선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
-                "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+                "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                                     
                 "주어진 문장:"
                 "<paragraph>"
@@ -4718,7 +4718,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "문제를 풀이할 때 모든 List Choices마다 근거를 주어진 문장에서 찾아 설명하세요."
                 "List Choices의 주요 단어들의 의미를 Paragraph과 비교해서 꼼꼼히 차이점을 찾습니다."
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
-                "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+                "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                                     
                 "Paragraph:"
                 "{paragraph}"
@@ -4780,7 +4780,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         transaction = [HumanMessage(content=task), AIMessage(content=result)]
         # print('transaction: ', transaction)
         
-        if confidence >= 9:
+        if confidence >= 4:
             plan = []            
             answer = choice
             
@@ -5006,7 +5006,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 항목을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
                 "답변의 이유를 풀어서 명확하게 설명합니다."
                 "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
-                "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+                "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                 
                 "이전 단계에서 검토한 결과:"
                 "<context>"
@@ -5037,7 +5037,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 항목을 선택합니다. 무조건 List Choices중에 하나를 선택하여 답변합니다."
                 "답변의 이유를 풀어서 명확하게 설명합니다."
                 "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
-                "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+                "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                 
                 "Past Results:"
                 "{context}"
