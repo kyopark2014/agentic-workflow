@@ -4501,11 +4501,15 @@ def solve_problems(conn, paragraph, problems, idx, total_idx, st):
 def string_to_int(output):
     com = re.compile('\d') 
     value = com.findall(output)
+    
     result = ""
-    for v in value:
-        result += v
-    print('result: ', result)
-    answer = int(result)
+    if not len(value) == 0:
+        for v in value:
+            result += v
+        print('result: ', result)
+        answer = int(result)
+    else:
+        answer = 0  # no selection
 
     return answer
 
@@ -4817,7 +4821,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
 
         if model_type=="clause":
             human = (
-                "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택지에서 찾는것입니다."
+                #"당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택지에서 찾는것입니다."
                 
                 "주어진 문장:"
                 "<paragraph>"
@@ -4846,10 +4850,16 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "{past_steps}"
                 "</past_steps>"
                 
+                # "당신은 <original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
+                # "계획에 아직 해야 할 단계만 추가하세요. 이전에 완료한 계획는 계획에 포함하지 마세요."                
+                # "수정된 계획에는 <plan> tag를 붙여주세요."
+                # "만약 더 이상 계획을 세우지 않아도 <question> tag의 주어진 질문에 답변할 있다면, 최종 결과로 <question>에 대한 답변을 <result> tag를 붙여 전달합니다."
                 "당신은 <original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
-                "계획에 아직 해야 할 단계만 추가하세요. 이전에 완료한 계획는 계획에 포함하지 마세요."                
-                "수정된 계획에는 <plan> tag를 붙여주세요."
-                "만약 더 이상 계획을 세우지 않아도 <question> tag의 주어진 질문에 답변할 있다면, 최종 결과로 <question>에 대한 답변을 <result> tag를 붙여 전달합니다."
+                "<paragraph> tag의 주어진 문장과 <question>의 주어진 질문을 참조하여, <list_choices>의 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
+                "<original_plan>의 당신의 원래 계획과 <past_steps>의 완료한 계획을 참조하여 다음에 해야할 계획을 step by step 방식으로 세웁니다."
+                "새로운 계획에는 이제 해야 계획들을 추가하고, 이전에 완료한 계획은 포함하지 마세요."
+                "새로운 계획에는 <plan> tag를 붙여주세요."
+                "만약 더 이상 계획을 세우지 않아도 주어진 질문에 답변할 수 있다면, 최종 답변에 <result> tag를 붙여 전달합니다."
                 
                 "수정된 계획의 형식은 아래와 같습니다."
                 "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
@@ -4880,12 +4890,12 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 
                 "당신의 원래 계획을 상황에 맞게 수정하세요."
                 "주어진 문장과 주어진 질문을 참조하여 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
-                "새로운 계획은 당신의 원래 계획과 완료한 계획을 참조하여 다음에 해야할 계획을 세웁니다."
-                "새로운 계획에는 이제 해야 할 것들을 추가하세요. 이전에 완료한 계획는 계획에 포함하지 마세요."
+                "당신의 원래 계획과 완료한 계획을 참조하여 다음에 해야할 계획을 step by step 방식으로 세웁니다."
+                "새로운 계획에는 이제 해야 계획들을 추가하고, 이전에 완료한 계획은 포함하지 마세요."
                 "새로운 계획에는 <plan> tag를 붙여주세요."
                 "만약 더 이상 계획을 세우지 않아도 주어진 질문에 답변할 수 있다면, 최종 답변에 <result> tag를 붙여 전달합니다."
                 
-                "수정된 계획의 형식은 아래와 같습니다."
+                "새로운 계획의 형식은 아래와 같습니다."
                 "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
                 "1. [질문을 해결하기 위한 단계]"
                 "2. [질문을 해결하기 위한 단계]"
@@ -4999,7 +5009,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             human = (
                 "<context> tag에 있는 검토 결과를 활용하여, <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지 안에서 선택하려고 합니다."
                 "가장 가까운 선택지를 골라서 반드시 번호로 답변 합니다."
-                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
+                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 항목을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
                 "답변의 이유를 풀어서 명확하게 설명합니다."
                 "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
                 "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
@@ -5030,7 +5040,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             human = (
                 "당신은 이전 단계에서 검토한 결과를 활용하여, 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지 안에서 선택하려고 합니다."
                 "가장 가까운 선택지를 골라서 반드시 번호로 답변 합니다."
-                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
+                "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 항목을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
                 "답변의 이유를 풀어서 명확하게 설명합니다."
                 "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
                 "최종 결과의 신뢰도를 1-10 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
