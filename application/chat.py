@@ -4882,7 +4882,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             planning_steps = plans.split('\n')
             print('planning_steps: ', planning_steps)
 
-            notification = f"({idx}-{nth}) 생성된 계획:\n\n {planning_steps}")
+            notification = f"({idx}-{nth}) 생성된 계획:\n\n {planning_steps}"
             print('notification: ', notification)
             st.info(notification)
         
@@ -4910,7 +4910,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         correct_answer = config.get("configurable", {}).get("correct_answer")
         score = config.get("configurable", {}).get("score")
         
-        notification = f"({idx}-{nth}) 최종 답변을 구합니다...")
+        notification = f"({idx}-{nth}) 최종 답변을 구합니다..."
         print('notification: ', notification)
         st.info(notification)
                 
@@ -4997,7 +4997,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         result = response.content
         print('result: ', result)
 
-        notification = f"({idx}-{nth}) 최종으로 얻어진 결과:\n\n{result}")
+        notification = f"({idx}-{nth}) 최종으로 얻어진 결과:\n\n{result}"
         print('notification: ', notification)
         st.info(notification)
 
@@ -5078,7 +5078,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
     final_answer = value["answer"]
     print('final answwer: ', final_answer)
     
-    notification = f"({idx}-{nth}) 최종 답변은 {final_answer}입니다.")
+    notification = f"({idx}-{nth}) 최종 답변은 {final_answer}입니다."
     print('notification: ', notification)
     st.info(notification)
         
