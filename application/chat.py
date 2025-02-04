@@ -4799,7 +4799,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         idx = config.get("configurable", {}).get("idx")
         nth = config.get("configurable", {}).get("nth")
 
-        notification = f"({idx}-{nth}) 새로운 계획을 생성합니다...")
+        notification = f"({idx}-{nth}) 새로운 계획을 생성합니다..."
         print('notification: ', notification)
         st.info(notification)
         
