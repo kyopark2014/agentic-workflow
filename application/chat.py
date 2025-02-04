@@ -4568,7 +4568,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         if model_type=="clause":
             human = (
                 "<paragraph> tag의 주어진 문장을 참조하여 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 찾기 위한 단계별 계획을 세우세요."
-                "단계별 계획에 <plan> tag를 붙여주세요."
+                "결과에 <plan> tag를 붙여주세요."
                 
                 "주어진 문장:"
                 "<paragraph>"
@@ -4590,6 +4590,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         else:
             human = (
                 "주어진 문장을 참조하여 주어진 질문에 대한 적절한 답변을 선택지 안에서 찾기 위한 단계별 계획을 세우세요."
+                "결과에 <plan> tag를 붙여주세요."
                 
                 "주어진 문장:"
                 "{paragraph}"
