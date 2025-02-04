@@ -966,7 +966,7 @@ def get_summary_of_uploaded_file(file_name, st):
     file_type = file_name[file_name.rfind('.')+1:len(file_name)]            
     print('file_type: ', file_type)
     
-    if file_type == 'csv':
+    if file_type == 'csv' or file_type == 'json':
         docs = load_csv_document(file_name)
         contexts = []
         for doc in docs:
@@ -4261,315 +4261,783 @@ def run_long_form_writing_agent(query, st):
     return output['final_doc'], reference_docs
 
 
-# Test 
-# draft = """### 건강한 exosome의 분비를 촉진하는 방법
-
-# 건강한 exosome의 분비를 촉진하는 방법을 탐구하는 것은 당뇨병과 같은 대사 질환의 예방과 치료에 중요한 단서를 제공할 수 있습니다. 여기에는 식이, 운동, 그리고 다른 생활 습관이 어떻게 exosome의 분비와 기능에 영향을 미칠 수 있는지 포함됩니다. 먼저, 식이는 exosome의 분비에 중요한 역할을 합니다. 특히, 다양한 영양소와 항산화제가 풍부한 식이는 지방 조직의 건강을 유지하고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 예를 들어, 오메가-3 지방산이 풍부한 식품은 지방 조직의 염증을 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 또한, 항산화제가 풍부한 식품, 예를 들어 베리류, 견과류, 그리고 녹차는 지방 조직의 산화 스트레스를 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다.
-
-# 운동 또한 exosome의 분비에 중요한 역할을 합니다. 규칙적인 운동은 지방 조직의 대사 활동을 증가시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 특히, 중강도 운동은 지방 조직의 염증을 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 또한, 운동은 인슐린 감수성을 개선하고, 이에 따라 혈당 수치를 조절할 수 있습니다. 이는 당뇨병의 발병과 진행을 예방하는 데 중요한 역할을 할 수 있습니다.
-
-# 다른 생활 습관 또한 exosome의 분비에 영향을 미칠 수 있습니다. 예를 들어, 충분한 수면은 지방 조직의 대사 활동을 증가시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 또한, 스트레스 관리는 지방 조직의 염증을 감소시키고, 이에 따라 건강한 exosome의 분비를 촉진할 수 있습니다. 스트레스는 지방 조직의 염증을 증가시키고, 이에 따라 비건강한 exosome의 분비를 촉진할 수 있습니다. 따라서, 스트레스 관리는 건강한 exosome의 분비를 촉진하는 데 중요한 역할을 할 수 있습니다.
-
-# 이러한 방법을 통해 건강한 exosome의 분비를 촉진함으로써, 당뇨병과 같은 대사 질환의 예방과 치료에 중요한 역할을 할 수 있습니다. 예를 들어, 건강한 exosome의 분비를 촉진함으로써, 인슐린 감수성을 개선하고 염증 반응을 조절할 수 있습니다. 이는 당뇨병의 발병을 예방하고 진행을 늦출 수 있는 중요한 전략이 될 수 있습니다. 또한, 건강한 exosome의 분비를 촉진함으로써, 당뇨병의 합병증을 예방하고 치료할 수 있습니다. 이러한 연구는 현재 활발히 진행되고 있으며, 미래에는 더 많은 가능성을 열어줄 것으로 기대됩니다. 따라서, 건강한 exosome의 분비를 촉진하는 방법을 탐구함으로써, 당뇨병과 같은 질병의 예방과 치료에 중요한 역할을 할 수 있습니다."""
-
-
-# def run_long_form_writing_agent2(query, st):
-#     class ReflectionState(TypedDict):
-#         draft : str
-#         reflection : List[str]
-#         search_queries : List[str]
-#         revised_draft: str
-#         revision_number: int
-#         references: List[str]
-
-#     class Reflection(BaseModel):
-#         missing: str = Field(description="Critique of what is missing.")
-#         advisable: str = Field(description="Critique of what is helpful for better writing")
-#         superfluous: str = Field(description="Critique of what is superfluous")
-
-#     class Research(BaseModel):
-#         """Provide reflection and then follow up with search queries to improve the writing."""
-
-#         reflection: Reflection = Field(description="Your reflection on the initial writing.")
-#         search_queries: list[str] = Field(
-#             description="1-3 search queries for researching improvements to address the critique of your current writing."
-#         )
-
-#     class ReflectionKor(BaseModel):
-#         missing: str = Field(description="작성된 글에 있어야하는데 빠진 내용이나 단점")
-#         advisable: str = Field(description="더 좋은 글이 되기 위해 추가하여야 할 내용")
-#         superfluous: str = Field(description="글의 길이나 스타일에 대한 비평")
-
-#     class ResearchKor(BaseModel):
-#         """글쓰기를 개선하기 위한 검색 쿼리를 제공합니다."""
-
-#         reflection: ReflectionKor = Field(description="작성된 글에 대한 평가")
-#         search_queries: list[str] = Field(
-#             description="도출된 비평을 해결하기 위한 3개 이내의 검색어"
-#         ) 
-    
-#     def should_continue(state: ReflectionState, config):
-#         print("###### should_continue ######")
-#         max_revisions = config.get("configurable", {}).get("max_revisions", MAX_REVISIONS)
-#         print("max_revisions: ", max_revisions)
-            
-#         if state["revision_number"] > max_revisions:
-#             return "end"
-#         return "continue"        
-    
-#     def revise_draft(state: ReflectionState, config):   
-#         print("###### revise_draft ######")
+####################### LangGraph #######################
+# Agentic Solver for Korean CSAT
+#########################################################
+def get_llm(select):
+    global model_type
+    profile = models[select]
+    # print('profile: ', profile)
         
-#         draft = state['draft']
-#         search_queries = state['search_queries']
-#         reflection = state['reflection']
-#         print('draft: ', draft)
-#         print('search_queries: ', search_queries)
-#         print('reflection: ', reflection)
+    bedrock_region =  profile['bedrock_region']
+    modelId = profile['model_id']
+    model_type = profile['model_type']
+    if model_type == 'claude':
+        maxOutputTokens = 4096 # 4k
+    else:
+        maxOutputTokens = 5120 # 5k
+    print(f'LLM: {select}, bedrock_region: {bedrock_region}, modelId: {modelId}, model_type: {model_type}')
 
-#         if debug_mode=="Enable":
-#             st.info(f"개선사항을 반영하여 새로운 답변을 생성합니다.")
+    if profile['model_type'] == 'nova':
+        STOP_SEQUENCE = '"\n\n<thinking>", "\n<thinking>", " <thinking>"'
+    elif profile['model_type'] == 'claude':
+        STOP_SEQUENCE = "\n\nHuman:" 
+                          
+    # bedrock   
+    boto3_bedrock = boto3.client(
+        service_name='bedrock-runtime',
+        region_name=bedrock_region,
+        config=Config(
+            retries = {
+                'max_attempts': 30
+            }
+        )
+    )
+    parameters = {
+        "max_tokens":maxOutputTokens,     
+        "temperature":0.1,
+        "top_k":250,
+        "top_p":0.9,
+        "stop_sequences": [STOP_SEQUENCE]
+    }
+    # print('parameters: ', parameters)
+
+    chat = ChatBedrock(   # new chat model
+        model_id=modelId,
+        client=boto3_bedrock, 
+        model_kwargs=parameters,
+        region_name=bedrock_region
+    )
+    return chat, select
+
+def solve_CSAT_problem(contents, st):
+    json_data = json.loads(contents)
+    # print('json_data: ', json_data)
+        
+    msg = ""  
+    total_score = 0
+    for question_group in json_data:
+        problems = question_group["problems"]
+        for problem in problems:
+            total_score += int(problem["score"])
+    print('total_score: ', total_score)
                             
-#         # reference = state['reference'] if 'reference' in state else []     
-#         if 'references' in state:
-#             references = state['references'] 
-#         else:
-#             references = []            
-#         print('----> length of previous references: ', len(references))
+    if multi_region=="Enable":
+        msg, earn_score = solve_problems_using_parallel_processing(json_data, st)
 
-#         if len(search_queries) and len(reflection):
-#             docs = retrieve_docs(search_queries, config)
-#             print('docs: ', docs)
+    else:
+        total_idx = len(json_data)+1
+        earn_score = available_score = 0
+        
+        for idx, question_group in enumerate(json_data[:2]):
+            paragraph = question_group["paragraph"]
+            print('paragraph: ', paragraph)
+            
+            problems = question_group["problems"]
+            print('problems: ', json.dumps(problems))
+            
+            result = solve_problems_in_paragraph(paragraph, problems, idx, total_idx, st)
+            print('result: ', result)
+
+            idx = result["idx"]
+            message = result["message"]
+            score = result["score"]
+            available_score = result["available_score"]
+            print('idx: ', idx)
+            print('message: ', message)
+            print('score: ', score)
+            print('available_score: ', available_score)
+            
+            msg += message
+            earn_score += score
+            available_score += score
+            
+            msg += "\n\n"
+        
+            st.warning(f"{idx+1}절까지 수행한 결과는 {earn_score} / {available_score}점입니다.")
+        
+    print('score: ', earn_score)
+    msg += f"\n점수: {earn_score}점 / {total_score}점\n"
+    
+    st.info(f"{msg}")
+
+    return msg
+    
+def solve_problems_in_paragraph(paragraph, problems, idx, total_idx, st):
+    message = f"{idx+1}/{total_idx}\n"
+    
+    earn_score = 0
+    available_score = 0
+    for n, problem in enumerate(problems):
+        print(f'--> problem[{n}]: {problem}')
+    
+        question = problem["question"]
+        print('question: ', question)
+        question_plus = ""
+        if "question_plus" in problem:
+            question_plus = problem["question_plus"]
+            print('question_plus: ', question_plus)
+        choices = problem["choices"]
+        print('choices: ', choices)
+        correct_answer = problem["answer"]
+        print('correct_answer: ', correct_answer)
+        score = problem["score"]
+        print('score: ', score)
+        available_score += score
+
+        selected_answer = solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, n, correct_answer, score, st)
+        print('selected_answer: ', selected_answer)
+                
+        print(f'correct_answer: {correct_answer}, selected_answer: {selected_answer}')
+        if correct_answer == selected_answer:
+            message += f"{question} {selected_answer} (OK)\n"
+            earn_score += int(score)
+        else:
+            message += f"{question} {selected_answer} (NOK, {correct_answer}, -{score})\n"
                     
-#             content = []   
-#             if len(docs):
-#                 for d in docs:
-#                     content.append(d.page_content)            
-#                 print('content: ', content)
-                                    
-#                 if isKorean(draft):
-#                     system = (
-#                         "당신은 장문 작성에 능숙한 유능한 글쓰기 도우미입니다."                
-#                         "draft을 critique과 information 사용하여 수정하십시오."
-#                         "최종 결과는 한국어로 작성하고 <result> tag를 붙여주세요."
-#                     )
-#                     human = (
-#                         "draft:"
-#                         "{draft}"
-                                    
-#                         "critique:"
-#                         "{reflection}"
+    print('earn_score: ', earn_score)
+    print('message: ', message)
 
-#                         "information:"
-#                         "{content}"
-#                     )
-#                 else:    
-#                     system = (
-#                         "You are an excellent writing assistant." 
-#                         "Revise this draft using the critique and additional information."
-#                         "Provide the final answer with <result> tag."
-#                     )
-#                     human = (                            
-#                         "draft:"
-#                         "{draft}"
-                                    
-#                         "critique:"
-#                         "{reflection}"
+    st.warning(f"{idx+1}절의 {len(problems)}개의 문제에서 얻어진 점수는 {earn_score} / {available_score}점 입니다.")
+    
+    return {
+        "idx": idx, 
+        "message": message, 
+        "score": earn_score,
+        "available_score": available_score
+    }
 
-#                         "information:"
-#                         "{content}"
-#                     )
+def solve_problems_using_parallel_processing(json_data, st):
+    processes = []
+    parent_connections = []
+    
+    total_idx = len(json_data)
+    print('total_idx: ', total_idx)
+    
+    messages = []
+    earn_score = 0
+    for idx in range(total_idx):
+        messages.append("")
+        
+    for idx, question_group in enumerate(json_data):
+        parent_conn, child_conn = Pipe()
+        parent_connections.append(parent_conn)
+        
+        print(f"idx:{idx} --> data:{question_group}")
+        
+        paragraph = question_group["paragraph"]
+        print('paragraph: ', paragraph)
+                    
+        problems = question_group["problems"]
+        print('problems: ', json.dumps(problems))
+        
+        process = Process(target=solve_problems, args=(child_conn, paragraph, problems, idx, total_idx, st))
+        processes.append(process)
+        
+    for process in processes:
+        process.start()
+            
+    for parent_conn in parent_connections:
+        result = parent_conn.recv()
+        print('result: ', result)
+        
+        idx = result["idx"]
+        message = result["message"]
+        score = result["score"]
+        print(f"idx:{idx} --> socre: {score}, message:{message}")
+
+        if message is not None:
+            print('message: ', message)
+            messages[idx] = message
+            earn_score += score
+
+    for process in processes:
+        process.join()
+            
+    final_msg = ""   
+    for message in messages:
+        final_msg += message + '\n'
+    
+    print('earn_score: ', earn_score)
+    print('final_msg: ', final_msg)
+    
+    return final_msg, earn_score
+
+def solve_problems(conn, paragraph, problems, idx, total_idx, st):
+    message = f"{idx+1}/{total_idx}\n"
+    
+    earn_score = 0    
+    for n, problem in enumerate(problems):
+        print(f'--> problem[{n}]: {problem}')
+    
+        question = problem["question"]
+        print('question: ', question)
+        question_plus = ""
+        if "question_plus" in problem:
+            question_plus = problem["question_plus"]
+            print('question_plus: ', question_plus)
+        choices = problem["choices"]
+        print('choices: ', choices)
+        answer = int(problem["answer"])
+        score = problem["score"]
+
+        selected_answer = solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, n, answer, score, st)
+        print('selected_answer: ', selected_answer)
+        
+        # if output.isnumeric():
+        #     selected_answer = int(output)
+        #     print('selected_answer: ', selected_answer)
+        # else:
+        #     class Selection(BaseModel):
+        #         select: int = Field(description="선택지의 번호")
+            
+        #     chat = get_chat()
+        #     structured_llm = chat.with_structured_output(Selection, include_raw=True)
+            
+        #     info = structured_llm.invoke(output)
+        #     selected_answer = 0
+        #     for attempt in range(5):
+        #         #print(f'attempt: {attempt}, info: {info}')
+        #         if not info['parsed'] == None:
+        #             parsed_info = info['parsed']
+        #             #print('parsed_info: ', parsed_info)
+        #             selected_answer = parsed_info.select                    
+        #             print('selected_answer: ', selected_answer)
+        #             break
+
+        if answer == selected_answer:
+            message += f"{question} {selected_answer} (OK)\n"
+            earn_score += int(score)
+        else:
+            message += f"{question} {selected_answer} (NOK, {answer}, -{score})\n"
+            
+    print('earn_score: ', earn_score) 
+    print('message: ', message)
+    
+    st.info(f"{str(idx)}: {message}")
+    
+    conn.send({
+        "idx": idx, 
+        "message": message, 
+        "score": earn_score
+    })
+    
+    conn.close()
+
+def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, correct_answer, score, st):    
+    class State(TypedDict):
+        plan: list[str]
+        past_steps: Annotated[List[Tuple], operator.add]
+        info: Annotated[List[Tuple], operator.add]
+        paragraph: str
+        question: str
+        question_plus: str
+        choices: list[str]
+        answer: int
+        select: int
+
+    def plan_node(state: State, config):
+        print("###### plan ######")
+        print('paragraph: ', state["paragraph"])
+        print('question: ', state["question"])
+        print('question_plus: ', state["question_plus"])
+
+        idx = config.get("configurable", {}).get("idx")
+        nth = config.get("configurable", {}).get("nth")
+        score = config.get("configurable", {}).get("score")    
+        paragraph = state["paragraph"]
+        question_plus = state["question_plus"]
+        choices = state["choices"]
+        
+        if question_plus:
+            st.success(f"Question: ({idx}-{nth})\n\n{paragraph}\n\n{question_plus}\n\n{question} (score: {score})\n\n{choices}")
+        else:
+            st.success(f"Question: ({idx}-{nth})\n\n{paragraph}\n\n{question} (score: {score})\n\n{choices}")
+                
+        list_choices = ""
+        choices = state["choices"]
+        for i, choice in enumerate(choices):
+            list_choices += f"({i+1}) {choice}\n"
+        print('list_choices: ', list_choices)    
+        
+        idx = config.get("configurable", {}).get("idx")
+        nth = config.get("configurable", {}).get("nth")
+
+        st.info(f"({idx}-{nth}) 계획을 생성중입니다...")
+        
+        system = (
+            "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."                
+            
+            "문제를 충분히 이해하고, 문제 해결을 위한 계획을 다음 형식으로 4단계 이하의 계획을 세웁니다."                
+            "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
+            "1. [질문을 해결하기 위한 단계]"
+            "2. [질문을 해결하기 위한 단계]"
+            "..."                
+        )
+        
+        human = (
+            "<paragraph> tag의 주어진 문장을 참조하여 <question> tag의 질문에 대한 적절한 답변을 <choice> tag안에서 선택하가 위한 단계별 계획을 세우세요."
+            # "단계별 계획에 <result> tag를 붙여주세요."
+            
+            "주어진 문장:"
+            "<paragraph>"
+            "{paragraph}"
+            "</paragraph>"
+
+            "질문:"
+            "<question>"
+            "{question}"
                             
-#                 revise_prompt = ChatPromptTemplate([
-#                     ('system', system),
-#                     ('human', human)
-#                 ])
+            "{question_plus}"                
+            "</question>"
 
-#                 chat = get_chat()
-#                 reflect = revise_prompt | chat
-                
-#                 res = reflect.invoke(
-#                     {
-#                         "draft": draft,
-#                         "reflection": reflection,
-#                         "content": content
-#                     }
-#                 )
-#                 output = res.content
-#                 # print('output: ', output)
-                
-#                 if output.find('<result>') == -1:
-#                     revised_draft = output
-#                 else:
-#                     revised_draft = output[output.find('<result>')+8:output.find('</result>')]
-                    
-#                 #print('--> draft: ', draft)
-#                 print('--> reflection: ', reflection)
-#                 print('--> revised_draft: ', revised_draft)
-
-#                 references += docs
-#                 print('len(references): ', len(references))
-#             else:
-#                 print('No relevant document!')
-#                 revised_draft = draft
-#         else:
-#             print('No reflection!')
-#             revised_draft = draft
-            
-#         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
-
-#         print('----> length of references: ', len(references))
-        
-#         return {
-#             "revised_draft": revised_draft,            
-#             "revision_number": revision_number,
-#             "references": references
-#         }
-        
-#     MAX_REVISIONS = 1
-    
-#     def reflect_node(state: ReflectionState, config):
-#         print("###### reflect ######")
-#         draft = state['draft']
-        
-#         if debug_mode=="Enable":
-#             st.info(f"draft에서 개선 사항을 도출합니다.")
-    
-#         reflection = []
-#         search_queries = []
-#         for attempt in range(10):
-#             chat = get_chat()
-#             if isKorean(draft):
-#                 structured_llm = chat.with_structured_output(ResearchKor, include_raw=True)
-#             else:
-#                 structured_llm = chat.with_structured_output(Research, include_raw=True)
-            
-#             try:
-#                 print('draft: ', draft)
-#                 info = structured_llm.invoke(draft)
-#                 print(f'attempt: {attempt}, info: {info}')
-                    
-#                 if not info['parsed'] == None:
-#                     parsed_info = info['parsed']
-#                     # print('reflection: ', parsed_info.reflection)                
-#                     reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
-#                     search_queries = parsed_info.search_queries
-
-#                     if debug_mode=="Enable":
-#                         st.info(f"개선사항: {reflection}")
-                    
-#                     print('reflection: ', parsed_info.reflection)
-#                     print('search_queries: ', search_queries)
-            
-#                     if isKorean(draft):
-#                         translated_search = []
-#                         for q in search_queries:
-#                             chat = get_chat()
-#                             if isKorean(q):
-#                                 search = traslation(chat, q, "Korean", "English")
-#                             else:
-#                                 search = traslation(chat, q, "English", "Korean")
-#                             translated_search.append(search)
+            "선택지:"
+            "<choices>"
+            "{list_choices}"
+            "</choices>"
+        )
                             
-#                         print('translated_search: ', translated_search)
-#                         search_queries += translated_search
-
-#                     if debug_mode=="Enable":
-#                         st.info(f"검색어: {search_queries}")
-
-#                     print('search_queries (mixed): ', search_queries)
-#                     break
-#             except Exception:
-#                 print('---> parsing error for the draft')
-
-#                 err_msg = traceback.format_exc()
-#                 print('error message: ', err_msg)
-#                 # raise Exception ("Not able to request to LLM")
-            
-#         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
-#         return {
-#             "reflection": reflection,
-#             "search_queries": search_queries,
-#             "revision_number": revision_number + 1
-#         }
-
-#     def retrieve_docs(search_queries, config):
-#         parallel_retrieval = config.get("configurable", {}).get("parallel_retrieval")
-#         print('parallel_retrieval: ', parallel_retrieval)
+        planner_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system),
+                ("human", human),
+            ]
+        )
+        chat, select = get_llm(state["select"])
+        planner = planner_prompt | chat
+        response = planner.invoke({
+            "paragraph": paragraph,
+            "question": question,
+            "question_plus": question_plus,
+            "list_choices": list_choices
+        })
+        print('response.content: ', response.content)
+        result = response.content
         
-#         docs = []        
-
-#         for q in search_queries:      
-#             if debug_mode=="Enable":
-#                 st.info(f"검색을 수행합니다. 검색어: {q}")
-
-#             #docs = retrieve_documents_from_knowledge_base(q, top_k=numberOfDocs)
-#             tavily_docs = retrieve_documents_from_tavily(q, top_k=numberOfDocs)
+        #output = result[result.find('<result>')+8:result.find('</result>')]
+        output = result
         
-#             # grade
-#             docs += grade_documents(q, tavily_docs) # grading
-            
-#         docs = check_duplication(docs) # check duplication
-#         for i, doc in enumerate(docs):
-#             print(f"#### {i}: {doc.page_content[:100]}")
-            
-#         return docs
+        plan = output.strip().replace('\n\n', '\n')
+        planning_steps = plan.split('\n')
+        print('planning_steps: ', planning_steps)
 
-#     def buildReflection():
-#         workflow = StateGraph(ReflectionState)
-
-#         # Add nodes
-#         workflow.add_node("reflect_node", reflect_node)
-#         workflow.add_node("revise_draft", revise_draft)
-
-#         # Set entry point
-#         workflow.set_entry_point("reflect_node")
+        st.info(f"({idx}-{nth}) 생성된 계획:\n\n {planning_steps}")
         
-#         workflow.add_conditional_edges(
-#             "revise_draft", 
-#             should_continue, 
-#             {
-#                 "end": END, 
-#                 "continue": "reflect_node"
-#             }
-#         )
+        return {
+            "plan": planning_steps,
+            "select": select
+        }
 
-#         # Add edges
-#         workflow.add_edge("reflect_node", "revise_draft")
+    def execute_node(state: State, config):
+        print("###### execute ######")
+        plan = state["plan"]
+        # print('plan: ', plan) 
         
-#         return workflow.compile()
-    
-#     # initiate
-#     global reference_docs, contentList
-#     reference_docs = []
-#     contentList =  []
-
-#     # workflow
-#     reflection_app = buildReflection()
+        list_choices = ""
+        choices = state["choices"]
+        for i, choice in enumerate(choices):
+            list_choices += f"({i+1}) {choice}\n"
+        # print('list_choices: ', list_choices)    
                 
-#     final_doc = ""   
-#     references = []
+        idx = config.get("configurable", {}).get("idx")
+        nth = config.get("configurable", {}).get("nth")
 
-#     inputs = {
-#         "draft": draft
-#     }                    
-#     app_config = {
-#         "recursion_limit": 50,
-#         "max_revisions": MAX_REVISIONS,
-#         "parallel_retrieval": "disable"
-#     }
-#     output = reflection_app.invoke(inputs, config=app_config)
-#     final_doc += output['revised_draft'] + '\n\n'
+        st.info(f"({idx}-{nth}) 실행중인 계획: {plan[0]}")
+        
+        task = plan[0]
+        print('task: ', task)                        
+        
+        context = ""
+        for info in state['info']:
+            if isinstance(info, HumanMessage):
+                context += info.content+"\n"
+            else:
+                context += info.content+"\n\n"
+        # print('context: ', context)
+                        
+        system = (
+            "당신은 국어 수능문제를 푸는 일타강사입니다."
+        )
+        human = (
+            "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지에서 찾는것입니다."
+            "<previous_result> tag에 있는 이전 단계의 결과를 참조하여, <task> tag의 실행 단계를 수행하고 적절한 답변을 구합니다."
+            "문제를 풀이할 때 모든 선택지마다 근거를 주어진 문장에서 찾아 설명하세요."
+            "선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
+            "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
+            "최종 결과의 번호에 <result> tag를 붙여주세요."
+            "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+                                
+            "주어진 문장:"
+            "<paragraph>"
+            "{paragraph}"
+            "</paragraph>"
+                
+            "주어진 질문:"
+            "<question>"
+            "{question}"
+                
+            "{question_plus}"
+            "</question>"
+            
+            "선택지:"
+            "<choices>"
+            "{list_choices}"
+            "</choices>"
+            
+            "이전 단계의 결과"
+            "<previous_result>"
+            "{info}"
+            "</previous_result>"
 
-#     if 'references' in output:
-#         references += output['references']
+            "실행 단계:"
+            "<task>"
+            "{task}"
+            "</task>"
+        )
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system),
+                ("human", human),
+            ]
+        )
+        chat, select = get_llm(state["select"])
+        chain = prompt | chat                        
+        response = chain.invoke({
+            "paragraph": state["paragraph"],
+            "question": state["question"],
+            "question_plus": state["question_plus"],
+            "list_choices": list_choices,
+            "info": context,
+            "task": task
+        })
+        print('response.content: ', response.content)
 
-#     print('references: ', references)
+        idx = config.get("configurable", {}).get("idx")
+        nth = config.get("configurable", {}).get("nth")
+        st.info(f"({idx}-{nth}) 실행된 결과입니다.\n{response.content}")
+        
+        result = response.content
 
-#     markdown_references = ""
-#     if references:
-#         markdown_references = get_references(references)
+        if not result.find('<confidence>')==-1:
+            confidence = result[result.find('<confidence>')+12:result.find('</confidence>')]
+            print('confidence: ', confidence)
 
-#     return final_doc+markdown_references
+        if not result.find('<result>')==-1:
+            output = result[result.find('<result>')+8:result.find('</result>')]
+            print('output: ', output)
+        
+        transaction = [HumanMessage(content=task), AIMessage(content=result)]
+        # print('transaction: ', transaction)
+        
+        if confidence == "5":
+            plan = []
 
+            com = re.compile('\d') 
+            value = com.findall(output)
+            result = ""
+            for v in value:
+                result += v
+            print('result: ', result)
+            answer = int(result)
+            
+        else:
+            plan = state["plan"]
+            answer = 0
+        
+        return {
+            "plan": plan,
+            "info": transaction,
+            "past_steps": [task],
+            "answer": answer,
+            "select": select
+        }
 
+    def replan_node(state: State, config):
+        print('#### replan ####')
+        # print('state of replan node: ', state)        
+        print('past_steps: ', state["past_steps"])
+                
+        list_choices = ""
+        choices = state["choices"]
+        for i, choice in enumerate(choices):
+            list_choices += f"({i+1}) {choice}\n"
+        # print('list_choices: ', list_choices)    
+        
+        idx = config.get("configurable", {}).get("idx")
+        nth = config.get("configurable", {}).get("nth")
+
+        st.info(f"({idx}-{nth}) 새로운 계획을 생성합니다...")
+        
+        if len(state["plan"])==0:
+            return {"plan": []}
+        
+        system = (
+            "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
+        )        
+        human = (
+            "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택지에서 찾는것입니다."
+            
+            "주어진 문장:"
+            "<paragraph>"
+            "{paragraph}"
+            "</paragraph>"
+            
+            "주어진 질문:"
+            "<question>"
+            "{question}"
+            
+            "{question_plus}"
+            "</question>"
+            
+            "선택지:"
+            "<list_choices>"
+            "{list_choices}"
+            "</list_choices>"
+            
+            "당신의 원래 계획은 아래와 같습니다." 
+            "<original_plan>"                
+            "{plan}"
+            "</original_plan>"
+
+            "완료한 단계는 아래와 같습니다."
+            "<past_steps>"
+            "{past_steps}"
+            "</past_steps>"
+            
+            "당신은 <original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
+            "계획에 아직 해야 할 단계만 추가하세요. 이전에 완료한 단계는 계획에 포함하지 마세요."                
+            "수정된 계획에는 <plan> tag를 붙여주세요."
+            "만약 더 이상 계획을 세우지 않아도 <question> tag의 주어진 질문에 답변할 있다면, 최종 결과로 <question>에 대한 답변을 <result> tag를 붙여 전달합니다."
+            
+            "수정된 계획의 형식은 아래와 같습니다."
+            "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
+            "1. [질문을 해결하기 위한 단계]"
+            "2. [질문을 해결하기 위한 단계]"
+            "..."         
+        )                    
+        replanner_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system),
+                ("human", human),
+            ]
+        )        
+        chat, select = get_llm(state["select"])
+        replanner = replanner_prompt | chat        
+        response = replanner.invoke({
+            "paragraph": state["paragraph"],
+            "question_plus": state["question_plus"],
+            "question": state["question"],
+            "list_choices": list_choices,
+            "plan": state["plan"],
+            "past_steps": state["past_steps"]
+        })
+        print('response.content: ', response.content)
+        result = response.content        
+        
+        if result.find('<plan>') == -1:
+            st.info(f"{result}")
+            return {"plan":[], "select":select}
+        else:
+            output = result[result.find('<plan>')+6:result.find('</plan>')]
+            print('plan output: ', output)
+            
+            plans = output.strip().replace('\n\n', '\n')
+            planning_steps = plans.split('\n')
+            print('planning_steps: ', planning_steps)
+
+            st.info(f"({idx}-{nth}) 생성된 계획:\n\n {planning_steps}")
+        
+            return {"plan": planning_steps, "select":select}
+                
+    def should_end(state: State) -> Literal["continue", "end"]:
+        print('#### should_end ####')
+        # print('state: ', state)
+        
+        plan = state["plan"]
+        print('plan: ', plan)
+        if len(plan)<=1:
+            next = "end"
+        else:
+            next = "continue"
+        print(f"should_end response: {next}")
+        
+        return next
+        
+    def final_answer(state: State, config) -> str:
+        print('#### final_answer ####')
+        
+        idx = config.get("configurable", {}).get("idx")
+        nth = config.get("configurable", {}).get("nth")
+        correct_answer = config.get("configurable", {}).get("correct_answer")
+        score = config.get("configurable", {}).get("score")
+        
+        st.info(f"({idx}-{nth}) 최종 답변을 구합니다...")
+                
+        answer = state["answer"]
+
+        print(f'answer: {answer}, correct_answer: {correct_answer}')
+        print(f'Type--> answer: {answer.__class__}, correct_answer: {correct_answer.__class__}')
+        if len(state["plan"])==0:
+            # for debuuging
+            if answer == correct_answer:
+                st.warning(f"({idx}-{nth}) 정답입니다. (score: {score})")
+            else:
+                st.error(f"({idx}-{nth}) 오답입니다. 정답은 {correct_answer}입니다. (score: {score})")        
+            
+            # return final answer
+            return {"answer": answer}
+        
+        # get final answer
+        info = state['info']
+        
+        context = ""
+        for info in state['info']:
+            if isinstance(info, HumanMessage):
+                context += info.content+"\n"
+            else:
+                context += info.content+"\n\n"
+        print('context: ', context)
+                                
+        print('paragraph: ', state["paragraph"])
+        print('question: ', state["question"])
+        print('question_plus: ', state["question_plus"])
+        
+        list_choices = ""
+        choices = state["choices"]
+        for i, choice in enumerate(choices):
+            list_choices += f"({i+1}) {choice}\n"
+        print('list_choices: ', list_choices)
+        
+        system = (
+            "당신은 국어 수능문제를 푸는 일타강사입니다."                
+        )        
+        human = (
+            "<context> tag에 있는 검토 결과를 활용하여, <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택하려고 합니다."
+            "가장 가까운 선택지를 골라서 반드시 번호로 답변 합니다."
+            "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
+            "답변의 이유를 풀어서 명확하게 설명합니다."
+            "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
+            "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+            
+            "이전 단계에서 검토한 결과:"
+            "<context>"
+            "{context}"
+            "</context>"
+                            
+            "주어진 문장:"
+            "<paragraph>"
+            "{paragraph}"
+            "</paragraph>"
+
+            "주어진 질문:"
+            "<question>"
+            "{question}"
+                            
+            "{question_plus}"                
+            "</question>"
+
+            "선택지:"
+            "<choices>"
+            "{list_choices}"
+            "</choices>"       
+        )
+        prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
+        chat, select = get_llm(state["select"])
+        chain = prompt | chat        
+        response = chain.invoke(
+            {
+                "context": context,
+                "paragraph": state["paragraph"],                    
+                "question": state["question"],
+                "question_plus": state["question_plus"],
+                "list_choices": list_choices
+            }
+        )
+        result = response.content
+        print('result: ', result)
+
+        st.info(f"({idx}-{nth}) 최종으로 얻어진 결과:\n\n{result}")
+
+        if not result.find('<confidence>')==-1:
+            confidence = result[result.find('<confidence>')+12:result.find('</confidence>')]
+            print('confidence: ', confidence)
+
+        if not result.find('<result>')==-1:
+            output = result[result.find('<result>')+8:result.find('</result>')]
+            print('output: ', output)
+
+            com = re.compile('\d') 
+            value = com.findall(output)
+            result = ""
+            for v in value:
+                result += v
+            print('result: ', result)
+            
+        answer = int(result)
+
+        print(f'answer: {answer}, correct_answer: {correct_answer}')
+        print(f'Type--> answer: {answer.__class__}, correct_answer: {correct_answer.__class__}')
+        if answer == correct_answer:
+            st.warning(f"({idx}-{nth}) 정답입니다. (score: {score})")
+        else:
+            st.error(f"({idx}-{nth}) 오답입니다. 정답은 {correct_answer}입니다. (score: {score})")
+
+        return {"answer":answer, "select":select}  
+
+    def buildPlanAndExecute():
+        workflow = StateGraph(State)
+        workflow.add_node("planner", plan_node)
+        workflow.add_node("executor", execute_node)
+        workflow.add_node("replaner", replan_node)
+        workflow.add_node("final_answer", final_answer)
+        
+        workflow.set_entry_point("planner")
+        workflow.add_edge("planner", "executor")
+        workflow.add_edge("executor", "replaner")
+        workflow.add_conditional_edges(
+            "replaner",
+            should_end,
+            {
+                "continue": "executor",
+                "end": "final_answer",
+            },
+        )
+        workflow.add_edge("final_answer", END)
+
+        return workflow.compile()
+
+    # run graph
+    selection = idx+nth+2*nth
+    if selection>=len(models):
+        selection-=len(models)
+    print('selection: ', selection)
+    
+    app = buildPlanAndExecute()    
+    
+    inputs = {
+        "question": question,
+        "question_plus": question_plus,
+        "paragraph": paragraph,
+        "choices": choices,
+        #"select": selection
+        "select": 0
+    }
+    config = {
+        "idx": idx,
+        "nth": nth,
+        "correct_answer": correct_answer,
+        "score": score,
+        "recursion_limit": 50
+    }
+    
+    for output in app.stream(inputs, config):   
+        for key, value in output.items():
+            print(f"Finished: {key}")
+            #print("value: ", value)            
+    print('value: ', value)    
+    st.info(f"({idx}-{nth}) 최종 답변은 {value["answer"]}입니다.")
+
+    final_answer = value["answer"]
+    print('final answwer: ', final_answer)
+        
+    return final_answer

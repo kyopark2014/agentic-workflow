@@ -69,7 +69,12 @@ with st.sidebar:
 
     st.subheader("📋 문서 업로드")
     # print('fileId: ', chat.fileId)
-    uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv"], key=chat.fileId)
+    uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json"], key=chat.fileId)
+
+    # code interpreter checkbox
+    select_csat_evaluator = st.checkbox('CSAT evaluator', value=False)
+    CSAT_evaluator = 'Enable' if select_csat_evaluator else 'Disable'
+    #print('CSAT_evaluator: ', CSAT_evaluator)
 
     st.success(f"Connected to {modelName}", icon="💚")
     clear_button = st.button("대화 초기화", key="clear")
@@ -83,7 +88,12 @@ if clear_button==True:
 # Preview the uploaded image in the sidebar
 file_name = ""
 if uploaded_file is not None and clear_button==False:
+    print("uploaded_file.name: ", uploaded_file.name)
+    print("CSAT_evaluator: ", CSAT_evaluator)
+
     if uploaded_file.name:
+        print("json type? ",uploaded_file.name.lower().endswith((".json")))
+    if uploaded_file.name and CSAT_evaluator=="Disable":
         chat.initiate()
 
         if debugMode=='Enable':
@@ -111,6 +121,16 @@ if uploaded_file is not None and clear_button==False:
         st.session_state.messages.append({"role": "assistant", "content": f"선택한 문서({file_name})를 요약하면 아래와 같습니다.\n\n{msg}"})    
         print('msg: ', msg)
         st.rerun()
+
+    elif uploaded_file.name and CSAT_evaluator == "Enable" and uploaded_file.name.lower().endswith((".json")): # csv only   
+        guide = "CSAT Evaluation을 시작합니다."
+        st.write(guide)
+        st.session_state.messages.append({"role": "assistant", "content": guide})
+        state_of_CSAT_evaluator = True
+
+        chat.solve_CSAT_problem(uploaded_file.getvalue(), st)
+
+# print("state_of_CSAT_evaluator: ", state_of_CSAT_evaluator)
 
 # Initialize chat history
 if "messages" not in st.session_state:
