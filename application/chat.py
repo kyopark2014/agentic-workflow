@@ -4552,7 +4552,8 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         st.info(notification)
         
         system = (
-            "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."                
+            "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
+            "당신은 인생에서 가장 중요한 시험을 보고 있습니다. 항상 숙고하고 최선을 다하세요."
             
             "문제를 충분히 이해하고, 문제 해결을 위한 계획을 다음 형식으로 4단계 이하의 계획을 세웁니다."                
             "각 단계는 반드시 한줄의 문장으로 AI agent가 수행할 내용을 명확히 나타냅니다."
@@ -4662,6 +4663,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                         
         system = (
             "당신은 국어 수능문제를 푸는 일타강사입니다."
+            "당신은 인생에서 가장 중요한 시험을 보고 있습니다. 항상 숙고하고 최선을 다하세요."
         )
 
         if model_type=="clause":
@@ -4810,6 +4812,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         system = (
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
+            "당신은 인생에서 가장 중요한 시험을 보고 있습니다. 항상 숙고하고 최선을 다하세요."
         )        
 
         if model_type=="clause":
@@ -4986,7 +4989,8 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         print('list_choices: ', list_choices)
         
         system = (
-            "당신은 국어 수능문제를 푸는 일타강사입니다."                
+            "당신은 국어 수능문제를 푸는 일타강사입니다."
+            "당신은 인생에서 가장 중요한 시험을 보고 있습니다. 항상 숙고하고 최선을 다하세요."         
         )    
 
         if model_type=="clause":    
