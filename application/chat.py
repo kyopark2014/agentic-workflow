@@ -4471,7 +4471,7 @@ def solve_problems_using_parallel_processing(json_data, st):
 def solve_problems(conn, paragraph, problems, idx, total_idx, st):
     message = f"{idx+1}/{total_idx}\n"
     
-    earn_score = 0    
+    earn_score = available_score = 0    
     for n, problem in enumerate(problems):
         print(f'--> problem[{n}]: {problem}')
     
@@ -4491,6 +4491,14 @@ def solve_problems(conn, paragraph, problems, idx, total_idx, st):
 
         selected_answer = solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, n, correct_answer, score, st)
         print('selected_answer: ', selected_answer)
+
+        print(f'correct_answer: {correct_answer}, selected_answer: {selected_answer}')
+        if correct_answer == selected_answer:
+            message += f"{question} {selected_answer} (OK)\n"
+            earn_score += int(score)
+        else:
+            message += f"{question} {selected_answer} (NOK, {correct_answer}, -{score})\n"
+        
         
         # if output.isnumeric():
         #     selected_answer = int(output)
@@ -4512,22 +4520,19 @@ def solve_problems(conn, paragraph, problems, idx, total_idx, st):
         #             selected_answer = parsed_info.select                    
         #             print('selected_answer: ', selected_answer)
         #             break
-
-        if answer == selected_answer:
-            message += f"{question} {selected_answer} (OK)\n"
-            earn_score += int(score)
-        else:
-            message += f"{question} {selected_answer} (NOK, {answer}, -{score})\n"
             
     print('earn_score: ', earn_score) 
     print('message: ', message)
+
+    st.warning(f"{idx+1}절의 {len(problems)}개의 문제에서 얻어진 점수는 {earn_score} / {available_score}점 입니다.")
     
     st.info(f"{str(idx)}: {message}")
     
     conn.send({
         "idx": idx, 
         "message": message, 
-        "score": earn_score
+        "score": earn_score,
+        "available_score": available_score
     })
     
     conn.close()
