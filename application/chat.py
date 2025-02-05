@@ -4562,7 +4562,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         if model_type=="claude":
             human = (
-                "<paragraph> tag의 주어진 문장을 참조하여 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 찾기 위한 단계별 계획을 세우세요."
+                "<paragraph> tag의 주어진 문장을 참조하여 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지에서 찾기 위한 단계별 계획을 세우세요."
                 "결과에 <plan> tag를 붙여주세요."
                 
                 "주어진 문장:"
@@ -4673,7 +4673,8 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지에서 찾는것입니다."
                 "<previous_result> tag에 있는 이전 단계의 결과를 참조하여, <task> tag의 실행 단계를 수행하고 적절한 답변을 구합니다."
                 "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
-                "문제를 풀이할 때 모든 <choices> tag의 선택지마다 근거를 주어진 문장에서 찾아 설명하세요."
+                "무조건 <choices> tag의 선택지 중에 하나를 선택하여 1-5 사이의 숫자로 답변합니다."
+                "문제를 풀이할 때 모든 <choices> tag의 선택지에 항목마다 근거를 주어진 문장에서 찾아 설명하세요."
                 "<choices> tag의 선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
                 "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
@@ -4711,7 +4712,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "당신의 목표는 Paragraph으로 부터 Question에 대한 적절한 답변을 Question에서 찾는것입니다."
                 "Past Results를 참조하여, Task를 수행하고 적절한 답변을 구합니다."
                 "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다." 
-                "무조건 List Choices중에 하나를 선택하여 1-5 사이의 숫자로 답변합니다."
+                "받드시 List Choices중에 하나를 선택하여 1-5 사이의 숫자로 답변합니다."
                 "문제를 풀이할 때 모든 List Choices마다 근거를 주어진 문장에서 찾아 설명하세요."
                 "List Choices의 주요 단어들의 의미를 Paragraph과 비교해서 자세히 차이점을 찾습니다."
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
@@ -4806,12 +4807,6 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         # print('state of replan node: ', state)        
         print('past_steps: ', state["past_steps"])
                 
-        list_choices = ""
-        choices = state["choices"]
-        for i, choice in enumerate(choices):
-            list_choices += f"({i+1}) {choice}\n"
-        # print('list_choices: ', list_choices)    
-        
         idx = config.get("configurable", {}).get("idx")
         nth = config.get("configurable", {}).get("nth")
         
@@ -4828,12 +4823,11 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
 
         if model_type=="claude":
             human = (
-                #"당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택지에서 찾는것입니다."
-                "당신은 <original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
+                "<paragraph> tag의 주어진 문장과 <question> tag의 주어진 질문 참조하여 <choices> tag의 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."                
+                "<original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
                 "<paragraph> tag의 주어진 문장과 <question> tag의 주어진 질문을 참조하여 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
                 "<original_plan> tag에 있는 당신의 원래 계획에서 아직 수행되지 않은 계획들을 수정된 계획에 포함하세요."
                 "수정된 계획에는 <past_steps> tag의 완료한 단계는 포함하지 마세요."
-                #"수정된 계획은 주어진 질문을 해결하기 위한 step by step 단계들을 포함합니다."                
                 "새로운 계획에는 <plan> tag를 붙여주세요."
 
                 "주어진 문장:"
@@ -4849,11 +4843,11 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "</question>"
                 
                 "선택지:"
-                "<list_choices>"
+                "<choices>"
                 "{list_choices}"
-                "</list_choices>"
+                "</choices>"
                 
-                "당신의 원래 계획:" 
+                "원래 계획:" 
                 "<original_plan>"                
                 "{plan}"
                 "</original_plan>"
@@ -4871,10 +4865,9 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             )
         else:
             human = (
-                #"당신의 목표는 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지에서 찾는것입니다."
                 "Paragraph과 Question을 참조하여 List Choices에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
                 "Original Steps를 상황에 맞게 수정하여 새로운 계획을 세우세요."
-                "Original Steps 첫번째 단계는 이미 완료되었으니 포함하지 않습니다."
+                "Original Steps의 첫번째 단계는 이미 완료되었으니 절대 포함하지 않습니다."
                 "Original Plan에서 아직 수행되지 않은 단계를 새로운 계획에 포함하세요."
                 "Past Steps의 완료한 단계는 계획에 포함하지 마세요."
                 "새로운 계획에는 <plan> tag를 붙여주세요."
@@ -4912,18 +4905,23 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         replanner = replanner_prompt | chat        
 
 
-        plans = '\n'.join(state["plan"])
-        print('plans: ', plans)
-        past_steps = '\n'.join(state["past_steps"])
-        print('past_steps: ', past_steps)
+        # plans = '\n'.join(state["plan"])
+        # print('plans: ', plans)
+        # past_steps = '\n'.join(state["past_steps"])
+        # print('past_steps: ', past_steps)
+        # list_choices = ""
+        # choices = state["choices"]
+        # for i, choice in enumerate(choices):
+        #     list_choices += f"({i+1}) {choice}\n"
+        # print('list_choices: ', list_choices)    
 
         response = replanner.invoke({
             "paragraph": state["paragraph"],
             "question_plus": state["question_plus"],
             "question": state["question"],
-            "list_choices": list_choices,
-            "plan": plans,
-            "past_steps": past_steps
+            "list_choices": state["choices"],
+            "plan": state["plan"],
+            "past_steps": state["past_steps"]
         })
         print('response.content: ', response.content)
         result = response.content        
