@@ -4910,17 +4910,17 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         # print('plans: ', plans)
         # past_steps = '\n'.join(state["past_steps"])
         # print('past_steps: ', past_steps)
-        # list_choices = ""
-        # choices = state["choices"]
-        # for i, choice in enumerate(choices):
-        #     list_choices += f"({i+1}) {choice}\n"
-        # print('list_choices: ', list_choices)    
+        list_choices = ""
+        choices = state["choices"]
+        for i, choice in enumerate(choices):
+            list_choices += f"({i+1}) {choice}\n\n"
+        print('list_choices: ', list_choices)    
 
         response = replanner.invoke({
             "paragraph": state["paragraph"],
             "question_plus": state["question_plus"],
             "question": state["question"],
-            "list_choices": state["choices"],
+            "list_choices": list_choices,
             "plan": state["plan"],
             "past_steps": state["past_steps"]
         })
