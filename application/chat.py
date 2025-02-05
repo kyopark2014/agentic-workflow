@@ -4715,9 +4715,13 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다." 
                 "받드시 List Choices중에 하나를 선택하여 1-5 사이의 숫자로 답변합니다."
                 "문제를 풀이할 때 모든 List Choices마다 근거를 주어진 문장에서 찾아 설명하세요."
-                "List Choices의 주요 단어들의 의미를 Paragraph과 비교해서 자세히 차이점을 찾습니다."
+                "List Choices의 선택지의 주요 단어들의 의미를 Paragraph와 비교해서 자세히 차이점을 찾습니다."
+                "List Choices의 선택지를 모두 검토한 후에 최종 결과를 결정합니다."                
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
                 "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
+
+                "Past Results:"
+                "{info}"
                                     
                 "Paragraph:"
                 "{paragraph}"
@@ -4729,9 +4733,6 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                                 
                 "List Choices:"
                 "{list_choices}"
-                
-                "Past Results:"
-                "{info}"
 
                 "Task:"
                 "{task}"
