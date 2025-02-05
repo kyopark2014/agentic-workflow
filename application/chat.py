@@ -4676,6 +4676,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "무조건 <choices> tag의 선택지 중에 하나를 선택하여 1-5 사이의 숫자로 답변합니다."
                 "문제를 풀이할 때 모든 <choices> tag의 선택지에 항목마다 근거를 주어진 문장에서 찾아 설명하세요."
                 "<choices> tag의 선택지의 주요 단어들의 의미를 주어진 문장과 비교해서 꼼꼼히 차이점을 찾습니다."
+                "<choices> tag의 선택지를 모두 검토한 후에 최종 결과를 결정합니다."
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
                 "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                                     
