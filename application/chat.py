@@ -4709,9 +4709,10 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             human = (
                 "당신의 목표는 Paragraph으로 부터 Question에 대한 적절한 답변을 Question에서 찾는것입니다."
                 "Past Results를 참조하여, Task를 수행하고 적절한 답변을 구합니다."
-                "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 List Choices중에 하나를 선택하여 답변합니다."
+                "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다." 
+                "무조건 List Choices중에 하나를 선택하여 1-5 사이의 숫자로 답변합니다."
                 "문제를 풀이할 때 모든 List Choices마다 근거를 주어진 문장에서 찾아 설명하세요."
-                "List Choices의 주요 단어들의 의미를 Paragraph과 비교해서 꼼꼼히 차이점을 찾습니다."
+                "List Choices의 주요 단어들의 의미를 Paragraph과 비교해서 자세히 차이점을 찾습니다."
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
                 "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                                     
@@ -4739,43 +4740,52 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 ("human", human),
             ]
         )
-        chat = get_chat()
-        chain = prompt | chat                        
-        response = chain.invoke({
-            "paragraph": state["paragraph"],
-            "question": state["question"],
-            "question_plus": state["question_plus"],
-            "list_choices": list_choices,
-            "info": context,
-            "task": task
-        })
-        print('response.content: ', response.content)
 
-        idx = config.get("configurable", {}).get("idx")
-        nth = config.get("configurable", {}).get("nth")
+        choice = 0
+        result = ""
+        for attempt in range(3):
+            try:
+                chat = get_chat()
+                chain = prompt | chat                        
+                response = chain.invoke({
+                    "paragraph": state["paragraph"],
+                    "question": state["question"],
+                    "question_plus": state["question_plus"],
+                    "list_choices": list_choices,
+                    "info": context,
+                    "task": task
+                })
+                print(f"attempt: {attempt}, response.content: {response.content}")
 
-        notification = f"({idx}-{nth}) 실행된 결과입니다.\n{response.content}"
-        print('notification: ', notification)
-        st.info(notification)   
-        
-        result = response.content
+                idx = config.get("configurable", {}).get("idx")
+                nth = config.get("configurable", {}).get("nth")
 
-        if not result.find('<confidence>')==-1:
-            output = result[result.find('<confidence>')+12:result.find('</confidence>')]
-            print('output: ', output)
-            confidence = string_to_int(output)
-            print('confidence: ', confidence)
+                notification = f"({idx}-{nth}) 실행된 결과입니다.\n{response.content}"
+                print('notification: ', notification)
+                st.info(notification)   
+            
+                result = response.content
+                if not result.find('<confidence>')==-1:
+                    output = result[result.find('<confidence>')+12:result.find('</confidence>')]
+                    print('output: ', output)
+                    confidence = string_to_int(output)
+                    print('confidence: ', confidence)
+                if not result.find('<result>')==-1:
+                    output = result[result.find('<result>')+8:result.find('</result>')]
+                    print('output: ', output)
+                    choice = string_to_int(output)
+                    print('choice: ', choice)
+                break
+            except Exception:
+                response = AIMessage(content="답변을 찾지 못하였습니다.")
 
-        if not result.find('<result>')==-1:
-            output = result[result.find('<result>')+8:result.find('</result>')]
-            print('output: ', output)
-            choice = string_to_int(output)
-            print('choice: ', choice)
+                err_msg = traceback.format_exc()
+                print('error message: ', err_msg)
         
         transaction = [HumanMessage(content=task), AIMessage(content=result)]
         # print('transaction: ', transaction)
         
-        if confidence >= 4:
+        if confidence >= 4 and choice>0 and choice<6:
             plan = []            
             answer = choice
             
@@ -4861,10 +4871,11 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         else:
             human = (
                 #"당신의 목표는 주어진 문장으로 부터 주어진 질문에 대한 적절한 답변을 선택지에서 찾는것입니다."
-                "당신의 Original Plan을 상황에 맞게 수정하세요."
                 "Paragraph과 Question을 참조하여 List Choices에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
+                "Original Steps를 상황에 맞게 수정하여 새로운 계획을 세우세요."
+                "Original Steps 첫번째 단계는 이미 완료되었으니 포함하지 않습니다."
                 "Original Plan에서 아직 수행되지 않은 단계를 새로운 계획에 포함하세요."
-                "Past Steps의 단계들은 계획에 포함하지 마세요."
+                "Past Steps의 완료한 단계는 계획에 포함하지 마세요."
                 "새로운 계획에는 <plan> tag를 붙여주세요."
                 
                 "Paragraph:"
@@ -4878,7 +4889,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "List Choices:"
                 "{list_choices}"
                 
-                "Original Plan:" 
+                "Original Steps:" 
                 "{plan}"
                 
                 "Past Steps:"
@@ -4898,13 +4909,20 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         )        
         chat = get_chat()
         replanner = replanner_prompt | chat        
+
+
+        plans = '\n'.join(state["plan"])
+        print('plans: ', plans)
+        past_steps = '\n'.join(state["past_steps"])
+        print('past_steps: ', past_steps)
+
         response = replanner.invoke({
             "paragraph": state["paragraph"],
             "question_plus": state["question_plus"],
             "question": state["question"],
             "list_choices": list_choices,
-            "plan": state["plan"],
-            "past_steps": state["past_steps"]
+            "plan": plans,
+            "past_steps": past_steps
         })
         print('response.content: ', response.content)
         result = response.content        
@@ -5000,7 +5018,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "가장 가까운 선택지를 골라서 반드시 번호로 답변 합니다."
                 "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 항목을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
                 "답변의 이유를 풀어서 명확하게 설명합니다."
-                "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
+                "최종 결과의 번호에 <result> tag를 붙여주세요."
                 "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                 
                 "이전 단계에서 검토한 결과:"
@@ -5031,6 +5049,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "가장 가까운 List Choices를 골라서 반드시 번호로 답변 합니다."
                 "답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 항목을 선택합니다. 무조건 List Choices중에 하나를 선택하여 답변합니다."
                 "답변의 이유를 풀어서 명확하게 설명합니다."
+                "Paragraph의 사실관계를 파악하여 전체적으로 읽어가면서 Question을 이해합니다."
                 "최종 결과 번호에 <result> tag를 붙여주세요. 예) <result>1</result>"  
                 "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
                 
@@ -5050,36 +5069,45 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             )
                 
         prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
-        chat = get_chat()
-        chain = prompt | chat        
-        response = chain.invoke(
-            {
-                "context": context,
-                "paragraph": state["paragraph"],                    
-                "question": state["question"],
-                "question_plus": state["question_plus"],
-                "list_choices": list_choices
-            }
-        )
-        result = response.content
-        print('result: ', result)
 
-        notification = f"({idx}-{nth}) 최종으로 얻어진 결과:\n\n{result}"
-        print('notification: ', notification)
-        st.info(notification)
+        answer = 0
+        for attempt in range(3):
+            try:
+                chat = get_chat()
+                chain = prompt | chat                
+                response = chain.invoke(
+                    {
+                        "context": context,
+                        "paragraph": state["paragraph"],                    
+                        "question": state["question"],
+                        "question_plus": state["question_plus"],
+                        "list_choices": list_choices
+                    }
+                )
+                result = response.content
+                print(f"attempt: {attempt}, result: {result}")
 
-        if not result.find('<confidence>')==-1:
-            output = result[result.find('<confidence>')+12:result.find('</confidence>')]
-            print('output: ', output)
+                notification = f"({idx}-{nth}) 최종으로 얻어진 결과:\n\n{result}"
+                print('notification: ', notification)
+                st.info(notification)
 
-            confidence = string_to_int(output)
-            print('confidence: ', confidence)
+                if not result.find('<confidence>')==-1:
+                    output = result[result.find('<confidence>')+12:result.find('</confidence>')]
+                    print('output: ', output)
 
-        if not result.find('<result>')==-1:
-            output = result[result.find('<result>')+8:result.find('</result>')]
-            print('output: ', output)
-            answer = string_to_int(output)
-            print('answer: ', answer)
+                    confidence = string_to_int(output)
+                    print('confidence: ', confidence)
+
+                if not result.find('<result>')==-1:
+                    output = result[result.find('<result>')+8:result.find('</result>')]
+                    print('output: ', output)
+                    answer = string_to_int(output)
+                    print('answer: ', answer)
+                break
+            except Exception:
+                    response = AIMessage(content="답변을 찾지 못하였습니다.")
+                    err_msg = traceback.format_exc()
+                    print('error message: ', err_msg)
 
         print(f'answer: {answer}, correct_answer: {correct_answer}')
         print(f'Type--> answer: {answer.__class__}, correct_answer: {correct_answer.__class__}')
