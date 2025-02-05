@@ -5258,8 +5258,11 @@ def get_image_summarization(object_name, prompt, st):
         st.info(status)
 
     image_summary = summary_image(img_base64, prompt)
+    
+    if text.find('<result>') != -1:
+        image_summary = image_summary[image_summary.find('<result>')+8:image_summary.find('</result>')]
     print('image summary: ', image_summary)
-        
+            
     if len(extracted_text) > 10:
         contents = f"## 이미지 분석\n\n{image_summary}\n\n## 추출된 텍스트\n\n{extracted_text}"
     else:

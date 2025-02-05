@@ -106,10 +106,7 @@ if "messages" not in st.session_state:
     st.session_state.greetings = False
 
 # Display chat messages from history on app rerun
-def display_chat_messages() -> None:
-    """Print message history
-    @returns None
-    """
+def display_chat_messages():
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
@@ -332,7 +329,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     st.write(summary)
 
                     st.session_state.messages.append({"role": "assistant", "content": summary})
-                    st.rerun()
+                    # st.rerun()
 
         else:
             stream = chat.general_conversation(prompt)
