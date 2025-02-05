@@ -4719,9 +4719,6 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 "List Choices의 선택지를 모두 검토한 후에 최종 결과를 결정합니다."                
                 "최종 결과의 번호에 <result> tag를 붙여주세요."
                 "최종 결과의 신뢰도를 1-5 사이의 숫자로 나타냅니다. 신뢰되는 <confidence> tag를 붙입니다."  
-
-                "Past Results:"
-                "{info}"
                                     
                 "Paragraph:"
                 "{paragraph}"
@@ -4733,6 +4730,9 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                                 
                 "List Choices:"
                 "{list_choices}"
+                
+                "Past Results:"
+                "{info}"
 
                 "Task:"
                 "{task}"
