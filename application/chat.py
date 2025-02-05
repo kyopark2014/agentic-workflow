@@ -4560,7 +4560,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "..."                
         )
         
-        if model_type=="clause":
+        if model_type=="claude":
             human = (
                 "<paragraph> tag의 주어진 문장을 참조하여 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 찾기 위한 단계별 계획을 세우세요."
                 "결과에 <plan> tag를 붙여주세요."
@@ -4667,7 +4667,8 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "매우 어려운 문제이므로 step by step으로 충분히 생각하고 답변합니다."
         )
 
-        if model_type=="clause":
+        print('model_type: ', model_type)
+        if model_type=="claude":
             human = (
                 "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지에서 찾는것입니다."
                 "<previous_result> tag에 있는 이전 단계의 결과를 참조하여, <task> tag의 실행 단계를 수행하고 적절한 답변을 구합니다."
@@ -4741,7 +4742,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             ]
         )
 
-        choice = 0
+        choice = confidence = 0
         result = ""
         for attempt in range(3):
             try:
@@ -4825,7 +4826,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "당신은 복잡한 문제를 해결하기 위해 step by step plan을 생성하는 AI agent입니다."
         )        
 
-        if model_type=="clause":
+        if model_type=="claude":
             human = (
                 #"당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag안에서 선택지에서 찾는것입니다."
                 "당신은 <original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
@@ -5012,7 +5013,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "매우 어려운 문제이므로 step by step으로 충분히 생각하고 답변합니다."
         )    
 
-        if model_type=="clause":    
+        if model_type=="claude":    
             human = (
                 "<context> tag에 있는 검토 결과를 활용하여, <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지 안에서 선택하려고 합니다."
                 "가장 가까운 선택지를 골라서 반드시 번호로 답변 합니다."
