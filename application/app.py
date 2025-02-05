@@ -21,6 +21,9 @@ mode_descriptions = {
     ],
     "Agent (Multi-agent Collaboration)": [
         "Planning/Reflection agent들을 이용하여 Multi-agent Collaboration Workflow을 수행합니다. 여기서 Reflection agent들은 병렬처리하여 수행시간을 단축합니다."
+    ],
+    "번역하기": [
+        "한국어와 영어에 대한 번역을 제공합니다. 한국어로 입력하면 영어로, 영어로 입력하면 한국어로 번역합니다."        
     ]
 }
 
@@ -39,7 +42,7 @@ with st.sidebar:
     
     # radio selection
     mode = st.radio(
-        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)"], index=0
+        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기"], index=0
     )   
     st.info(mode_descriptions[mode][0])    
     # print('mode: ', mode)
@@ -293,6 +296,12 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 chat.save_chat_history(prompt, response)
             
             show_references(reference_docs) 
+
+        elif mode == '번역하기':
+            response = chat.translate_text(prompt, modelName)
+            st.write(response)
+
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
         else:
             stream = chat.general_conversation(prompt)

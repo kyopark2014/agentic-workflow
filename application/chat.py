@@ -1531,12 +1531,9 @@ def get_rag_prompt(text):
     return rag_chain
 
 def run_rag_with_knowledge_base(text, st):
-    global reference_docs, contentList
-    reference_docs = []
+    global contentList
     contentList = []
 
-    chat = get_chat()
-    
     msg = ""
     top_k = numberOfDocs
     
@@ -1564,9 +1561,6 @@ def run_rag_with_knowledge_base(text, st):
     filtered_docs = grade_documents(text, relevant_docs)
     
     filtered_docs = check_duplication(filtered_docs) # duplication checker
-
-    if len(filtered_docs):
-        reference_docs += filtered_docs 
 
     if debug_mode == "Enable":
         st.info(f"{len(filtered_docs)}개의 문서가 선택되었습니다.")
@@ -1601,10 +1595,10 @@ def run_rag_with_knowledge_base(text, st):
         raise Exception ("Not able to request to LLM")
     
     reference = ""
-    if reference_docs:
-        reference = get_references(reference_docs)
+    if filtered_docs:
+        reference = get_references(filtered_docs)
 
-    return msg+reference, reference_docs
+    return msg+reference, filtered_docs
 
 ####################### LangGraph #######################
 # Agentic Workflow: Tool Use
@@ -1920,6 +1914,7 @@ def run_agent_executor(query, st):
                 "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
                 "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
                 "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+                "한국어로 답변하세요."
             )
         else: 
             system = (            
@@ -5148,3 +5143,51 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
     st.info(notification)
         
     return answer
+
+####################### LangChain #######################
+# Translation (English)
+#########################################################
+
+def translate_text(text, model_name):
+    global llmMode
+    llmMode = model_name
+
+    chat = get_chat()
+
+    system = (
+        "You are a helpful assistant that translates {input_language} to {output_language} in <article> tags. Put it in <result> tags."
+    )
+    human = "<article>{text}</article>"
+    
+    prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
+    # print('prompt: ', prompt)
+    
+    if isKorean(text)==False :
+        input_language = "English"
+        output_language = "Korean"
+    else:
+        input_language = "Korean"
+        output_language = "English"
+                        
+    chain = prompt | chat    
+    try: 
+        result = chain.invoke(
+            {
+                "input_language": input_language,
+                "output_language": output_language,
+                "text": text,
+            }
+        )
+        msg = result.content
+        print('translated text: ', msg)
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)                    
+        raise Exception ("Not able to request to LLM")
+
+    if msg.find('<result>') != -1:
+        msg = msg[msg.find('<result>')+8:msg.find('</result>')] # remove <result> tag
+    if msg.find('<article>') != -1:
+        msg = msg[msg.find('<article>')+9:msg.find('</article>')] # remove <article> tag
+
+    return msg
