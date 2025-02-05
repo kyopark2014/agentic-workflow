@@ -24,6 +24,9 @@ mode_descriptions = {
     ],
     "번역하기": [
         "한국어와 영어에 대한 번역을 제공합니다. 한국어로 입력하면 영어로, 영어로 입력하면 한국어로 번역합니다."        
+    ],
+    "이미지 분석": [
+        "이미지를 업로드하면 이미지의 내용을 요약할 수 있습니다."
     ]
 }
 
@@ -42,16 +45,29 @@ with st.sidebar:
     
     # radio selection
     mode = st.radio(
-        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기"], index=0
+        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기", "이미지 분석"], index=0
     )   
     st.info(mode_descriptions[mode][0])    
     # print('mode: ', mode)
 
     # model selection box
+    if mode == '이미지 분석':
+        index = 2
+    else:
+        index = 0   
     modelName = st.selectbox(
         '🖊️ 사용 모델을 선택하세요',
-        ('Nova Pro', 'Nova Lite', 'Claude 3.5 Sonnet', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku')
+        ('Nova Pro', 'Nova Lite', 'Claude 3.5 Sonnet', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku'), index=index
     )
+    
+    uploaded_file = None
+    if mode=='이미지 분석':        
+        st.subheader("🌇 이미지 업로드")
+        uploaded_file = st.file_uploader("이미지 요약을 위한 파일을 선택합니다.", type=["png", "jpg", "jpeg"])
+    elif mode=='RAG' or mode=="Agent (Tool Use)":
+        st.subheader("📋 문서 업로드")
+        # print('fileId: ', chat.fileId)
+        uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json"], key=chat.fileId)
 
     # debug checkbox
     select_debugMode = st.checkbox('Debug Mode', value=True)
@@ -69,11 +85,7 @@ with st.sidebar:
     #print('chart: ', chart)
 
     chat.update(modelName, debugMode, multiRegion)
-
-    st.subheader("📋 문서 업로드")
-    # print('fileId: ', chat.fileId)
-    uploaded_file = st.file_uploader("RAG를 위한 파일을 선택합니다.", type=["pdf", "txt", "py", "md", "csv", "json"], key=chat.fileId)
-
+    
     # code interpreter checkbox
     select_csat_evaluator = st.checkbox('CSAT evaluator', value=False)
     CSAT_evaluator = 'Enable' if select_csat_evaluator else 'Disable'
@@ -87,51 +99,6 @@ st.title('🔮 '+ mode)
 
 if clear_button==True:
     chat.initiate()
-
-# Preview the uploaded image in the sidebar
-file_name = ""
-if uploaded_file is not None and clear_button==False:
-    print("uploaded_file.name: ", uploaded_file.name)
-    print("CSAT_evaluator: ", CSAT_evaluator)
-
-    if uploaded_file.name and CSAT_evaluator=="Disable":
-        chat.initiate()
-
-        if debugMode=='Enable':
-            status = '선택한 파일을 업로드합니다.'
-            print('status: ', status)
-            st.info(status)
-
-        file_name = uploaded_file.name
-        file_url = chat.upload_to_s3(uploaded_file.getvalue(), file_name)
-        print('file_url: ', file_url) 
-
-        chat.sync_data_source()  # sync uploaded files
-            
-        status = f'선택한 "{file_name}"의 내용을 요약합니다.'
-        # my_bar = st.sidebar.progress(0, text=status)
-        
-        # for percent_complete in range(100):
-        #     time.sleep(0.2)
-        #     my_bar.progress(percent_complete + 1, text=status)
-        if debugMode=='Enable':
-            print('status: ', status)
-            st.info(status)
-    
-        msg = chat.get_summary_of_uploaded_file(file_name, st)
-        st.session_state.messages.append({"role": "assistant", "content": f"선택한 문서({file_name})를 요약하면 아래와 같습니다.\n\n{msg}"})    
-        print('msg: ', msg)
-        st.rerun()
-
-    elif uploaded_file.name and CSAT_evaluator == "Enable" and uploaded_file.name.lower().endswith((".json")): # csv only   
-        guide = "CSAT Evaluation을 시작합니다."
-        st.write(guide)
-        st.session_state.messages.append({"role": "assistant", "content": guide})
-        state_of_CSAT_evaluator = True
-
-        chat.solve_CSAT_problem(uploaded_file.getvalue(), st)
-
-# print("state_of_CSAT_evaluator: ", state_of_CSAT_evaluator)
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -191,6 +158,57 @@ if chart == 'Enable':
         col1, col2, col3 = st.columns([0.1, 2.0, 0.1])    
         url = "https://raw.githubusercontent.com/kyopark2014/agentic-workflow/main/contents/multi_agent_collaboration.png"
         col2.image(url)
+           
+# Preview the uploaded image in the sidebar
+file_name = ""
+if uploaded_file and clear_button==False:
+    print("uploaded_file.name: ", uploaded_file.name)
+    print("CSAT_evaluator: ", CSAT_evaluator)
+
+    if uploaded_file.name and CSAT_evaluator=="Disable" and not mode == '이미지 분석':
+        chat.initiate()
+
+        if debugMode=='Enable':
+            status = '선택한 파일을 업로드합니다.'
+            print('status: ', status)
+            st.info(status)
+
+        file_name = uploaded_file.name
+        file_url = chat.upload_to_s3(uploaded_file.getvalue(), file_name)
+        print('file_url: ', file_url) 
+
+        chat.sync_data_source()  # sync uploaded files
+            
+        status = f'선택한 "{file_name}"의 내용을 요약합니다.'
+        # my_bar = st.sidebar.progress(0, text=status)
+        
+        # for percent_complete in range(100):
+        #     time.sleep(0.2)
+        #     my_bar.progress(percent_complete + 1, text=status)
+        if debugMode=='Enable':
+            print('status: ', status)
+            st.info(status)
+    
+        msg = chat.get_summary_of_uploaded_file(file_name, st)
+        st.session_state.messages.append({"role": "assistant", "content": f"선택한 문서({file_name})를 요약하면 아래와 같습니다.\n\n{msg}"})    
+        print('msg: ', msg)
+        st.rerun()
+    
+    if uploaded_file and clear_button==False and mode == '이미지 분석':
+        st.image(uploaded_file, caption="이미지 미리보기", use_container_width=True)
+
+        file_name = uploaded_file.name
+        image_url = chat.upload_to_s3(uploaded_file.getvalue(), file_name)
+        print('image_url: ', image_url)    
+
+    elif uploaded_file.name and CSAT_evaluator == "Enable" and uploaded_file.name.lower().endswith((".json")): # csv only   
+        guide = "CSAT Evaluation을 시작합니다."
+        st.write(guide)
+        st.session_state.messages.append({"role": "assistant", "content": guide})
+        state_of_CSAT_evaluator = True
+
+        chat.solve_CSAT_problem(uploaded_file.getvalue(), st)
+# print("state_of_CSAT_evaluator: ", state_of_CSAT_evaluator)
 
 # Always show the chat input
 if prompt := st.chat_input("메시지를 입력하세요."):
@@ -302,6 +320,19 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             st.write(response)
 
             st.session_state.messages.append({"role": "assistant", "content": response})
+
+        elif mode == '이미지 분석':
+            if uploaded_file is None or uploaded_file == "":
+                st.error("파일을 먼저 업로드하세요.")
+                st.stop()
+
+            else:
+                with st.status("thinking...", expanded=True, state="running") as status:
+                    summary = chat.get_image_summarization(file_name, prompt, st)
+                    st.write(summary)
+
+                    st.session_state.messages.append({"role": "assistant", "content": summary})
+                    st.rerun()
 
         else:
             stream = chat.general_conversation(prompt)
