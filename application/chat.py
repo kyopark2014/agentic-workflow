@@ -4518,6 +4518,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         question_plus: str
         choices: list[str]
         answer: int
+        repeat_counter: int
 
     def plan_node(state: State, config):
         print("###### plan ######")
@@ -4637,6 +4638,9 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         print("###### execute ######")
         plan = state["plan"]
         # print('plan: ', plan) 
+
+        repeat_counter = state["repeat_counter"] if "repeat_counter" in state else 0        
+        previous_answer = state["answer"] if "answer" in state else 0
         
         list_choices = ""
         choices = state["choices"]
@@ -4788,20 +4792,24 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         transaction = [HumanMessage(content=task), AIMessage(content=result)]
         # print('transaction: ', transaction)
-        
-        if confidence >= 4 and choice>0 and choice<6:
-            plan = []            
-            answer = choice
-            
+
+        answer = choice if choice>0 and choice<6 else 0
+        # print(f"previous_answer: {previous_answer}, answer: {answer}")        
+        if previous_answer == answer: 
+            repeat_counter += 1
+            print("repeat_counter: ", repeat_counter)        
+    
+        if confidence >= 4:
+            plan = []  
         else:
             plan = state["plan"]
-            answer = 0
         
         return {
             "plan": plan,
             "info": transaction,
             "past_steps": [task],
-            "answer": answer
+            "answer": answer,
+            "repeat_counter": repeat_counter
         }
 
     def replan_node(state: State, config):
@@ -4813,6 +4821,12 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         nth = config.get("configurable", {}).get("nth")
         
         if len(state["plan"])==0:
+            return {"plan": []}
+        
+        repeat_counter = state["repeat_counter"] if "repeat_counter" in state else 0
+        print('repeat_counter: ', repeat_counter)
+        if repeat_counter >= 3:
+            st.info("결과가 3회 반복되므로, 현재 결과를 최종 결과를 리턴합니다.")
             return {"plan": []}
         
         notification = f"({idx}-{nth}) 새로운 계획을 생성합니다..."
@@ -4932,7 +4946,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             print('result: ', result)
             st.info(result)
             
-            return {"plan":[]}
+            return {"plan":[], "repeat_counter": repeat_counter}
         else:
             output = result[result.find('<plan>')+6:result.find('</plan>')]
             print('plan output: ', output)
@@ -4944,8 +4958,8 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             notification = f"({idx}-{nth}) 생성된 계획:\n\n {planning_steps}"
             print('notification: ', notification)
             st.info(notification)
-        
-            return {"plan": planning_steps}
+            
+            return {"plan": planning_steps, "repeat_counter": repeat_counter}
                 
     def should_end(state: State) -> Literal["continue", "end"]:
         print('#### should_end ####')
