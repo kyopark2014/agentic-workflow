@@ -6,6 +6,9 @@
 
 여기에서는 [Anthropic의 Claude Sonnet 3.5](https://www.anthropic.com/news/claude-3-5-sonnet)와 [LangGraph를 구현한 plan and execute 패턴](https://github.com/kyopark2014/langgraph-agent?tab=readme-ov-file#plan-and-execute)의 agentic workflow를 이용하여 92점을 얻었습니다. 
 
+![image](https://github.com/user-attachments/assets/e81d9a77-1dc4-490a-a8a6-491eea5c15e0)
+
+
 
 ## 모델별로 수학능력시험 국어 영역 비교
 
