@@ -18,7 +18,7 @@
 
 ![image](https://github.com/user-attachments/assets/99051bad-3532-4204-a234-42561a273067)
 
-아래와 같이 1) 사용 모델을 지정하고 2) CSAT evaluator를 enable 합니다. 이후 [Browse files]를 선택하여 [국어 영역 문제](https://github.com/NomaDamas/KICE_slayer_AI_Korean/blob/master/data/2023_11_KICE.json)을 업로드합니다. 이 파일을 2023년 수학능력시험의 국어영역을 json 파일로 제공합니다.
+아래와 같이 1) 사용 모델을 지정하고 2) CSAT evaluator를 enable 합니다. 이후 [Browse files]를 선택하여 [국어 영역 문제](https://github.com/NomaDamas/KICE_slayer_AI_Korean/blob/master/data/2023_11_KICE.json)을 업로드합니다. 
 
 ![noname](https://github.com/user-attachments/assets/7ac16a88-b0cf-4ad6-9131-09b2dc6dca15)
 
