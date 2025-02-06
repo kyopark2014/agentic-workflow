@@ -11,4 +11,4 @@
 
 아래와 같이 가장 좋은 결과는 Claude 3.5 Sonnet(v2)이었고 2번째로 좋은 모델은 Nova Pro입니다. 이 모델은 Claude 3.5 Sonnet (v1)과 동급의 성능을 보여주고 있습니다. Claude 3.5 Haiku도 괜찮은 성적을 얻지만, Claude 3.0 Sonnet이나 Nova Lite는 적절한 선택이 아닌것으로 보여집니다.
 
-![cscore](https://github.com/user-attachments/assets/4b9f0590-f513-4327-87dd-9b81e312c2fc)
+<img src="https://github.com/user-attachments/assets/4b9f0590-f513-4327-87dd-9b81e312c2fc" width="600">
