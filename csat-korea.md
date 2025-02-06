@@ -18,13 +18,13 @@
 ### Claude 3.5 Sonnet (v2)
 
 
-<img src="https://github.com/user-attachments/assets/d767e581-a0bc-4752-b972-44aaec991ed1" width="700">
+<img src="https://github.com/user-attachments/assets/d767e581-a0bc-4752-b972-44aaec991ed1" width="600">
 
 ### Nova Pro 
 
-<img src="https://github.com/user-attachments/assets/b62df1ee-2b95-47da-b7fe-d2f7bc04c88d" width="700">
+<img src="https://github.com/user-attachments/assets/b62df1ee-2b95-47da-b7fe-d2f7bc04c88d" width="600">
 
 ### Claude 3.5 Haiku
 
-<img src="https://github.com/user-attachments/assets/07b11094-3b16-484b-bb58-e768ebe2250a" width="700">
+<img src="https://github.com/user-attachments/assets/07b11094-3b16-484b-bb58-e768ebe2250a" width="600">
 
