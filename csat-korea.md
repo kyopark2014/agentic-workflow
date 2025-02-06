@@ -12,6 +12,21 @@
 
 ## 모델별로 수학능력시험 국어 영역 비교
 
+### 시험 방법
+
+아래와 같이 대화 형태로 RAG를 선택합니다.
+
+![image](https://github.com/user-attachments/assets/99051bad-3532-4204-a234-42561a273067)
+
+아래와 같이 1) 사용 모델을 지정하고 2) CSAT evaluator를 enable 합니다. 이후 [Browse files]를 선택하여 [2023_11_KICE.json](./contents/2023_11_KICE.json)을 업로드합니다. 이 파일을 2023년 수학능력시험의 국어영역을 json 파일로 제공합니다.
+
+![noname](https://github.com/user-attachments/assets/7ac16a88-b0cf-4ad6-9131-09b2dc6dca15)
+
+
+ 
+
+
+
 아래와 같이 가장 좋은 결과는 Claude 3.5 Sonnet(v2)이었고 2번째로 좋은 모델은 Nova Pro입니다. 이 모델은 Claude 3.5 Sonnet (v1)과 동급의 성능을 보여주고 있습니다. Claude 3.5 Haiku도 괜찮은 성적을 얻지만, Claude 3.0 Sonnet이나 Nova Lite는 적절한 선택이 아닌것으로 보여집니다.
 
 <img src="https://github.com/user-attachments/assets/4b9f0590-f513-4327-87dd-9b81e312c2fc" width="700">
