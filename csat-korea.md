@@ -2,9 +2,7 @@
 
 ## 복잡한 문제로 수능 국어를 선택한 이유
 
-수학 능력 시험의 국어 영역은 LLM 모델의 한국어 능력을 측정하기 좋은 주제입니다. [지문과 선택지-화법과 작문](https://github.com/NomaDamas/KICE_slayer_AI_Korean/blob/master/data/2023_11_KICE.json)은 json포맷으로 문제와 답을 제공하고 있습니다. 또한, [수능 문제의 경우에 정답이 알려져있고 상세한 해설서](https://m.blog.naver.com/awesome-2030/222931282476)도 결과를 확인할 때에 참고할 수 있습니다. 또한, [2023년 수능의 국어(화법과 작문)의 1등급 컷](https://www.nextplay.kr/news/articleView.html?idxno=4617)은 92점입니다. 
-
-여기에서는 [LangGraph를 구현한 planning 패턴](https://github.com/kyopark2014/langgraph-agent?tab=readme-ov-file#plan-and-execute)을 이용하여 CoT 방식으로 동작하는 agentic workflow를 구현하였습니다.
+수학 능력 시험의 국어 영역은 LLM 모델의 한국어 능력을 측정하기 좋은 주제입니다. [지문과 선택지-화법과 작문](https://github.com/NomaDamas/KICE_slayer_AI_Korean/blob/master/data/2023_11_KICE.json)은 json포맷으로 문제와 답을 제공하고 있습니다. [2023년 수능의 국어(화법과 작문)의 1등급 컷](https://www.nextplay.kr/news/articleView.html?idxno=4617)은 92점이었습니다. 여기에서는 [LangGraph를 구현한 planning 패턴](https://github.com/kyopark2014/langgraph-agent?tab=readme-ov-file#plan-and-execute)을 이용하여 CoT 방식으로 동작하는 agentic workflow를 구현하였습니다. 결과적으로 Claude 3.5 Sonnet(v2), Nova Pro 순으로 좋은 결과를 얻었습니다. Nova Pro의 결과는 Claude 3.5 Sonnet (v1)보다 약간 좋았고, Claude 3.5 Sonnet보다도 좋은 결과를 보였습니다.
 
 ![image](https://github.com/user-attachments/assets/e81d9a77-1dc4-490a-a8a6-491eea5c15e0)
 
@@ -44,3 +42,10 @@
 
 <img src="https://github.com/user-attachments/assets/07b11094-3b16-484b-bb58-e768ebe2250a" width="600">
 
+## Reference
+
+[지문과 선택지-화법과 작문](https://github.com/NomaDamas/KICE_slayer_AI_Korean/blob/master/data/2023_11_KICE.json)
+
+[수능 문제의 경우에 정답이 알려져있고 상세한 해설서](https://m.blog.naver.com/awesome-2030/222931282476)
+
+[2023년 수능의 국어(화법과 작문)의 1등급 컷](https://www.nextplay.kr/news/articleView.html?idxno=4617)
