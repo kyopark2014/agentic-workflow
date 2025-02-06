@@ -4675,6 +4675,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         if model_type=="claude":
             human = (
                 "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지에서 찾는것입니다."
+                "답변은 반드시 <paragraph> tag의 주어진 문장, <question>의 주어진 질문, <choices>의 선택지를 참조하여 답변하고, <previous_result>의 이전 단계의 결과는 참고만 합니다. 절대 자신의 생각대로 답변하지 않습니다."                
                 "<previous_result> tag에 있는 이전 단계의 결과를 참조하여, <task> tag의 실행 단계를 수행하고 적절한 답변을 구합니다."
                 "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다. 무조건 선택지중에 하나를 선택하여 답변합니다."
                 "무조건 <choices> tag의 선택지 중에 하나를 선택하여 1-5 사이의 숫자로 답변합니다."
@@ -4715,7 +4716,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         else:
             human = (
                 "당신의 목표는 Paragraph으로 부터 Question에 대한 적절한 답변을 Question에서 찾는것입니다."
-                "답변은 반드시 주어진 paragraph, Question, List Choices을 이용하고 자신의 생각을 반영하지 않습니다."
+                "답변은 반드시 Paragraph, Question, List Choices을 참조하여 답변하고, Past Results는 참고만 합니다. 절대 자신의 생각대로 답변하지 않습니다."                
                 "Past Results를 참조하여, Task를 수행하고 적절한 답변을 구합니다."                
                 "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다." 
                 "받드시 List Choices중에 하나를 선택하여 1-5 사이의 숫자로 답변합니다."
@@ -4840,7 +4841,8 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
 
         if model_type=="claude":
             human = (
-                "<paragraph> tag의 주어진 문장과 <question> tag의 주어진 질문 참조하여 <choices> tag의 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."                
+                "<paragraph> tag의 주어진 문장과 <question> tag의 주어진 질문 참조하여 <choices> tag의 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
+                "답변은 반드시 <paragraph> tag의 주어진 문장, <question>의 주어진 질문, <choices>의 선택지를 참조하여 답변하고, <previous_result>의 이전 단계의 결과는 참고만 합니다. 절대 자신의 생각대로 답변하지 않습니다."
                 "<original_plan> tag의 원래 계획을 상황에 맞게 수정하세요."
                 "<paragraph> tag의 주어진 문장과 <question> tag의 주어진 질문을 참조하여 선택지에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
                 "<original_plan> tag에 있는 당신의 원래 계획에서 아직 수행되지 않은 계획들을 수정된 계획에 포함하세요."
@@ -4883,6 +4885,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         else:
             human = (
                 "Paragraph과 Question을 참조하여 List Choices에서 거장 적절한 항목을 선택하기 위해서는 잘 세워진 계획이 있어야 합니다."
+                "답변은 반드시 Paragraph, Question, List Choices을 참조하여 답변하고, Past Results는 참고만 합니다. 절대 자신의 생각대로 답변하지 않습니다."
                 "Original Steps를 상황에 맞게 수정하여 새로운 계획을 세우세요."
                 "Original Steps의 첫번째 단계는 이미 완료되었으니 절대 포함하지 않습니다."
                 "Original Plan에서 아직 수행되지 않은 단계를 새로운 계획에 포함하세요."
