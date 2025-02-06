@@ -7,4 +7,8 @@
 여기에서는 [Anthropic의 Claude Sonnet 3.5](https://www.anthropic.com/news/claude-3-5-sonnet)와 [LangGraph를 구현한 plan and execute 패턴](https://github.com/kyopark2014/langgraph-agent?tab=readme-ov-file#plan-and-execute)의 agentic workflow를 이용하여 92점을 얻었습니다. 
 
 
+## 모델별로 수학능력시험 국어 영역 비교
 
+아래와 같이 가장 좋은 결과는 Claude 3.5 Sonnet(v2)이었고 2번째로 좋은 모델은 Nova Pro입니다. 이 모델은 Claude 3.5 Sonnet (v1)과 동급의 성능을 보여주고 있습니다. Claude 3.5 Haiku도 괜찮은 성적을 얻지만, Claude 3.0 Sonnet이나 Nova Lite는 적절한 선택이 아닌것으로 보여집니다.
+
+![cscore](https://github.com/user-attachments/assets/4b9f0590-f513-4327-87dd-9b81e312c2fc)
