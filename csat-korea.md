@@ -8,7 +8,7 @@
 
 ![image](https://github.com/user-attachments/assets/e81d9a77-1dc4-490a-a8a6-491eea5c15e0)
 
-상세한 코드는 [chat.py](./application/chat.py]의 solve_CSAT_problem() 함수를 참조합니다. 여기서 workflow는 아래와 같이 정의하였습니다.
+상세한 코드는 [chat.py](./application/chat.py)의 solve_CSAT_problem() 함수를 참조합니다. 여기서 workflow는 아래와 같이 정의하였습니다.
 
 ```python
 def buildPlanAndExecute():
