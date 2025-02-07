@@ -2510,6 +2510,7 @@ def run_reflection(query, st):
 
         top_k = 4
         relevant_docs = retrieve_documents_from_knowledge_base(query, top_k=top_k)
+        relevant_docs += retrieve_documents_from_tavily(query, top_k=top_k)
     
         # grade   
         if debug_mode == "Enable":
