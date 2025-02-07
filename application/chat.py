@@ -2506,7 +2506,7 @@ def run_reflection(query, st):
 
         # grade   
         if debug_mode == "Enable":
-            st.info(f"초안(draft)를 생성하기 위하여, RAG를 조회합니다.") 
+            st.info(f"초안(draft)를 생성하기 위하여, RAG와 인터넷을 조회합니다.") 
 
         top_k = 4
         relevant_docs = retrieve_documents_from_knowledge_base(query, top_k=top_k)
