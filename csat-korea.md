@@ -310,7 +310,7 @@ def replan_node(state: State, config):
 
 ### 시험 방법
 
-아래와 같이 대화 형태로 RAG를 선택합니다.
+아래와 같이 대화 형태로 RAG를 선택합니다. Agent의 동작에 RAG는 관련이 없고, 파일 업로드 메뉴를 활용하기 위해서 RAG를 선택하고 있습니다. 
 
 ![image](https://github.com/user-attachments/assets/99051bad-3532-4204-a234-42561a273067)
 
