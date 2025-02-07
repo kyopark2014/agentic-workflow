@@ -14,6 +14,7 @@ import operator
 import info
 import PyPDF2
 import csv
+import yfinance as yf
 
 from io import BytesIO
 from PIL import Image
