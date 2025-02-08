@@ -2164,12 +2164,10 @@ def run_agent_executor(query, st):
     #print("result: ", result)
 
     msg = result["messages"][-1].content
-    print("msg: ", msg)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"msg: {msg}")
 
     for i, doc in enumerate(reference_docs):
-        print(f"--> {i}: {doc}")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"--> {i}: {doc}")
         
     reference = ""
     if reference_docs:
@@ -2192,8 +2190,7 @@ def run_agent_executor2(query, st):
             
     def create_agent(chat, tools):        
         tool_names = ", ".join([tool.name for tool in tools])
-        print("tool_names: ", tool_names)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"tool_names: {tool_names}")
 
         system = (
             "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
