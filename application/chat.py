@@ -766,7 +766,7 @@ def tavily_search(query, k):
 def extract_thinking_tag(response, st):
     if response.find('<thinking>') != -1:
         status = response[response.find('<thinking>')+11:response.find('</thinking>')]
-        logger.info(f"gent_thinking: ', status)
+        logger.info(f"gent_thinking: {status}")
         
         if debug_mode=="Enable":
             st.info(status)
@@ -775,8 +775,7 @@ def extract_thinking_tag(response, st):
             msg = response[response.find('</thinking>')+13:]
         else:
             msg = response[:response.find('<thinking>')]
-        print('msg: ', msg)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"msg: {msg}")
     else:
         msg = response
 
@@ -1005,8 +1004,7 @@ def extract_text(img_base64):
             logger.info(f"error message: {err_msg}")              
             raise Exception ("Not able to request to LLM")
     
-    print('extracted_text: ', extracted_text)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"extracted_text: {extracted_text}")
     if len(extracted_text)<10:
         extracted_text = "텍스트를 추출하지 못하였습니다."    
 
@@ -1016,16 +1014,14 @@ fileId = uuid.uuid4().hex
 # print('fileId: ', fileId)
 def get_summary_of_uploaded_file(file_name, st):
     file_type = file_name[file_name.rfind('.')+1:len(file_name)]            
-    print('file_type: ', file_type)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"file_type: {file_type}")
     
     if file_type == 'csv' or file_type == 'json':
         docs = load_csv_document(file_name)
         contexts = []
         for doc in docs:
             contexts.append(doc.page_content)
-        print('contexts: ', contexts)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"contexts: {contexts}")
     
         msg = get_summary(contexts)
 
@@ -1045,16 +1041,13 @@ def get_summary_of_uploaded_file(file_name, st):
                         }
                     )
                 )
-            print('docs[0]: ', docs[0])    
-            logger.info(f"prepare: {prepare}")
-            print('docs size: ', len(docs))
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"docs[0]: {docs[0]}")
+            logger.info(f"docs size: {len(docs)}")
 
             contexts = []
             for doc in docs:
                 contexts.append(doc.page_content)
-            print('contexts: ', contexts)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"contexts: {contexts}")
 
             msg = get_summary(contexts)
         else:
@@ -1071,8 +1064,7 @@ def get_summary_of_uploaded_file(file_name, st):
         msg = summary_of_code(contents, file_type)                  
         
     elif file_type == 'png' or file_type == 'jpeg' or file_type == 'jpg':
-        print('multimodal: ', file_name)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"multimodal: {file_name}")
         
         s3_client = boto3.client(
             service_name='s3',
@@ -1080,8 +1072,7 @@ def get_summary_of_uploaded_file(file_name, st):
         )             
         if debug_mode=="Enable":
             status = "이미지를 가져옵니다."
-            print('status: ', status)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"status: {status}")
             st.info(status)
             
         image_obj = s3_client.get_object(Bucket=s3_bucket, Key=s3_prefix+'/'+file_name)
@@ -1091,16 +1082,14 @@ def get_summary_of_uploaded_file(file_name, st):
         img = Image.open(BytesIO(image_content))
         
         width, height = img.size 
-        print(f"width: {width}, height: {height}, size: {width*height}")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"width: {width}, height: {height}, size: {width*height}")
         
         isResized = False
         while(width*height > 5242880):                    
             width = int(width/2)
             height = int(height/2)
             isResized = True
-            print(f"width: {width}, height: {height}, size: {width*height}")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"width: {width}, height: {height}, size: {width*height}")
         
         if isResized:
             img = img.resize((width, height))
@@ -1112,8 +1101,7 @@ def get_summary_of_uploaded_file(file_name, st):
         # extract text from the image
         if debug_mode=="Enable":
             status = "이미지에서 텍스트를 추출합니다."
-            print('status: ', status)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"status: {status}")
             st.info(status)
         
         text = extract_text(img_base64)
@@ -1127,26 +1115,22 @@ def get_summary_of_uploaded_file(file_name, st):
 
         if debug_mode=="Enable":
             status = f"### 추출된 텍스트\n\n{extracted_text}"
-            print('status: ', status)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"status: {status}")
             st.info(status)
     
         if debug_mode=="Enable":
             status = "이미지의 내용을 분석합니다."
-            print('status: ', status)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"status: {status}")
             st.info(status)
 
         image_summary = summary_image(img_base64, "")
-        print('image summary: ', image_summary)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"image summary: {image_summary}")
             
         if len(extracted_text) > 10:
             contents = f"## 이미지 분석\n\n{image_summary}\n\n## 추출된 텍스트\n\n{extracted_text}"
         else:
             contents = f"## 이미지 분석\n\n{image_summary}"
-        print('image contents: ', contents)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"image contents: {contents}")
 
         msg = contents
 
@@ -1157,8 +1141,7 @@ def get_summary_of_uploaded_file(file_name, st):
     return msg
 
 def revise_question(query, st):    
-    print("###### revise_question ######")
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"###### revise_question ######")
 
     chat = get_chat()
     st.info("히스토리를 이용해 질문을 변경합니다.")
@@ -1191,12 +1174,10 @@ def revise_question(query, st):
     # print('prompt: ', prompt)
     
     history = memory_chain.load_memory_variables({})["chat_history"]
-    print('history: ', history)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"history: {history}")
 
     if not len(history):        
-        print('no history')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"no history")
         st.info("이전 히스트로가 없어서 질문을 그대로 전달합니다.")
         return query
                 
@@ -1279,16 +1260,13 @@ os_client = OpenSearch(
 )
 
 def is_not_exist(index_name):    
-    print('index_name: ', index_name)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"index_name: {index_name}")
         
     if os_client.indices.exists(index_name):
-        print('use exist index: ', index_name)    
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"use exist index: {index_name}")
         return False
     else:
-        print('no index: ', index_name)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"no index: {index_name}")
         return True
     
 knowledge_base_id = ""
@@ -1299,8 +1277,7 @@ def initiate_knowledge_base():
     # opensearch index
     #########################
     if(is_not_exist(vectorIndexName)):
-        print(f"creating opensearch index... {vectorIndexName}")     
-        logger.info(f"prepare: {prepare}")   
+        logger.info(f"creating opensearch index... {vectorIndexName}")   
         body={ 
             'settings':{
                 "index.knn": True,
@@ -1359,8 +1336,7 @@ def initiate_knowledge_base():
                 vectorIndexName,
                 body=body
             )
-            print('opensearch index was created:', response)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"opensearch index was created: {response}")
 
             # delay 5 seconds
             time.sleep(5)
@@ -1372,16 +1348,11 @@ def initiate_knowledge_base():
     #########################
     # knowledge base
     #########################
-    print('knowledge_base_name: ', knowledge_base_name)
-    logger.info(f"prepare: {prepare}")
-    print('collectionArn: ', collectionArn)
-    logger.info(f"prepare: {prepare}")
-    print('vectorIndexName: ', vectorIndexName)
-    logger.info(f"prepare: {prepare}")
-    print('embeddingModelArn: ', embeddingModelArn)
-    logger.info(f"prepare: {prepare}")
-    print('knowledge_base_role: ', knowledge_base_role)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"knowledge_base_name: {knowledge_base_name}")
+    logger.info(f"collectionArn: {collectionArn}")
+    logger.info(f"vectorIndexName: {vectorIndexName}")
+    logger.info(f"embeddingModelArn: {embeddingModelArn}")
+    logger.info(f"knowledge_base_role: {knowledge_base_role}")
     try: 
         client = boto3.client(
             service_name='bedrock-agent',
@@ -1390,23 +1361,20 @@ def initiate_knowledge_base():
         response = client.list_knowledge_bases(
             maxResults=10
         )
-        print('(list_knowledge_bases) response: ', response)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"(list_knowledge_bases) response: {response}")
         
         if "knowledgeBaseSummaries" in response:
             summaries = response["knowledgeBaseSummaries"]
             for summary in summaries:
                 if summary["name"] == knowledge_base_name:
                     knowledge_base_id = summary["knowledgeBaseId"]
-                    print('knowledge_base_id: ', knowledge_base_id)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"prepknowledge_base_idare: {knowledge_base_id}")
     except Exception:
         err_msg = traceback.format_exc()
         logger.info(f"error message: {err_msg}")
                     
     if not knowledge_base_id:
-        print('creating knowledge base...')      
-        logger.info(f"prepare: {prepare}")  
+        logger.info(f"creating knowledge base...")  
         for atempt in range(20):
             try:
                 response = client.create_knowledge_base(
@@ -1437,8 +1405,7 @@ def initiate_knowledge_base():
                         }
                     }                
                 )   
-                print('(create_knowledge_base) response: ', response)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"(create_knowledge_base) response: {response}")
             
                 if 'knowledgeBaseId' in response['knowledgeBase']:
                     knowledge_base_id = response['knowledgeBase']['knowledgeBaseId']
@@ -1449,12 +1416,10 @@ def initiate_knowledge_base():
                     err_msg = traceback.format_exc()
                     logger.info(f"error message: {err_msg}")
                     time.sleep(5)
-                    print(f"retrying... ({atempt})")
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"retrying... {atempt}")
                     #raise Exception ("Not able to create the knowledge base")      
                 
-    print(f"knowledge_base_name: {knowledge_base_name}, knowledge_base_id: {knowledge_base_id}")    
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"knowledge_base_name: {knowledge_base_name}, knowledge_base_id: {knowledge_base_id}")    
     
     #########################
     # data source      
@@ -1465,25 +1430,21 @@ def initiate_knowledge_base():
             knowledgeBaseId=knowledge_base_id,
             maxResults=10
         )        
-        print('(list_data_sources) response: ', response)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"(list_data_sources) response: {response}")
         
         if 'dataSourceSummaries' in response:
             for data_source in response['dataSourceSummaries']:
-                print('data_source: ', data_source)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"data_source: {data_source}")
                 if data_source['name'] == data_source_name:
                     data_source_id = data_source['dataSourceId']
-                    print('data_source_id: ', data_source_id)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"data_source_id: {data_source_id}")
                     break    
     except Exception:
         err_msg = traceback.format_exc()
         logger.info(f"error message: {err_msg}")
         
     if not data_source_id:
-        print('creating data source...')  
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"creating data source...")
         try:
             response = client.create_data_source(
                 dataDeletionPolicy='RETAIN',
@@ -1522,22 +1483,19 @@ def initiate_knowledge_base():
                     }
                 }
             )
-            print('(create_data_source) response: ', response)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"create_data_source) response: {response}")
             
             if 'dataSource' in response:
                 if 'dataSourceId' in response['dataSource']:
                     data_source_id = response['dataSource']['dataSourceId']
-                    print('data_source_id: ', data_source_id)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"data_source_id: {data_source_id}")
                     
         except Exception:
             err_msg = traceback.format_exc()
             logger.info(f"error message: {err_msg}")
             #raise Exception ("Not able to create the data source")
     
-    print(f"data_source_name: {data_source_name}, data_source_id: {data_source_id}")
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"data_source_name: {data_source_name}, data_source_id: {data_source_id}")
             
 initiate_knowledge_base()
 
@@ -1556,8 +1514,7 @@ def retrieve_documents_from_knowledge_base(query, top_k):
         try: 
             documents = retriever.invoke(query)
             # print('documents: ', documents)
-            print('--> docs from knowledge base')
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"--> docs from knowledge base")
             for i, doc in enumerate(documents):
                 print_doc(i, doc)
         except Exception:
@@ -1589,8 +1546,7 @@ def retrieve_documents_from_knowledge_base(query, top_k):
                 name = "WEB"
 
             url = link
-            print('url:', url)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"url: {url}")
             
             relevant_docs.append(
                 Document(
@@ -1616,8 +1572,7 @@ def sync_data_source():
                 knowledgeBaseId=knowledge_base_id,
                 dataSourceId=data_source_id
             )
-            print('(start_ingestion_job) response: ', response)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"(start_ingestion_job) response: {response}")
         except Exception:
             err_msg = traceback.format_exc()
             logger.info(f"error message: {err_msg}")
@@ -1738,8 +1693,7 @@ def run_rag_with_knowledge_base(text, st):
                 "context": relevant_context                
             }
         )
-        print('result: ', result)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"result: {result}")
 
         msg = result.content        
         if msg.find('<result>')!=-1:
@@ -1794,8 +1748,7 @@ def get_current_time(format: str=f"%Y-%m-%d %H:%M:%S")->str:
     
     format = format.replace('\'','')
     timestr = datetime.datetime.now(timezone('Asia/Seoul')).strftime(format)
-    print('timestr:', timestr)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"timestr: {timestr}")
     
     return timestr
 
@@ -1814,16 +1767,13 @@ def get_weather_info(city: str) -> str:
     chat = get_chat()
     if isKorean(city):
         place = traslation(chat, city, "Korean", "English")
-        print('city (translated): ', place)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"city (translated): {place}")
     else:
         place = city
         city = traslation(chat, city, "English", "Korean")
-        print('city (translated): ', city)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"city (translated): {city}")
         
-    print('place: ', place)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"place: {place}")
     
     weather_str: str = f"{city}에 대한 날씨 정보가 없습니다."
     if weather_api_key: 
@@ -1836,8 +1786,7 @@ def get_weather_info(city: str) -> str:
         try:
             result = requests.get(api)
             result = json.loads(result.text)
-            print('result: ', result)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"result: {result}")
         
             if 'weather' in result:
                 overall = result['weather'][0]['main']
@@ -1856,8 +1805,7 @@ def get_weather_info(city: str) -> str:
             logger.info(f"error message: {err_msg}")   
             # raise Exception ("Not able to request to LLM")    
         
-    print('weather_str: ', weather_str)    
-    logger.info(f"prepare: {prepare}")                        
+    logger.info(f"weather_str: {weather_str}")                        
     return weather_str
 
 # Tavily Tool
@@ -1877,18 +1825,15 @@ def search_by_knowledge_base(keyword: str) -> str:
     keyword: search keyword
     return: the technical information of keyword
     """    
-    print("###### search_by_knowledge_base ######")    
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"###### search_by_knowledge_base ######") 
     
     global reference_docs
  
-    print('keyword: ', keyword)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"keyword: {keyword}")
     keyword = keyword.replace('\'','')
     keyword = keyword.replace('|','')
     keyword = keyword.replace('\n','')
-    print('modified keyword: ', keyword)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"modified keyword: {keyword}")
     
     top_k = numberOfDocs
     relevant_docs = []
@@ -1903,8 +1848,7 @@ def search_by_knowledge_base(keyword: str) -> str:
         
         docs = retriever.invoke(keyword)
         # print('docs: ', docs)
-        print('--> docs from knowledge base')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"--> docs from knowledge base")
         for i, doc in enumerate(docs):
             # print_doc(i, doc)
             
@@ -1951,12 +1895,10 @@ def search_by_knowledge_base(keyword: str) -> str:
 
     relevant_context = ""
     for i, document in enumerate(filtered_docs):
-        print(f"{i}: {document}")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"{i}: {document}")
         if document.page_content:
             relevant_context += document.page_content + "\n\n"        
-    print('relevant_context: ', relevant_context)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"relevant_context: {relevant_context}")
     
     if len(filtered_docs):
         reference_docs += filtered_docs
@@ -1964,8 +1906,7 @@ def search_by_knowledge_base(keyword: str) -> str:
     else:        
         # relevant_context = "No relevant documents found."
         relevant_context = "관련된 정보를 찾지 못하였습니다."
-        print(f"--> {relevant_context}")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"--> {relevant_context}")
         return relevant_context
     
 @tool
@@ -1993,18 +1934,15 @@ def search_by_tavily(keyword: str) -> str:
         try: 
             output = search.invoke(keyword)
             if output[:9] == "HTTPError":
-                print('output: ', output)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"output: {output}")
                 raise Exception ("Not able to request to tavily")
             else:        
-                print('tavily output: ', output)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"tavily outpu: {output}")
                 if output == "HTTPError('429 Client Error: Too Many Requests for url: https://api.tavily.com/search')":            
                     raise Exception ("Not able to request to tavily")
                 
                 for result in output:
-                    print('result: ', result)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"result: {result}")
                     if result:
                         content = result.get("content")
                         url = result.get("url")
@@ -2041,40 +1979,33 @@ def stock_data_lookup(ticker, country):
     """ 
     com = re.compile('[a-zA-Z]') 
     alphabet = com.findall(ticker)
-    print('alphabet: ', alphabet)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"alphabet: {alphabet}")
 
-    print("country:", country)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"country: {country}")
 
     if len(alphabet)==0:
         if country == "South Korea":
             ticker += ".KS"
         elif country == "Japan":
             ticker += ".T"
-    print("ticker:", ticker)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"ticker: {ticker}")
     
     stock = yf.Ticker(ticker)
     
     # get the price history for past 1 month
     history = stock.history(period="1mo")
-    print('history: ', history)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"history: {history}")
     
     result = f"## Trading History\n{history}"
     #history.reset_index().to_json(orient="split", index=False, date_format="iso")    
     
     result += f"\n\n## Financials\n{stock.financials}"    
-    print('financials: ', stock.financials)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"financials: {stock.financials}")
 
     result += f"\n\n## Major Holders\n{stock.major_holders}"
-    print('major_holders: ', stock.major_holders)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"major_holders: {stock.major_holders}")
 
-    print('result: ', result)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"result: {result}")
 
     return result
 
@@ -2094,16 +2025,13 @@ def run_agent_executor(query, st):
     tool_node = ToolNode(tools)
 
     def should_continue(state: State) -> Literal["continue", "end"]:
-        print("###### should_continue ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### should_continue ######")
 
-        print('state: ', state)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"state: {state}")
         messages = state["messages"]    
 
         last_message = messages[-1]
-        print('last_message: ', last_message)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"last_message: {last_message}")
         
         # print('last_message: ', last_message)
         
@@ -2112,31 +2040,25 @@ def run_agent_executor(query, st):
         # else:                
         #     return "continue"
         if isinstance(last_message, ToolMessage) or last_message.tool_calls:
-            print(f"tool_calls: ", last_message.tool_calls)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"tool_calls: {last_message.tool_calls}")
 
             for message in last_message.tool_calls:
-                print(f"tool name: {message['name']}, args: {message['args']}")
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"tool name: {message['name']}, args: {message['args']}")
                 # update_state_message(f"calling... {message['name']}", config)
 
-            print(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
             return "continue"
         
         #if not last_message.tool_calls:
         else:
-            print("Final: ", last_message.content)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"Final: {last_message.content}")
             print("--- END ---")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"--- END ---")
             return "end"
            
     def call_model(state: State, config):
-        print("###### call_model ######")
-        logger.info(f"prepare: {prepare}")
-        print('state: ', state["messages"])
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### call_model ######")
+        logger.info(f"state: {state['messages']}")
                 
         if isKorean(state["messages"][0].content)==True:
             system = (
@@ -2152,8 +2074,7 @@ def run_agent_executor(query, st):
             )
 
         for attempt in range(3):   
-            print('attempt: ', attempt)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"attempt: {attempt}")
             try:
                 prompt = ChatPromptTemplate.from_messages(
                     [
@@ -2164,48 +2085,39 @@ def run_agent_executor(query, st):
                 chain = prompt | model
                     
                 response = chain.invoke(state["messages"])
-                print('call_model response: ', response)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"call_model response: {response}")
 
                 if isinstance(response.content, list):            
                     for re in response.content:
                         if "type" in re:
                             if re['type'] == 'text':
-                                print(f"--> {re['type']}: {re['text']}")
-                                logger.info(f"prepare: {prepare}")
+                                logger.info(f"--> {re['type']}: {re['text']}")
 
                                 status = re['text']
-                                print('status: ',status)
-                                logger.info(f"prepare: {prepare}")
+                                logger.info(f"status: {status}")
                                 
                                 status = status.replace('`','')
                                 status = status.replace('\"','')
                                 status = status.replace("\'",'')
                                 
-                                print('status: ',status)
-                                logger.info(f"prepare: {prepare}")
+                                logger.info(f"status: {status}")
                                 if status.find('<thinking>') != -1:
-                                    print('Remove <thinking> tag.')
-                                    logger.info(f"prepare: {prepare}")
+                                    logger.info(f"Remove <thinking> tag.")
                                     status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                                    print('status without tag: ', status)
-                                    logger.info(f"prepare: {prepare}")
+                                    logger.info(f"status without tag: {status}")
 
                                 if debug_mode=="Enable":
                                     st.info(status)
                                 
                             elif re['type'] == 'tool_use':                
-                                print(f"--> {re['type']}: {re['name']}, {re['input']}")
-                                logger.info(f"prepare: {prepare}")
+                                logger.info(f"--> {re['type']}: {re['name']}, {re['input']}")
 
                                 if debug_mode=="Enable":
                                     st.info(f"{re['type']}: {re['name']}, {re['input']}")
                             else:
-                                print(re)
-                                logger.info(f"prepare: {prepare}")
+                                logger.info(re)
                         else: # answer
-                            print(response.content)
-                            logger.info(f"prepare: {prepare}")
+                            logger.info(fresponse.content)
                 break
             except Exception:
                 response = AIMessage(content="답변을 찾지 못하였습니다.")
@@ -2306,15 +2218,12 @@ def run_agent_executor2(query, st):
         return prompt | chat.bind_tools(tools)
     
     def agent_node(state, agent, name):
-        print(f"###### agent_node:{name} ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### agent_node:{name} ######")
 
         last_message = state["messages"][-1]
-        print('last_message: ', last_message)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"last_message: {last_message}")
         if isinstance(last_message, ToolMessage) and last_message.content=="":    
-            print('last_message is empty') 
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"last_message is empty")
             answer = get_basic_answer(state["messages"][0].content)  
             return {
                 "messages": [AIMessage(content=answer)],
@@ -2322,8 +2231,7 @@ def run_agent_executor2(query, st):
             }
         
         response = agent.invoke(state["messages"])
-        print('response: ', response)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"response: {response}")
 
         if "answer" in state:
             answer = state['answer']
@@ -2334,38 +2242,31 @@ def run_agent_executor2(query, st):
             for re in response.content:
                 if "type" in re:
                     if re['type'] == 'text':
-                        print(f"--> {re['type']}: {re['text']}")
-                        logger.info(f"prepare: {prepare}")
+                        logger.info(f"--> {re['type']}: {re['text']}")
 
                         status = re['text']
                         if status.find('<thinking>') != -1:
-                            print('Remove <thinking> tag.')
-                            logger.info(f"prepare: {prepare}")
+                            logger.info(f"Remove <thinking> tag.")
                             status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                            print('status without tag: ', status)
-                            logger.info(f"prepare: {prepare}")
+                            logger.info(f"'status without tag: {status}")
 
                         if debug_mode=="Enable":
                             st.info(status)
 
                     elif re['type'] == 'tool_use':                
-                        print(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
-                        logger.info(f"prepare: {prepare}")
+                        logger.info(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
 
                         if debug_mode=="Enable":
                             st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
                     else:
-                        print(re)
-                        logger.info(f"prepare: {prepare}")
+                        logger.info(re)
                 else: # answer
                     answer += '\n'+response.content
-                    print(response.content)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(response.content)
                     break
 
         response = AIMessage(**response.dict(exclude={"type", "name"}), name=name)     
-        print('message: ', response)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"message: {response}")
         
         return {
             "messages": [response],
@@ -2373,8 +2274,7 @@ def run_agent_executor2(query, st):
         }
     
     def final_answer(state):
-        print(f"###### final_answer ######")  
-        logger.info(f"prepare: {prepare}")      
+        logger.info(f"###### final_answer ######")  
 
         answer = ""        
         if "answer" in state:
@@ -2383,11 +2283,9 @@ def run_agent_executor2(query, st):
             answer = state["messages"][-1].content
 
         if answer.find('<thinking>') != -1:
-            print('Remove <thinking> tag.')
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"Remove <thinking> tag.")
             answer = answer[answer.find('</thinking>')+12:]
-        print('answer: ', answer)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"answer: {answer}")
         
         return {
             "answer": answer
@@ -2406,22 +2304,17 @@ def run_agent_executor2(query, st):
         
         last_message = messages[-1]        
         if not last_message.tool_calls:
-            print("Final: ", last_message.content)
-            logger.info(f"prepare: {prepare}")
-            print("--- END ---")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"Final: {last_message.content}")
+            logger.info(f"-- END ---")
             return "end"
         else:      
-            print(f"tool_calls: ", last_message.tool_calls)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"tool_calls: {last_message.tool_calls}")
 
             for message in last_message.tool_calls:
-                print(f"tool name: {message['name']}, args: {message['args']}")
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"tool name: {message['name']}, args: {message['args']}")
                 # update_state_message(f"calling... {message['name']}", config)
 
-            print(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
             return "continue"
 
     def buildAgentExecutor():
@@ -2461,16 +2354,14 @@ def run_agent_executor2(query, st):
     #     # print('message: ', message)
 
     output = app.invoke({"messages": inputs}, config)
-    print('output: ', output)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"output: {output}")
 
     msg = output['answer']
 
     return msg, reference_docs
 
 def get_basic_answer(query):
-    print('#### get_basic_answer ####')
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"#### get_basic_answer ####")
     chat = get_chat()
 
     if isKorean(query)==True:
@@ -2494,8 +2385,7 @@ def get_basic_answer(query):
     
     chain = prompt | chat    
     output = chain.invoke({"input": query})
-    print('output.content: ', output.content)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"output.content: {output.content}")
 
     return output.content
 
@@ -2540,20 +2430,16 @@ def extract_reflection(draft):
                 structured_llm = chat.with_structured_output(Research, include_raw=True)
             
             info = structured_llm.invoke(draft)
-            print(f'attempt: {attempt}, info: {info}')
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"attempt: {attempt}, info: {info}")
                 
             if not info['parsed'] == None:
                 parsed_info = info['parsed']
-                print('parsed_info: ', parsed_info)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"parsed_info: {parsed_info}")
                 reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
                 search_queries = parsed_info.search_queries
                 
-                print('reflection: ', parsed_info.reflection)            
-                logger.info(f"prepare: {prepare}")
-                print('search_queries: ', search_queries)      
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"reflection: { parsed_info.reflection}")
+                logger.info(f"search_queries: {search_queries}")
 
         except Exception:
             err_msg = traceback.format_exc()
@@ -2584,15 +2470,13 @@ def extract_reflection2(draft):
             result = chain.invoke({
                 "draft": draft
             })
-            print("result: ", result)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"result: {result}")
 
             output = result.content
 
             if output.find('<result>') != -1:
                 output = output[output.find('<result>')+8:output.find('</result>')]
-            print('output: ', output)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"output: {output}")
 
             reflection = output            
             break
@@ -2640,16 +2524,13 @@ def extract_reflection2(draft):
                 "draft": draft,
                 "reflection": reflection
             })
-            print(f'attempt: {attempt}, info: {info}')
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"attempt: {attempt}, info: {info}")
                 
             if not info['parsed'] == None:
                 parsed_info = info['parsed']
-                print('parsed_info: ', parsed_info)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"parsed_info: {parsed_info}")
                 search_queries = parsed_info.search_queries
-                print("search_queries: ", search_queries)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"search_queries: {search_queries}")
             break
                 
         except Exception:
@@ -2666,10 +2547,8 @@ def run_reflection(query, st):
         search_queries: list
             
     def generate(state: State, config):    
-        print("###### generate ######")
-        logger.info(f"prepare: {prepare}")
-        print('task: ', state['task'])
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### generate ######")
+        logger.info(f"task: {state['task']}")
 
         global reference_docs
 
@@ -2714,8 +2593,7 @@ def run_reflection(query, st):
                     "context": relevant_context                
                 }
             )
-            print('result: ', result)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"result: {result}")
 
             draft = result.content        
             if draft.find('<result>')!=-1:
@@ -2732,10 +2610,8 @@ def run_reflection(query, st):
         return {"draft":draft}
     
     def reflect(state: State, config):
-        print("###### reflect ######")
-        logger.info(f"prepare: {prepare}")
-        print('draft: ', state["draft"])
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### reflect ######")
+        logger.info(f"draft: {state["draft"]}")
 
         draft = state["draft"]
         
@@ -2798,8 +2674,7 @@ def run_reflection(query, st):
         return revise_chain
     
     def revise_answer(state: State, config):           
-        print("###### revise_answer ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### revise_answer ######")
 
         if debug_mode=="Enable":
             st.info("개선할 사항을 반영하여 답변을 생성중입니다.")
@@ -2839,12 +2714,10 @@ def run_reflection(query, st):
         if len(relevant_docs):
             for d in relevant_docs:
                 content += d.page_content+'\n\n'
-            print('content: ', content)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"content: {content}")
 
         for attempt in range(5):
-            print(f'attempt: {attempt}')
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"attempt: {attempt}")
 
             revise_chain = get_revise_prompt(state['task'])
             try:
@@ -2856,16 +2729,14 @@ def run_reflection(query, st):
                     }
                 )
                 output = res.content
-                print('output: ', output)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"output: {output}")
 
                 if output.find('<result>')==-1:
                     draft = output
                 else:
                     draft = output[output.find('<result>')+8:output.find('</result>')]
 
-                print('revised_answer: ', draft)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"revised_answer: {draft}")
                 break
 
             except Exception:
@@ -2881,10 +2752,9 @@ def run_reflection(query, st):
     MAX_REVISIONS = 1
     def should_continue(state: State, config):
         print("###### should_continue ######")
+        logger.info(f"###### should_continue ######")
         max_revisions = config.get("configurable", {}).get("max_revisions", MAX_REVISIONS)
-        logger.info(f"prepare: {prepare}")
-        print("max_revisions: ", max_revisions)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"max_revisions: {max_revisions}")
             
         if state["revision_number"] > max_revisions:
             return "end"
@@ -2932,8 +2802,7 @@ def run_reflection(query, st):
     }
     
     output = app.invoke(inputs, config)
-    print('output: ', output)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"output: {output}")
         
     msg = output["draft"]
 
@@ -2968,21 +2837,17 @@ def init_enhanced_search(st):
             return "continue"
 
     def call_model(state: State, config):
-        print('##### call_model #####')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"##### call_model #####")
 
         messages = state["messages"]
         # print('messages: ', messages)
 
         last_message = messages[-1]
-        print('last_message: ', last_message)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"last_message: {last_message}")
 
         if isinstance(last_message, ToolMessage) and last_message.content=="":              
-            print('last_message is empty')      
-            logger.info(f"prepare: {prepare}")
-            print('question: ', state["messages"][0].content)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"last_message is empty")
+            logger.info(f"question: {state["messages"][0].content}")
             answer = get_basic_answer(state["messages"][0].content)          
             return {"messages": [AIMessage(content=answer)]}
             
@@ -3010,18 +2875,15 @@ def init_enhanced_search(st):
         chain = prompt | model
                 
         response = chain.invoke(messages)
-        print('call_model response: ', response)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"call_model response: {response}")
               
         # state messag
         if response.tool_calls:
-            print('tool_calls response: ', response.tool_calls)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"tool_calls response: {response.tool_calls}")
 
             toolinfo = response.tool_calls[-1]            
             if toolinfo['type'] == 'tool_call':
-                print('tool name: ', toolinfo['name'])     
-                logger.info(f"prepare: {prepare}")    
+                logger.info(f"tool name: {toolinfo['name']}")    
 
             if debug_mode=="Enable":
                 st.info(f"{response.tool_calls[-1]['name']}: {response.tool_calls[-1]['args']}")
@@ -3049,18 +2911,15 @@ def init_enhanced_search(st):
     return buildChatAgent()
 
 def enhanced_search(query, config, st):
-    print("###### enhanced_search ######")
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"###### enhanced_search ######")
     inputs = [HumanMessage(content=query)]
 
     app_enhanced_search = init_enhanced_search(st)        
     result = app_enhanced_search.invoke({"messages": inputs}, config)   
-    print('result: ', result)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"result: {result}")
             
     message = result["messages"][-1]
-    print('enhanced_search: ', message)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"enhanced_search: {message}")
 
     if message.content.find('<result>')==-1:
         return message.content
@@ -3074,19 +2933,15 @@ def run_knowledge_guru(query, st):
         search_queries: list
             
     def generate(state: State, config):    
-        print("###### generate ######")
-        logger.info(f"prepare: {prepare}")
-        print('state: ', state["messages"])
-        logger.info(f"prepare: {prepare}")
-        print('task: ', state['messages'][0].content)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### generate ######")
+        logger.info(f"state: {state['messages']}")
+        logger.info(f"task: {state['messages'][0].content}")
 
         if debug_mode=="Enable":
             st.info(f"검색을 수행합니다. 검색어: {state['messages'][0].content}")
         
         draft = enhanced_search(state['messages'][0].content, config, st)  
-        print('draft: ', draft)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"draft: {draft}")
 
         if debug_mode=="Enable":
             st.info(f"생성된 초안: {draft}")
@@ -3122,12 +2977,9 @@ def run_knowledge_guru(query, st):
         )    
 
     def reflect(state: State, config):
-        print("###### reflect ######")
-        logger.info(f"prepare: {prepare}")
-        print('state: ', state["messages"])    
-        logger.info(f"prepare: {prepare}")
-        print('draft: ', state["messages"][-1].content)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### reflect ######")
+        logger.info(f"state: {state['messages']}")
+        logger.info(f"draft: {state['messages'][-1].content}")
         
         if debug_mode=="Enable":
             st.info('초안을 검토하여 부족하거나 보강할 내용을 찾고, 추가 검색어를 추출합니다.')
@@ -3143,8 +2995,7 @@ def run_knowledge_guru(query, st):
                     structured_llm = chat.with_structured_output(Research, include_raw=True)
                 
                 info = structured_llm.invoke(state["messages"][-1].content)
-                print(f'attempt: {attempt}, info: {info}')
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"attempt: {attempt}, info: {info}")
                     
                 if not info['parsed'] == None:
                     parsed_info = info['parsed']
@@ -3152,10 +3003,8 @@ def run_knowledge_guru(query, st):
                     reflection = [parsed_info.reflection.missing, parsed_info.reflection.advisable]
                     search_queries = parsed_info.search_queries
                     
-                    print('reflection: ', parsed_info.reflection)            
-                    logger.info(f"prepare: {prepare}")
-                    print('search_queries: ', search_queries)      
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"reflection: {parsed_info.reflection}")
+                    logger.info(f"search_queries: {search_queries}")
 
                     if debug_mode=="Enable":  
                         st.info(f'개선할 사항: {parsed_info.reflection}')
@@ -3212,8 +3061,7 @@ def run_knowledge_guru(query, st):
         return revise_chain
     
     def revise_answer(state: State, config):   
-        print("###### revise_answer ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"##### revise_answer ######")
         
         if debug_mode=="Enable":
             st.info("개선할 사항을 반영하여 답변을 생성중입니다.")
@@ -3240,15 +3088,13 @@ def run_knowledge_guru(query, st):
                         content.append(r['content'])     
 
         for attempt in range(5):
-            print(f'attempt: {attempt}')
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"attempt: {attempt}")
             messages = state["messages"]
             cls_map = {"ai": HumanMessage, "human": AIMessage}
             translated = [messages[0]] + [
                 cls_map[msg.type](content=msg.content) for msg in messages[1:]
             ]
-            print('translated: ', translated)
-            logger.info(f"prepare: {prepare}")     
+            logger.info(f"translated: {translated}")     
             
             revise_chain = get_revise_prompt(content)
             try:
@@ -3267,8 +3113,7 @@ def run_knowledge_guru(query, st):
                     answer = output[output.find('<result>')+8:output.find('</result>')]
             
                 response = HumanMessage(content=answer)
-                print('revised_answer: ', response.content)   
-                logger.info(f"prepare: {prepare}")         
+                logger.info(f"revised_answer: {response.content}")         
                 break
 
             except Exception:
@@ -3283,11 +3128,9 @@ def run_knowledge_guru(query, st):
     
     MAX_REVISIONS = 1
     def should_continue(state: State, config):
-        print("###### should_continue ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### should_continue ######")
         max_revisions = config.get("configurable", {}).get("max_revisions", MAX_REVISIONS)
-        print("max_revisions: ", max_revisions)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"prmax_revisionsepare: {max_revisions}")
             
         if state["revision_number"] > max_revisions:
             return "end"
@@ -3334,12 +3177,10 @@ def run_knowledge_guru(query, st):
     
     for output in app.stream({"messages": inputs}, config):   
         for key, value in output.items():
-            print(f"Finished: {key}")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"Finished: {key}")
             #print("value: ", value)
             
-    print('value: ', value)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"value: {value}")
         
     msg = value["messages"][-1].content
 
@@ -3362,10 +3203,8 @@ def run_planning(query, st):
         answer: str
 
     def plan_node(state: State, config):
-        print("###### plan ######")
-        logger.info(f"prepare: {prepare}")
-        print('input: ', state["input"])
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### plan ######")
+        logger.info(f"input: {state['input']}")
 
         if debug_mode=="Enable":
             st.info(f"계획을 생성합니다. 요청사항: {state['input']}")
@@ -3395,8 +3234,7 @@ def run_planning(query, st):
         response = planner.invoke({
             "question": state["input"]
         })
-        print('response.content: ', response.content)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"response: {response.content}")
         result = response.content
         
         #output = result[result.find('<result>')+8:result.find('</result>')]
@@ -3404,8 +3242,7 @@ def run_planning(query, st):
         
         plan = output.strip().replace('\n\n', '\n')
         planning_steps = plan.split('\n')
-        print('planning_steps: ', planning_steps)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"planning_steps: {planning_steps}")
 
         if debug_mode=="Enable":
             st.info(f"생성된 계획: {planning_steps}")
@@ -3466,13 +3303,10 @@ def run_planning(query, st):
         return output
 
     def execute_node(state: State, config):
-        print("###### execute ######")
-        logger.info(f"prepare: {prepare}")
-        print('input: ', state["input"])
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### execute ######")
+        logger.info(f"input: {state['input']}")
         plan = state["plan"]
-        print('plan: ', plan) 
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"plan: {plan}")
         
         chat = get_chat()
 
@@ -3503,10 +3337,8 @@ def run_planning(query, st):
 
         result = generate_answer(chat, relevant_docs, plan[0])
         
-        print('task: ', plan[0])
-        logger.info(f"prepare: {prepare}")
-        print('executor output: ', result)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"task: {plan[0]}")
+        logger.info(f"executor outpu: {result}")
 
         if debug_mode=="Enable":
             st.info(f"현 단계의 결과 {result}")
@@ -3521,14 +3353,11 @@ def run_planning(query, st):
         }
             
     def replan_node(state: State, config):
-        print('#### replan ####')
-        logger.info(f"prepare: {prepare}")
-        print('state of replan node: ', state)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"#### replan ####")
+        logger.info(f"state of replan node: {state}")
 
         if len(state["plan"]) == 1:
-            print('last plan: ', state["plan"])
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"last plan: {state["plan"]}")
             return {"response":state["info"][-1]}
         
         if debug_mode=="Enable":
@@ -3576,21 +3405,18 @@ def run_planning(query, st):
             "plan": state["plan"],
             "past_steps": state["past_steps"]
         })
-        print('replanner output: ', response.content)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"replanner output:: {response.content}")
         result = response.content
 
         if result.find('<plan>') == -1:
             return {"response":response.content}
         else:
             output = result[result.find('<plan>')+6:result.find('</plan>')]
-            print('plan output: ', output)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"plan output: {output}")
 
             plans = output.strip().replace('\n\n', '\n')
             planning_steps = plans.split('\n')
-            print('planning_steps: ', planning_steps)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"planning_steps: {planning_steps}")
 
             if debug_mode=="Enable":
                 st.info(f"새로운 계획: {planning_steps}")
@@ -3598,35 +3424,28 @@ def run_planning(query, st):
             return {"plan": planning_steps}
         
     def should_end(state: State) -> Literal["continue", "end"]:
-        print('#### should_end ####')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"#### should_end ####")
         # print('state: ', state)
         
         if "response" in state and state["response"]:
-            print('response: ', state["response"])            
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"response: {state['response']}")
             next = "end"
         else:
-            print('plan: ', state["plan"])
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"plan: {state['plan']}")
             next = "continue"
-        print(f"should_end response: {next}")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"hould_end response: {next}")
         
         return next
         
     def final_answer(state: State) -> str:
-        print('#### final_answer ####')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"#### final_answer ####")
         
         # get final answer
         context = "".join(f"{info}\n" for info in state['info'])
-        print('context: ', context)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"context: {context}")
         
         query = state['input']
-        print('query: ', query)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"query: {query}")
 
         if debug_mode=="Enable":
             st.info(f"최종 답변을 생성합니다.")
@@ -3674,8 +3493,7 @@ def run_planning(query, st):
             else:
                 output = result[result.find('<result>')+8:result.find('</result>')]
                 
-            print('output: ', output)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"output: {output}")
             
         except Exception:
             err_msg = traceback.format_exc()
@@ -3720,11 +3538,9 @@ def run_planning(query, st):
     
     for output in app.stream(inputs, config):   
         for key, value in output.items():
-            print(f"Finished: {key}")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"Finished: {key}")
             #print("value: ", value)            
-    print('value: ', value)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"value: {value}")
 
     reference = ""
     if reference_docs:
@@ -3773,13 +3589,11 @@ def run_long_form_writing_agent(query, st):
                 description="1-3 search queries for researching improvements to address the critique of your current writing."
             )
         
-        print("###### reflect ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### reflect ######")
         draft = state['draft']
         
         idx = config.get("configurable", {}).get("idx")
-        print('reflect_node idx: ', idx)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"reflect_node id: {idx}")
 
         if debug_mode=="Enable":
             st.info(f"{idx}: draft에서 개선 사항을 도출합니다.")
@@ -3796,8 +3610,7 @@ def run_long_form_writing_agent(query, st):
             try:
                 # print('draft: ', draft)
                 info = structured_llm.invoke(draft)
-                print(f'attempt: {attempt}, info: {info}')
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"attempt: {attempt}, info: {info}")
                     
                 if not info['parsed'] == None:
                     parsed_info = info['parsed']
@@ -3808,10 +3621,8 @@ def run_long_form_writing_agent(query, st):
                     if debug_mode=="Enable":
                         st.info(f"{idx}: 개선사항: {reflection}")
                     
-                    print('reflection: ', parsed_info.reflection)
-                    logger.info(f"prepare: {prepare}")
-                    print('search_queries: ', search_queries)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"reflection: {parsed_info.reflection}")
+                    logger.info(f"search_queries: {search_queries}")
             
                     if isKorean(draft):
                         translated_search = []
@@ -3823,19 +3634,16 @@ def run_long_form_writing_agent(query, st):
                                 search = traslation(chat, q, "English", "Korean")
                             translated_search.append(search)
                             
-                        print('translated_search: ', translated_search)
-                        logger.info(f"prepare: {prepare}")
+                        logger.info(f"translated_search: {translated_search}")
                         search_queries += translated_search
 
                     if debug_mode=="Enable":
                         st.info(f"검색어: {search_queries}")
 
-                    print('search_queries (mixed): ', search_queries)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"search_queries (mixed): {search_queries}")
                     break
             except Exception:
-                print('---> parsing error')
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"--> parsing error")
 
                 err_msg = traceback.format_exc()
                 logger.info(f"error message: {err_msg}")
@@ -3849,13 +3657,11 @@ def run_long_form_writing_agent(query, st):
         }
     
     def reflect_node2(state: ReflectionState, config):        
-        print("###### reflect ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### reflect ######")
         draft = state['draft']
         
         idx = config.get("configurable", {}).get("idx")
-        print('reflect_node idx: ', idx)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"reflect_node idx:: {idx}")
 
         if debug_mode=="Enable":
             st.info(f"{idx}: draft에서 개선 사항을 도출합니다.")
@@ -3875,8 +3681,7 @@ def run_long_form_writing_agent(query, st):
                     search = traslation(chat, q, "English", "Korean")
                 translated_search.append(search)
                 
-            print('translated_search: ', translated_search)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"translated_searc: {translated_search}")
             search_queries += translated_search
 
         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
@@ -3944,8 +3749,7 @@ def run_long_form_writing_agent(query, st):
         docs = []
         
         parallel_retrieval = config.get("configurable", {}).get("parallel_retrieval")
-        print('parallel_retrieval: ', parallel_retrieval)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"parallel_retrieval: {parallel_retrieval}")
         
         if parallel_retrieval == 'enable':
             docs = parallel_retriever(search_queries, config)
@@ -3962,8 +3766,7 @@ def run_long_form_writing_agent(query, st):
                     
             docs = check_duplication(docs) # check duplication
             for i, doc in enumerate(docs):
-                print(f"#### {i}: {doc.page_content[:100]}")
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"#### {i}: {doc.page_content[:100]}")
                             
         return docs
         
@@ -4014,22 +3817,17 @@ def run_long_form_writing_agent(query, st):
         return reflect_chain
         
     def revise_draft(state: ReflectionState, config):   
-        print("###### revise_draft ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### revise_draft ######")
         
         draft = state['draft']
         search_queries = state['search_queries']
         reflection = state['reflection']
-        print('draft: ', draft)
-        logger.info(f"prepare: {prepare}")
-        print('search_queries: ', search_queries)
-        logger.info(f"prepare: {prepare}")
-        print('reflection: ', reflection)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"draft: {draft}")
+        logger.info(f"search_queries: {search_queries}")
+        logger.info(f"reflection: {reflection}")
 
         idx = config.get("configurable", {}).get("idx")
-        print('revise_draft idx: ', idx)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"revise_draft idx: {idx}")
         
         if debug_mode=="Enable":
             st.info(f"{idx}: 개선사항을 반영하여 새로운 답변을 생성합니다.")
@@ -4042,15 +3840,13 @@ def run_long_form_writing_agent(query, st):
 
         if len(search_queries) and len(reflection):
             docs = retrieve_docs(search_queries, config)        
-            print('docs: ', docs)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"docs: {docs}")
                     
             content = []   
             if len(docs):                
                 for d in docs:
                     content.append(d.page_content)            
-                print('content: ', content)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"content: {content}")
                                     
                 revise_chain = get_revise_prompt(content)
                 res = revise_chain.invoke(
@@ -4069,23 +3865,18 @@ def run_long_form_writing_agent(query, st):
                     revised_draft = output[output.find('<result>')+8:output.find('</result>')]
                     
                 # print('--> draft: ', draft)
-                print('--> reflection: ', reflection)
-                logger.info(f"prepare: {prepare}")
-                print('--> revised_draft: ', revised_draft)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"--> reflection: {reflection}")
+                logger.info(f"--> revised_draft: {revised_draft}")
 
                 st.info(f"revised_draft: {revised_draft}")
 
                 reference += docs
-                print('len(reference): ', len(reference))
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"len(reference): {len(reference)}")
             else:
-                print('No relevant document!')
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"No relevant document!")
                 revised_draft = draft
         else:
-            print('No reflection!')
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"No reflection!")
             revised_draft = draft
             
         revision_number = state["revision_number"] if state.get("revision_number") is not None else 1
@@ -4098,11 +3889,9 @@ def run_long_form_writing_agent(query, st):
         
     MAX_REVISIONS = 1
     def should_continue(state: ReflectionState, config):
-        print("###### should_continue ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### should_continue ######")
         max_revisions = config.get("configurable", {}).get("max_revisions", MAX_REVISIONS)
-        print("max_revisions: ", max_revisions)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"max_revisions: {max_revisions}")
             
         if state["revision_number"] > max_revisions:
             return "end"
@@ -4142,11 +3931,9 @@ def run_long_form_writing_agent(query, st):
         word_count : int
             
     def plan_node(state: State, config):
-        print("###### plan ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### plan ######")
         instruction = state["instruction"]
-        print('subject: ', instruction)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"subject: {instruction}")
 
         if debug_mode=="Enable":
             st.info(f"계획을 생성합니다. 요청사항: {instruction}")
@@ -4203,13 +3990,11 @@ def run_long_form_writing_agent(query, st):
         planner = planner_prompt | chat
     
         response = planner.invoke({"instruction": instruction})
-        print('response: ', response.content)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"response: {response.content}")
     
         plan = response.content.strip().replace('\n\n', '\n')
         planning_steps = plan.split('\n')        
-        print('planning_steps: ', planning_steps)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"planning_steps: {planning_steps}")
 
         if debug_mode=="Enable":
             st.info(f"생성된 계획: {planning_steps}")
@@ -4220,8 +4005,7 @@ def run_long_form_writing_agent(query, st):
         }
         
     def execute_node(state: State, config):
-        print("###### execute_node ######")    
-        logger.info(f"prepare: {prepare}")    
+        logger.info(f"###### execute_node ######")    
         
         instruction = state["instruction"]        
         if isKorean(instruction):
@@ -4292,8 +4076,7 @@ def run_long_form_writing_agent(query, st):
         
         planning_steps = state["planning_steps"]        
         if len(planning_steps) > 50:
-            print("plan is too long")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"plan is too long")
             # print(plan)
             return
         
@@ -4328,10 +4111,8 @@ def run_long_form_writing_agent(query, st):
             if debug_mode=="Enable":
                 st.info(f"생성결과: {draft}")
                                               
-            print(f"--> step: {step}")
-            logger.info(f"prepare: {prepare}")
-            print(f"--> draft: {draft}")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"--> step: {step}")
+            logger.info(f"--> draft: {draft}")
                 
             drafts.append(draft)
             text += draft + '\n\n'
@@ -4348,8 +4129,7 @@ def run_long_form_writing_agent(query, st):
 
         try:        
             output = reflection_app.invoke(inputs, config)
-            print('idx: ', idx)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"idx: {idx}")
 
         except Exception:
             err_msg = traceback.format_exc()
@@ -4378,8 +4158,7 @@ def run_long_form_writing_agent(query, st):
             parent_conn, child_conn = Pipe()
             parent_connections.append(parent_conn)
             
-            print(f"idx:{idx} --> draft:{draft}")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"idx:{idx} --> draft:{draft}")
             
             app_config = {
                 "recursion_limit": 50,
@@ -4397,8 +4176,7 @@ def run_long_form_writing_agent(query, st):
             result = parent_conn.recv()
 
             if result is not None:
-                print('result: ', result)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"result: {result}")
                 revised_drafts[result['idx']] = result['revised_draft']
 
                 if result['reference']:
@@ -4468,8 +4246,7 @@ def run_long_form_writing_agent(query, st):
         nameList = []
         cnt = 1
         for i, doc in enumerate(docs):
-            print(f"reference {i}: doc")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"reference {i}: doc")
             page = ""
             if "page" in doc.metadata:
                 page = doc.metadata['page']
@@ -4484,18 +4261,15 @@ def run_long_form_writing_agent(query, st):
                 #print('name: ', name)     
             pos = name.rfind('/')
             name = name[pos+1:]
-            print(f"name: {name}")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"name: {name}")
             
             excerpt = ""+doc.page_content
 
             excerpt = re.sub('"', '', excerpt)
-            print('length: ', len(excerpt))
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"length: {len(excerpt)}")
             
             if name in nameList:
-                print('duplicated!')
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"duplicated")
             else:
                 reference = reference + f"{cnt}. [{name}]({url})"
                 nameList.append(name)
@@ -4504,15 +4278,12 @@ def run_long_form_writing_agent(query, st):
         return reference
     
     def revise_answer(state: State, config):
-        print("###### revise ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### revise ######")
         drafts = state["drafts"]        
-        print('drafts: ', drafts)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"drafts: {drafts}")
         
         parallel_revise = config.get("configurable", {}).get("parallel_revise", "enable")
-        print('parallel_revise: ', parallel_revise)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"parallel_revise: {prepparallel_reviseare}")
 
         if debug_mode=="Enable":
             st.info("문서를 개선합니다.")
@@ -4547,8 +4318,7 @@ def run_long_form_writing_agent(query, st):
         subject = subject.replace(".","")
         subject = subject.replace(":","")
         
-        print('len(references): ', len(references))
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"len(references): {len(references)}")
         
         # markdown file
         markdown_key = 'markdown/'+f"{subject}.md"
@@ -4557,13 +4327,11 @@ def run_long_form_writing_agent(query, st):
         final_doc = f"## {state['instruction']}\n\n"+final_doc
 
         if references:
-            print('references: ', references)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"references: {references}")
 
             markdown_reference = get_references(references)
             
-            print('markdown_reference: ', markdown_reference)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"markdown_reference: {markdown_reference}")
 
             final_doc += markdown_reference
                 
@@ -4580,15 +4348,13 @@ def run_long_form_writing_agent(query, st):
         # print('response: ', response)
         
         markdown_url = f"{path}/{markdown_key}"
-        print('markdown_url: ', markdown_url)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"markdown_url: {markdown_url}")
         
         # html file
         html_key = 'markdown/'+f"{subject}.html"
             
         html_body = markdown_to_html(final_doc)
-        print('html_body: ', html_body)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"html_body: {html_body}")
         
         s3_client = boto3.client(
             service_name='s3',
@@ -4603,8 +4369,7 @@ def run_long_form_writing_agent(query, st):
         # print('response: ', response)
         
         html_url = f"{path}/{html_key}"
-        print('html_url: ', html_url)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"html_url: {html_url}")
 
         final_doc += f"\n[미리보기 링크]({html_url})\n\n[다운로드 링크 - {subject}.md]({markdown_url})"
         
@@ -4646,8 +4411,7 @@ def run_long_form_writing_agent(query, st):
     }
     
     output = app.invoke(inputs, config)
-    print('output: ', output)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"output: {output}")
     
     return output['final_doc'], reference_docs
 
@@ -4669,15 +4433,13 @@ def solve_CSAT_problem(contents, st):
             local_score += int(problem["score"])
         total_score += local_score
         scores.append(local_score)
-    print('total_score: ', total_score)    
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"total_score: {total_score}")
     st.info(f'주어진 문제는 모두 {len(json_data)}개의 절을 가지고 있고, 각 절의 점수 분포는 {scores}이며, 전체 점수는 {total_score}점 입니다.')
                             
     if multi_region=="Enable":
         msg, earn_score = solve_problems_using_parallel_processing(json_data, st)
 
-        print('score: ', earn_score)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"score: {earn_score}")
         msg += f"\n점수: {earn_score}점 / {total_score}점\n"
 
     else:
@@ -4686,29 +4448,22 @@ def solve_CSAT_problem(contents, st):
         #for idx, question_group in enumerate(json_data[:2]):
         for idx, question_group in enumerate(json_data):
             paragraph = question_group["paragraph"]
-            print('paragraph: ', paragraph)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"paragraph: {paragraph}")
             
             problems = question_group["problems"]
-            print('problems: ', json.dumps(problems))
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"problems: {json.dumps(problems)}")
             
             result = solve_problems_in_paragraph(paragraph, problems, idx, total_idx, st)
-            print('result: ', result)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"result: {result}")
 
             idx = result["idx"]
             message = result["message"]
             score = result["score"]
             available_score = result["available_score"]
-            print('idx: ', idx)
-            logger.info(f"prepare: {prepare}")
-            print('message: ', message)
-            logger.info(f"prepare: {prepare}")
-            print('score: ', score)
-            logger.info(f"prepare: {prepare}")
-            print('available_score: ', available_score)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"idx: {idx}")
+            logger.info(f"message: {message}")
+            logger.info(f"score: {score}")
+            logger.info(f"available_score: {available_score}")
             
             msg += message
             earn_score += score
@@ -4718,8 +4473,7 @@ def solve_CSAT_problem(contents, st):
         
             st.warning(f"{idx+1}절까지 수행한 결과는 {earn_score} / {total_available_score}점입니다.")
         
-        print('score: ', earn_score)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"score: {earn_score}")
         msg += f"\n점수: {earn_score}점 / {total_available_score}점\n"
     
     st.info(f"{msg}")
@@ -4733,43 +4487,34 @@ def solve_problems_in_paragraph(paragraph, problems, idx, total_idx, st):
     available_score = 0
     for n, problem in enumerate(problems):
         print(f'--> problem[{n}]: {problem}')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"--> problem[{n}]: {problem}")
     
         question = problem["question"]
-        print('question: ', question)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"question: {question}")
         question_plus = ""
         if "question_plus" in problem:
             question_plus = problem["question_plus"]
-            print('question_plus: ', question_plus)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"question_plus: {question_plus}")
         choices = problem["choices"]
-        print('choices: ', choices)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"choices: {choices}")
         correct_answer = problem["answer"]
-        print('correct_answer: ', correct_answer)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"correct_answer: {correct_answer}")
         score = problem["score"]
-        print('score: ', score)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"score: {score}")
         available_score += score
 
         selected_answer = solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, n, correct_answer, score, st)
-        print('selected_answer: ', selected_answer)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"selected_answer: {selected_answer}")
                 
-        print(f'correct_answer: {correct_answer}, selected_answer: {selected_answer}')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"pcorrect_answer: {correct_answer}, selected_answer: {selected_answer}")
         if correct_answer == selected_answer:
             message += f"{question} {selected_answer} (OK)\n"
             earn_score += int(score)
         else:
             message += f"{question} {selected_answer} (NOK, {correct_answer}, -{score})\n"
                     
-    print('earn_score: ', earn_score)
-    logger.info(f"prepare: {prepare}")
-    print('message: ', message)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"earn_score: {earn_score}")
+    logger.info(f"message: {message}")
 
     st.warning(f"{idx+1}절의 {len(problems)}개의 문제에서 얻어진 점수는 {earn_score} / {available_score}점 입니다.")
     
@@ -4785,8 +4530,7 @@ def solve_problems_using_parallel_processing(json_data, st):
     parent_connections = []
     
     total_idx = len(json_data)
-    print('total_idx: ', total_idx)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"total_idx: {total_idx}")
     
     messages = []
     earn_score = 0
@@ -4797,8 +4541,7 @@ def solve_problems_using_parallel_processing(json_data, st):
         parent_conn, child_conn = Pipe()
         parent_connections.append(parent_conn)
         
-        print(f"idx:{idx} --> data:{question_group}")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"idx:{idx} --> data:{question_group}")
         
         paragraph = question_group["paragraph"]
         # print('paragraph: ', paragraph)
@@ -4814,14 +4557,12 @@ def solve_problems_using_parallel_processing(json_data, st):
             
     for parent_conn in parent_connections:
         result = parent_conn.recv()
-        print('result: ', result)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"result: {result}")
         
         idx = result["idx"]
         message = result["message"]
         score = result["score"]
-        print(f"idx:{idx} --> socre: {score}, message:{message}")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"idx:{idx} --> socre: {score}, message:{message}")
 
         if message is not None:
             print('message: ', message)
@@ -4835,10 +4576,8 @@ def solve_problems_using_parallel_processing(json_data, st):
     for message in messages:
         final_msg += message + '\n'
     
-    print('earn_score: ', earn_score)
-    logger.info(f"prepare: {prepare}")
-    print('final_msg: ', final_msg)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"earn_score: {earn_score}")
+    logger.info(f"final_msg: {final_msg}")
     
     return final_msg, earn_score
 
@@ -4847,34 +4586,26 @@ def solve_problems(conn, paragraph, problems, idx, total_idx, st):
     
     earn_score = available_score = 0    
     for n, problem in enumerate(problems):
-        print(f'--> problem[{n}]: {problem}')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"--> problem[{n}]: {problem}")
     
         question = problem["question"]
-        print('question: ', question)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"question: {question}")
         question_plus = ""
         if "question_plus" in problem:
             question_plus = problem["question_plus"]
-            print('question_plus: ', question_plus)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"question_plus: {question_plus}")
         choices = problem["choices"]
-        print('choices: ', choices)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"choices: {choices}")
         correct_answer = problem["answer"]
-        print('correct_answer: ', correct_answer)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"correct_answer: {correct_answer}")
         score = problem["score"]
-        print('score: ', score)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"score: {score}")
         available_score += score
 
         selected_answer = solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, n, correct_answer, score, st)
-        print('selected_answer: ', selected_answer)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"selected_answer: {selected_answer}")
 
-        print(f'correct_answer: {correct_answer}, selected_answer: {selected_answer}')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"correct_answer: {correct_answer}, selected_answer: {selected_answer}")
         if correct_answer == selected_answer:
             message += f"{question} {selected_answer} (OK)\n"
             earn_score += int(score)
@@ -4903,10 +4634,8 @@ def solve_problems(conn, paragraph, problems, idx, total_idx, st):
         #             print('selected_answer: ', selected_answer)
         #             break
             
-    print('earn_score: ', earn_score) 
-    logger.info(f"prepare: {prepare}")
-    print('message: ', message)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"earn_score: {earn_score}")
+    logger.info(f"message: {message}")
 
     st.warning(f"{idx+1}절의 {len(problems)}개의 문제에서 얻어진 점수는 {earn_score} / {available_score}점 입니다.")
     
@@ -4929,8 +4658,7 @@ def string_to_int(output):
     if not len(value) == 0:
         for v in value:
             result += v
-        print('result: ', result)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"result: {result}")
         answer = int(result)
     else:
         answer = 0  # no selection
@@ -4950,14 +4678,10 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         repeat_counter: int
 
     def plan_node(state: State, config):
-        print("###### plan ######")
-        logger.info(f"prepare: {prepare}")
-        print('paragraph: ', state["paragraph"])
-        logger.info(f"prepare: {prepare}")
-        print('question: ', state["question"])
-        logger.info(f"prepare: {prepare}")
-        print('question_plus: ', state["question_plus"])
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### plan ######")
+        logger.info(f"paragraph: {state['paragraph']}")
+        logger.info(f"question: {state['question']}")
+        logger.info(f"question_plus: {state['question_plus']}")
 
         idx = config.get("configurable", {}).get("idx")
         nth = config.get("configurable", {}).get("nth")
@@ -4975,15 +4699,13 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         choices = state["choices"]
         for i, choice in enumerate(choices):
             list_choices += f"({i+1}) {choice}\n"
-        print('list_choices: ', list_choices)    
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"list_choices: {list_choices}")
         
         idx = config.get("configurable", {}).get("idx")
         nth = config.get("configurable", {}).get("nth")
 
         notification = f"({idx}-{nth}) 계획을 생성중입니다..."
-        print('notification: ', notification)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"notification: {notification}")
         st.info(notification)
         
         system = (
@@ -5049,8 +4771,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "question_plus": question_plus,
             "list_choices": list_choices
         })
-        print('response.content: ', response.content)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"esponse.content: {esponse.content}")
         result = response.content
         
         if not result.find('<plan>')==-1:
@@ -5060,12 +4781,10 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         plan = output.strip().replace('\n\n', '\n')
         planning_steps = plan.split('\n')
-        print('planning_steps: ', planning_steps)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"planning_steps: {planning_steps}")
 
         notification = f"({idx}-{nth}) 생성된 계획:\n\n {planning_steps}"
-        print('notification: ', notification)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"notification: {notification}")
         st.info(notification)
         
         return {
@@ -5073,8 +4792,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         }
 
     def execute_node(state: State, config):
-        print("###### execute ######")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"###### execute ######")
         plan = state["plan"]
         # print('plan: ', plan) 
 
@@ -5091,13 +4809,11 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         nth = config.get("configurable", {}).get("nth")
 
         notification = f"({idx}-{nth}) 실행중인 계획: {plan[0]}"
-        print('notification: ', notification)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"notification: {notification}")
         st.info(notification)        
         
         task = plan[0]
-        print('task: ', task)     
-        logger.info(f"prepare: {prepare}")                   
+        logger.info(f"task: {task}")                   
         
         context = ""
         for info in state['info']:
@@ -5112,8 +4828,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "매우 어려운 문제이므로 step by step으로 충분히 생각하고 답변합니다."
         )
 
-        print('model_type: ', model_type)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"model_type: {model_type}")
         if model_type=="claude":
             human = (
                 "당신의 목표는 <paragraph> tag의 주어진 문장으로 부터 <question> tag의 주어진 질문에 대한 적절한 답변을 <choice> tag의 선택지에서 찾는것입니다."
@@ -5207,32 +4922,26 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                     "info": context,
                     "task": task
                 })
-                print(f"attempt: {attempt}, response.content: {response.content}")
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"attempt: {attempt}, response.content: {response.content}")
 
                 idx = config.get("configurable", {}).get("idx")
                 nth = config.get("configurable", {}).get("nth")
 
                 notification = f"({idx}-{nth}) 실행된 결과입니다.\n{response.content}"
-                print('notification: ', notification)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"notification: {notification}")
                 st.info(notification)   
             
                 result = response.content
                 if not result.find('<confidence>')==-1:
                     output = result[result.find('<confidence>')+12:result.find('</confidence>')]
-                    print('output: ', output)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"output: {output}")
                     confidence = string_to_int(output)
-                    print('confidence: ', confidence)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"confidence: {confidence}")
                 if not result.find('<result>')==-1:
                     output = result[result.find('<result>')+8:result.find('</result>')]
-                    print('output: ', output)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"output: {output}")
                     choice = string_to_int(output)
-                    print('choice: ', choice)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"choice: {choice}")
                 break
             except Exception:
                 response = AIMessage(content="답변을 찾지 못하였습니다.")
@@ -5247,8 +4956,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         # print(f"previous_answer: {previous_answer}, answer: {answer}")        
         if previous_answer == answer: 
             repeat_counter += 1
-            print("repeat_counter: ", repeat_counter)     
-            logger.info(f"prepare: {prepare}")   
+            logger.info(f"repeat_counter: {repeat_counter}")   
     
         if confidence >= 4:
             plan = []  
@@ -5264,11 +4972,9 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         }
 
     def replan_node(state: State, config):
-        print('#### replan ####')
-        logger.info(f"prepare: {prepare}")
-        # print('state of replan node: ', state)        
-        print('past_steps: ', state["past_steps"])
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"#### replan ####')
+        # print('state of replan node: ", state)        
+        logger.info(f"past_steps: {state['past_steps']}")
                 
         idx = config.get("configurable", {}).get("idx")
         nth = config.get("configurable", {}).get("nth")
@@ -5277,15 +4983,13 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             return {"plan": []}
         
         repeat_counter = state["repeat_counter"] if "repeat_counter" in state else 0
-        print('repeat_counter: ', repeat_counter)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"repeat_counter: {repeat_counter}")
         if repeat_counter >= 3:
             st.info("결과가 3회 반복되므로, 현재 결과를 최종 결과를 리턴합니다.")
             return {"plan": []}
         
         notification = f"({idx}-{nth}) 새로운 계획을 생성합니다..."
-        print('notification: ', notification)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"notification: {notification}")
         st.info(notification)
         
         system = (
@@ -5386,8 +5090,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         choices = state["choices"]
         for i, choice in enumerate(choices):
             list_choices += f"({i+1}) {choice}\n\n"
-        print('list_choices: ', list_choices)    
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"prepalist_choicesre: {list_choices}")
 
         response = replanner.invoke({
             "paragraph": state["paragraph"],
@@ -5397,53 +5100,44 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
             "plan": state["plan"],
             "past_steps": state["past_steps"]
         })
-        print('response.content: ', response.content)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"response.content: {response.content}")
         result = response.content        
         
         if result.find('<plan>') == -1:
-            print('result: ', result)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"result: {result}")
             st.info(result)
             
             return {"plan":[], "repeat_counter": repeat_counter}
         else:
             output = result[result.find('<plan>')+6:result.find('</plan>')]
-            print('plan output: ', output)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"plan output: {output}")
             
             plans = output.strip().replace('\n\n', '\n')
             planning_steps = plans.split('\n')
-            print('planning_steps: ', planning_steps)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"planning_steps: {planning_steps}")
 
             notification = f"({idx}-{nth}) 생성된 계획:\n\n {planning_steps}"
-            print('notification: ', notification)
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"notification: {notification}")
             st.info(notification)
             
             return {"plan": planning_steps, "repeat_counter": repeat_counter}
                 
     def should_end(state: State) -> Literal["continue", "end"]:
-        print('#### should_end ####')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"#### should_end ####")
         # print('state: ', state)
         
         plan = state["plan"]
-        print('plan: ', plan)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"plan: {plan}")
         if len(plan)<=1:
             next = "end"
         else:
             next = "continue"
-        print(f"should_end response: {next}")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"should_end response: {next}")
         
         return next
         
     def final_answer(state: State, config) -> str:
-        print('#### final_answer ####')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"#### final_answer ####")
         
         idx = config.get("configurable", {}).get("idx")
         nth = config.get("configurable", {}).get("nth")
@@ -5451,16 +5145,13 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         score = config.get("configurable", {}).get("score")
         
         notification = f"({idx}-{nth}) 최종 답변을 구합니다..."
-        print('notification: ', notification)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"notification: {notification}")
         st.info(notification)
                 
         answer = state["answer"]
 
-        print(f'answer: {answer}, correct_answer: {correct_answer}')
-        logger.info(f"prepare: {prepare}")
-        print(f'Type--> answer: {answer.__class__}, correct_answer: {correct_answer.__class__}')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"answer: {answer}, correct_answer: {correct_answer}")
+        logger.info(f"Type--> answer: {answer.__class__}, correct_answer: {correct_answer.__class__}")
         if len(state["plan"])==0:
             # for debuuging
             if answer == correct_answer:
@@ -5480,22 +5171,17 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 context += info.content+"\n"
             else:
                 context += info.content+"\n\n"
-        print('context: ', context)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"context: {context}")
                                 
-        print('paragraph: ', state["paragraph"])
-        logger.info(f"prepare: {prepare}")
-        print('question: ', state["question"])
-        logger.info(f"prepare: {prepare}")
-        print('question_plus: ', state["question_plus"])
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"paragraph: {state['paragraph']}")
+        logger.info(f"prequestionpare: {state['question']}")
+        logger.info(f"question_plus: {state['question_plus']}")
         
         list_choices = ""
         choices = state["choices"]
         for i, choice in enumerate(choices):
             list_choices += f"({i+1}) {choice}\n"
-        print('list_choices: ', list_choices)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"list_choices: {list_choices}")
         
         system = (
             "당신은 국어 수능문제를 푸는 일타강사입니다."
@@ -5575,40 +5261,32 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                     }
                 )
                 result = response.content
-                print(f"attempt: {attempt}, result: {result}")
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"attempt: {attempt}, result: {result}")
 
                 notification = f"({idx}-{nth}) 최종으로 얻어진 결과:\n\n{result}"
-                print('notification: ', notification)
-                logger.info(f"prepare: {prepare}")
+                logger.info(f"notification: {notification}")
                 st.info(notification)
 
                 if not result.find('<confidence>')==-1:
                     output = result[result.find('<confidence>')+12:result.find('</confidence>')]
-                    print('output: ', output)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"output: {output}")
 
                     confidence = string_to_int(output)
-                    print('confidence: ', confidence)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"confidence: {confidence}")
 
                 if not result.find('<result>')==-1:
                     output = result[result.find('<result>')+8:result.find('</result>')]
-                    print('output: ', output)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"output: {output}")
                     answer = string_to_int(output)
-                    print('answer: ', answer)
-                    logger.info(f"prepare: {prepare}")
+                    logger.info(f"answer: {answer}")
                 break
             except Exception:
                     response = AIMessage(content="답변을 찾지 못하였습니다.")
                     err_msg = traceback.format_exc()
                     logger.info(f"error message: {err_msg}")
 
-        print(f'answer: {answer}, correct_answer: {correct_answer}')
-        logger.info(f"prepare: {prepare}")
-        print(f'Type--> answer: {answer.__class__}, correct_answer: {correct_answer.__class__}')
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"nswer: {answer}, correct_answer: {correct_answer}")
+        logger.info(f"Type--> answer: {answer.__class__}, correct_answer: {correct_answer.__class__}")
         if answer == correct_answer:
             st.warning(f"({idx}-{nth}) 정답입니다. (score: {score})")
         else:
@@ -5657,19 +5335,15 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
     
     for output in app.stream(inputs, config):   
         for key, value in output.items():
-            print(f"Finished: {key}")
-            logger.info(f"prepare: {prepare}")
+            logger.info(f"Finished: {key}")
             #print("value: ", value)            
-    print('value: ', value)    
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"value: {value}")
 
     answer = value["answer"]
-    print('final answer: ', answer)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"final answe: {answer}")
     
     notification = f"({idx}-{nth}) 최종 답변은 {answer}입니다."
-    print('notification: ', notification)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"notification: {notification}")
     st.info(notification)
         
     return answer
@@ -5709,8 +5383,7 @@ def translate_text(text, model_name):
             }
         )
         msg = result.content
-        print('translated text: ', msg)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"translated text: {msg}")
     except Exception:
         err_msg = traceback.format_exc()
         logger.info(f"error message: {err_msg}")                    
@@ -5737,8 +5410,7 @@ def get_image_summarization(object_name, prompt, st):
 
     if debug_mode=="Enable":
         status = "이미지를 가져옵니다."
-        print('status: ', status)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"status: {status}")
         st.info(status)
                 
     image_obj = s3_client.get_object(Bucket=s3_bucket, Key=s3_prefix+'/'+object_name)
@@ -5748,16 +5420,14 @@ def get_image_summarization(object_name, prompt, st):
     img = Image.open(BytesIO(image_content))
     
     width, height = img.size 
-    print(f"width: {width}, height: {height}, size: {width*height}")
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"width: {width}, height: {height}, size: {width*height}")
     
     isResized = False
     while(width*height > 5242880):                    
         width = int(width/2)
         height = int(height/2)
         isResized = True
-        print(f"width: {width}, height: {height}, size: {width*height}")
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"width: {width}, height: {height}, size: {width*height}")
     
     if isResized:
         img = img.resize((width, height))
@@ -5769,13 +5439,11 @@ def get_image_summarization(object_name, prompt, st):
     # extract text from the image
     if debug_mode=="Enable":
         status = "이미지에서 텍스트를 추출합니다."
-        print('status: ', status)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"status: {status}")
         st.info(status)
 
     text = extract_text(img_base64)
-    print('extracted text: ', text)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"xtracted text: {text}")
 
     if text.find('<result>') != -1:
         extracted_text = text[text.find('<result>')+8:text.find('</result>')] # remove <result> tag
@@ -5790,23 +5458,19 @@ def get_image_summarization(object_name, prompt, st):
     
     if debug_mode=="Enable":
         status = "이미지의 내용을 분석합니다."
-        print('status: ', status)
-        logger.info(f"prepare: {prepare}")
+        logger.info(f"status: {status}")
         st.info(status)
 
     image_summary = summary_image(img_base64, prompt)
     
     if text.find('<result>') != -1:
         image_summary = image_summary[image_summary.find('<result>')+8:image_summary.find('</result>')]
-    print('image summary: ', image_summary)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"mage summary: {image_summary}")
             
     if len(extracted_text) > 10:
         contents = f"## 이미지 분석\n\n{image_summary}\n\n## 추출된 텍스트\n\n{extracted_text}"
     else:
         contents = f"## 이미지 분석\n\n{image_summary}"
-    print('image contents: ', contents)
-    logger.info(f"prepare: {prepare}")
+    logger.info(f"image contents: {contents}")
 
     return contents
-
