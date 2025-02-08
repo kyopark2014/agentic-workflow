@@ -2611,7 +2611,7 @@ def run_reflection(query, st):
     
     def reflect(state: State, config):
         logger.info(f"###### reflect ######")
-        logger.info(f"draft: {state["draft"]}")
+        logger.info(f"draft: {state['draft']}")
 
         draft = state["draft"]
         
@@ -2847,8 +2847,8 @@ def init_enhanced_search(st):
 
         if isinstance(last_message, ToolMessage) and last_message.content=="":              
             logger.info(f"last_message is empty")
-            logger.info(f"question: {state["messages"][0].content}")
-            answer = get_basic_answer(state["messages"][0].content)          
+            logger.info(f"question: {state['messages'][0].content}")
+            answer = get_basic_answer(state['messages'][0].content)          
             return {"messages": [AIMessage(content=answer)]}
             
         if isKorean(messages[0].content)==True:
@@ -3357,7 +3357,7 @@ def run_planning(query, st):
         logger.info(f"state of replan node: {state}")
 
         if len(state["plan"]) == 1:
-            logger.info(f"last plan: {state["plan"]}")
+            logger.info(f"last plan: {state['plan']}")
             return {"response":state["info"][-1]}
         
         if debug_mode=="Enable":
