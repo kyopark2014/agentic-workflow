@@ -4972,7 +4972,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         }
 
     def replan_node(state: State, config):
-        logger.info(f"#### replan ####')
+        logger.info(f"#### replan ####")
         # print('state of replan node: ", state)        
         logger.info(f"past_steps: {state['past_steps']}")
                 
