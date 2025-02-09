@@ -156,7 +156,6 @@ def get_chat():
         maxOutputTokens = 4096 # 4k
     else:
         maxOutputTokens = 5120 # 5k
-    print(f'LLM: {selected_chat}, bedrock_region: {bedrock_region}, modelId: {modelId}, model_type: {model_type}')
     logger.info(f"LLM: {selected_chat}, bedrock_region: {bedrock_region}, modelId: {modelId}, model_type: {model_type}")
 
     if profile['model_type'] == 'nova':
@@ -428,8 +427,7 @@ def upload_to_s3(file_bytes, file_name):
     
     except Exception as e:
         err_msg = f"Error uploading to S3: {str(e)}"
-        print(err_msg)
-        logger.info(f"prepare: {err_msg}")
+        logger.info(f"{err_msg}")
         return None
 
 def grade_document_based_on_relevance(conn, question, doc, models, selected):     
@@ -529,12 +527,10 @@ def grade_documents(question, documents):
                 # print("grade: ", grade)
                 # Document relevant
                 if grade.lower() == "yes":
-                    print("---GRADE: DOCUMENT RELEVANT---")
                     logger.info(f"--GRADE: DOCUMENT RELEVANT---")
                     filtered_docs.append(doc)
                 # Document not relevant
                 else:
-                    print("---GRADE: DOCUMENT NOT RELEVANT---")
                     logger.info(f"---GRADE: DOCUMENT NOT RELEVANT---")
                     # We do not include the document in filtered_docs
                     # We set a flag to indicate that we want to run web search
@@ -690,7 +686,6 @@ def tavily_search(query, k):
                 )
             )                   
     except Exception as e:
-        print('Exception: ', e)
         logger.info(f"Exception: {e}")
 
     return docs
@@ -779,7 +774,6 @@ def get_summary(docs):
         )
         
         summary = result.content
-        print('result of summarization: ', summary)
         logger.info(f"result of summarization: {summary}")
     except Exception:
         err_msg = traceback.format_exc()
@@ -1675,7 +1669,6 @@ def run_reflection(query, st):
     
     MAX_REVISIONS = 1
     def should_continue(state: State, config):
-        print("###### should_continue ######")
         logger.info(f"###### should_continue ######")
         max_revisions = config.get("configurable", {}).get("max_revisions", MAX_REVISIONS)
         logger.info(f"max_revisions: {max_revisions}")
@@ -3410,7 +3403,6 @@ def solve_problems_in_paragraph(paragraph, problems, idx, total_idx, st):
     earn_score = 0
     available_score = 0
     for n, problem in enumerate(problems):
-        print(f'--> problem[{n}]: {problem}')
         logger.info(f"--> problem[{n}]: {problem}")
     
         question = problem["question"]
@@ -3489,7 +3481,7 @@ def solve_problems_using_parallel_processing(json_data, st):
         logger.info(f"idx:{idx} --> socre: {score}, message:{message}")
 
         if message is not None:
-            print('message: ', message)
+            logger.info(f"message: {message}")
             messages[idx] = message
             earn_score += score
 
@@ -4377,7 +4369,7 @@ def get_image_summarization(object_name, prompt, st):
     
     if debug_mode=="Enable":
         status = f"### 추출된 텍스트\n\n{extracted_text}"
-        print('status: ', status)
+        logger.info(f"status: {status}")
         st.info(status)
     
     if debug_mode=="Enable":

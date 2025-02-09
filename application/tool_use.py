@@ -522,7 +522,6 @@ def run_agent_executor(query, st):
         #if not last_message.tool_calls:
         else:
             logger.info(f"Final: {last_message.content}")
-            print("--- END ---")
             logger.info(f"--- END ---")
             return "end"
            
