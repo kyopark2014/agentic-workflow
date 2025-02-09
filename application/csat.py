@@ -13,7 +13,7 @@ from langgraph.graph import START, END, StateGraph
 from multiprocessing import Process, Pipe
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 
-logger = utils.CreateLogger("chat")
+logger = utils.CreateLogger("csat")
 
 ####################### LangGraph #######################
 # Agentic Solver for Korean CSAT

@@ -9,7 +9,7 @@ from typing import List, Tuple,Literal
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import START, END, StateGraph
 
-logger = utils.CreateLogger("chat")
+logger = utils.CreateLogger("planning")
 
 ####################### LangGraph #######################
 # Agentic Workflow: Planning (Advanced CoT)

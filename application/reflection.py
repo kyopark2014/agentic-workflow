@@ -14,7 +14,7 @@ from typing import Literal
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_community.tools.tavily_search import TavilySearchResults
 
-logger = utils.CreateLogger("chat")
+logger = utils.CreateLogger("reflection")
 
 reference_docs = []
 

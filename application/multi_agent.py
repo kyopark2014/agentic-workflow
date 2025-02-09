@@ -11,7 +11,7 @@ from multiprocessing import Process, Pipe
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langgraph.graph import START, END, StateGraph
 
-logger = utils.CreateLogger("chat")
+logger = utils.CreateLogger("multi-agent")
 
 def extract_reflection2(draft):
     system = (
