@@ -3,24 +3,17 @@ import boto3
 import os
 import json
 import re
-import requests
-import datetime
-import functools
 import uuid
-import logging
 import base64
 import operator
 import info
 import PyPDF2
 import csv
-import yfinance as yf
-import logging
 import knowledge_base as kb
 import utils
 
 from io import BytesIO
 from PIL import Image
-from pytz import timezone
 from langchain_aws import ChatBedrock
 from botocore.config import Config
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate

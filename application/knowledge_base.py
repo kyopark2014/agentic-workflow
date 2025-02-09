@@ -1,5 +1,3 @@
-import logging
-import sys
 import traceback
 import json
 import time

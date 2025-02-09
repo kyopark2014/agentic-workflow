@@ -1,7 +1,5 @@
 import streamlit as st 
 import chat
-import logging
-import sys
 import knowledge_base as kb
 import tool_use
 import utils

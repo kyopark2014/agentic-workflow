@@ -1,8 +1,5 @@
-import logging
-import sys
 import traceback
 import json
-import time
 import boto3
 import re
 import requests
