@@ -108,54 +108,11 @@ except Exception as e:
     logger.info(f"Tavily credential is required: {e}")
     raise e
 
-# funtions
-def isKorean(text):
-    # check korean
-    pattern_hangul = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')
-    word_kor = pattern_hangul.search(str(text))
-    # print('word_kor: ', word_kor)
-
-    if word_kor and word_kor != 'None':
-        # logger.info(f"Korean: {word_kor}")
-        return True
-    else:
-        logger.info(f"Not Korean: {word_kor}")
-        return False
-
-def traslation(chat, text, input_language, output_language):
-    system = (
-        "You are a helpful assistant that translates {input_language} to {output_language} in <article> tags." 
-        "Put it in <result> tags."
-    )
-    human = "<article>{text}</article>"
-    
-    prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
-    # print('prompt: ', prompt)
-    
-    chain = prompt | chat    
-    try: 
-        result = chain.invoke(
-            {
-                "input_language": input_language,
-                "output_language": output_language,
-                "text": text,
-            }
-        )
-        
-        msg = result.content
-        # print('translated text: ', msg)
-    except Exception:
-        err_msg = traceback.format_exc()
-        logger.info(f"error message: {err_msg}")       
-        raise Exception ("Not able to request to LLM")
-
-    return msg[msg.find('<result>')+8:len(msg)-9] # remove <result> tag
-
 def get_basic_answer(query):
     logger.info(f"#### get_basic_answer ####")
     llm = chat.get_chat()
 
-    if isKorean(query)==True:
+    if chat.isKorean(query)==True:
         system = (
             "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
             "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다." 
@@ -235,12 +192,12 @@ def get_weather_info(city: str) -> str:
     city = city.replace('\"','')
                 
     llm = chat.get_chat()
-    if isKorean(city):
-        place = traslation(llm, city, "Korean", "English")
+    if chat.isKorean(city):
+        place = chat.traslation(llm, city, "Korean", "English")
         logger.info(f"city (translated): {place}")
     else:
         place = city
-        city = traslation(llm, city, "English", "Korean")
+        city = chat.traslation(llm, city, "English", "Korean")
         logger.info(f"city (translated): {city}")
         
     logger.info(f"place: {place}")
@@ -529,7 +486,7 @@ def run_agent_executor(query, st):
         logger.info(f"###### call_model ######")
         logger.info(f"state: {state['messages']}")
                 
-        if isKorean(state["messages"][0].content)==True:
+        if chat.isKorean(state["messages"][0].content)==True:
             system = (
                 "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
                 "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."

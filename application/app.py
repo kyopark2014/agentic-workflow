@@ -3,6 +3,10 @@ import chat
 import knowledge_base as kb
 import tool_use
 import utils
+import reflection
+import planning
+import multi_agent
+import csat
 
 # logging
 logger = utils.CreateLogger("streamlit")
@@ -214,7 +218,7 @@ if uploaded_file and clear_button==False:
         st.session_state.messages.append({"role": "assistant", "content": guide})
         state_of_CSAT_evaluator = True
 
-        chat.solve_CSAT_problem(uploaded_file.getvalue(), st)
+        csat.solve_CSAT_problem(uploaded_file.getvalue(), st)
 # print("state_of_CSAT_evaluator: ", state_of_CSAT_evaluator)
 
 # Always show the chat input
@@ -282,7 +286,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
         elif mode == 'Agent (Reflection)':
             with st.status("thinking...", expanded=True, state="running") as status:
                 # esponse, reference_docs = chat.run_knowledge_guru(prompt, st)
-                response, reference_docs = chat.run_reflection(prompt, st)     
+                response, reference_docs = reflection.run_reflection(prompt, st)     
                 st.write(response)
                 logger.info(f"response: {response}")
 
@@ -301,7 +305,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Agent (Planning)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, reference_docs = chat.run_planning(prompt, st)
+                response, reference_docs = planning.run_planning(prompt, st)
                 st.write(response)
                 logger.info(f"response: {response}")
 
@@ -320,7 +324,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Agent (Multi-agent Collaboration)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, reference_docs = chat.run_long_form_writing_agent(prompt, st)
+                response, reference_docs = multi_agent.run_long_form_writing_agent(prompt, st)
                 st.write(response)
                 logger.info(f"response: {response}")
 

@@ -18,10 +18,13 @@ def CreateLogger(logger_name):
     stdout_handler.setFormatter(formatter)
     logger.addHandler(stdout_handler) 
 
-    with open("/home/config.json", "r", encoding="utf-8") as f:
-        file_handler = logging.FileHandler('/var/log/application/logs.log')
-        file_handler.setLevel(logging.INFO)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+    try:
+        with open("/home/config.json", "r", encoding="utf-8") as f:
+            file_handler = logging.FileHandler('/var/log/application/logs.log')
+            file_handler.setLevel(logging.INFO)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
+    except Exception:
+        logger.info(f"Not available log saving")
 
     return logger
