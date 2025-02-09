@@ -41,6 +41,9 @@ mode_descriptions = {
     ],
     "이미지 분석": [
         "이미지를 업로드하면 이미지의 내용을 요약할 수 있습니다."
+    ],
+    "이미지 문제 풀이": [
+        "이미지를 업로드하면 planning agent를 이용해 문제를 풉니다."
     ]
 }
 
@@ -59,23 +62,22 @@ with st.sidebar:
     
     # radio selection
     mode = st.radio(
-        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기", "이미지 분석"], index=0
+        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기", "이미지 분석", "이미지 문제 풀이"], index=0
     )   
     st.info(mode_descriptions[mode][0])    
     # print('mode: ', mode)
 
     # model selection box
-    if mode == '이미지 분석':
-        index = 2
+    if mode == '이미지 분석' or mode=="이미지 문제 풀이":
+        index = 3        
     else:
         index = 0   
     modelName = st.selectbox(
         '🖊️ 사용 모델을 선택하세요',
-        ('Nova Pro', 'Nova Lite', 'Claude 3.5 Sonnet(V1)', 'Claude 3.5 Sonnet(V2)', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku'), index=index
+        ('Nova Pro', 'Nova Lite', 'Claude 3.5 Sonnet v1', 'Claude 3.5 Sonnet v2', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku'), index=index
     )
-    
     uploaded_file = None
-    if mode=='이미지 분석':        
+    if mode=='이미지 분석' or mode=="이미지 문제 풀이":
         st.subheader("🌇 이미지 업로드")
         uploaded_file = st.file_uploader("이미지 요약을 위한 파일을 선택합니다.", type=["png", "jpg", "jpeg"])
     elif mode=='RAG' or mode=="Agent (Tool Use)":
@@ -176,9 +178,9 @@ if uploaded_file and clear_button==False:
     logger.info(f"ploaded_file.name: {uploaded_file.name}")
     logger.info(f"SAT_evaluator: {CSAT_evaluator}")
 
-    if uploaded_file.name and CSAT_evaluator=="Disable" and not mode == '이미지 분석':
+    # upload and summary
+    if uploaded_file.name and CSAT_evaluator=="Disable" and not (mode=='이미지 분석' or mode=="이미지 문제 풀이"):
         chat.initiate()
-
         if debugMode=='Enable':
             status = '선택한 파일을 업로드합니다.'
             logger.info(f"status: {status}")
@@ -204,22 +206,20 @@ if uploaded_file and clear_button==False:
         st.session_state.messages.append({"role": "assistant", "content": f"선택한 문서({file_name})를 요약하면 아래와 같습니다.\n\n{msg}"})    
         logger.info(f"msg: {msg}")
         st.rerun()
-    
-    if uploaded_file and clear_button==False and mode == '이미지 분석':
+        
+    if uploaded_file and clear_button==False and (mode=='이미지 분석' or mode=="이미지 문제 풀이"): # upload only
         st.image(uploaded_file, caption="이미지 미리보기", use_container_width=True)
 
         file_name = uploaded_file.name
         image_url = chat.upload_to_s3(uploaded_file.getvalue(), file_name)
         logger.info(f"image_url: {image_url}")
 
-    elif uploaded_file.name and CSAT_evaluator == "Enable" and uploaded_file.name.lower().endswith((".json")): # csv only   
+    elif uploaded_file.name and CSAT_evaluator=="Enable" and uploaded_file.name.lower().endswith((".json")):   
         guide = "CSAT Evaluation을 시작합니다."
         st.write(guide)
         st.session_state.messages.append({"role": "assistant", "content": guide})
         state_of_CSAT_evaluator = True
-
         csat.solve_CSAT_problem(uploaded_file.getvalue(), st)
-# print("state_of_CSAT_evaluator: ", state_of_CSAT_evaluator)
 
 # Always show the chat input
 if prompt := st.chat_input("메시지를 입력하세요."):
@@ -358,6 +358,19 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                     st.write(summary)
 
                     st.session_state.messages.append({"role": "assistant", "content": summary})
+                    # st.rerun()
+
+        elif mode == "이미지 문제 풀이":
+            if uploaded_file is None or uploaded_file == "":
+                st.error("파일을 먼저 업로드하세요.")
+                st.stop()
+
+            else:
+                with st.status("thinking...", expanded=True, state="running") as status:
+                    answer = chat.solve_image_question(file_name, prompt, st)
+                    st.write(answer)
+
+                    st.session_state.messages.append({"role": "assistant", "content": answer})
                     # st.rerun()
 
         else:

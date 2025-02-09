@@ -470,7 +470,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         
         else:
             human = (
-                "당신의 목표는 Paragraph으로 부터 Question에 대한 적절한 답변을 Question에서 찾는것입니다."
+                "당신의 목표는 Paragraph으로 부터 Question에 대한 적절한 답변을 List Choices에서 찾는것입니다."
                 "답변은 반드시 Paragraph, Question, List Choices을 참조하여 답변하고, Past Results는 참고만 합니다. 절대 자신의 생각대로 답변하지 않습니다."                
                 "Past Results를 참조하여, Task를 수행하고 적절한 답변을 구합니다."                
                 "적절한 답변을 고를 수 없다면 다시 한번 읽어보고 가장 가까운 것을 선택합니다." 
