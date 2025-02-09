@@ -2,31 +2,12 @@ import streamlit as st
 import chat
 import logging
 import sys
+import knowledge_base as kb
+import tool_use
+import utils
 
 # logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-# formatter = logging.Formatter('%(asctime)s | %(filename)s:%(lineno)d | %(message)s')
-formatter = logging.Formatter('%(message)s')
-
-stdout_handler = logging.StreamHandler(sys.stdout)
-stdout_handler.setLevel(logging.INFO)
-stdout_handler.setFormatter(formatter)
-
-enableLoggerApp = chat.get_logger_state()
-# logger.info(f"enableLoggerApp: {enableLoggerApp}")
-if not enableLoggerApp:
-    logger.addHandler(stdout_handler)
-    try:
-        with open("/home/config.json", "r", encoding="utf-8") as f:
-            file_handler = logging.FileHandler('/var/log/application/logs.log')
-            file_handler.setLevel(logging.INFO)
-            file_handler.setFormatter(formatter)
-            logger.addHandler(file_handler)
-
-            logger.info("Ready to write log (app)!")
-    except Exception:
-        logger.debug(f"Not available to write application log (app)")
+logger = utils.CreateLogger("streamlit")
 
 # title
 st.set_page_config(page_title='Agentic Workflow', page_icon=None, layout="centered", initial_sidebar_state="auto", menu_items=None)
@@ -205,7 +186,7 @@ if uploaded_file and clear_button==False:
         file_url = chat.upload_to_s3(uploaded_file.getvalue(), file_name)
         logger.info(f"file_url: {file_url}")
 
-        chat.sync_data_source()  # sync uploaded files
+        kb.sync_data_source()  # sync uploaded files
             
         status = f'선택한 "{file_name}"의 내용을 요약합니다.'
         # my_bar = st.sidebar.progress(0, text=status)
@@ -273,7 +254,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Agent (Tool Use)':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, reference_docs = chat.run_agent_executor(prompt, st)
+                response, reference_docs = tool_use.run_agent_executor(prompt, st)
                 st.write(response)
                 logger.info(f"response: {response}")
 
@@ -288,7 +269,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
         elif mode == 'Agent Chat (Tool Use)':
             with st.status("thinking...", expanded=True, state="running") as status:
                 revise_prompt = chat.revise_question(prompt, st)
-                response, reference_docs = chat.run_agent_executor(revise_prompt, st)
+                response, reference_docs = tool_use.run_agent_executor(revise_prompt, st)
                 st.write(response)
                 logger.info(f"response: {response}")
                 

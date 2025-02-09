@@ -7,7 +7,6 @@ import requests
 import datetime
 import functools
 import uuid
-import time
 import logging
 import base64
 import operator
@@ -16,7 +15,8 @@ import PyPDF2
 import csv
 import yfinance as yf
 import logging
-import sys
+import knowledge_base as kb
+import utils
 
 from io import BytesIO
 from PIL import Image
@@ -29,16 +29,13 @@ from langchain_core.tools import tool
 from langchain.docstore.document import Document
 from tavily import TavilyClient  
 from langchain_community.tools.tavily_search import TavilySearchResults
-from bs4 import BeautifulSoup
-from botocore.exceptions import ClientError
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 from langgraph.graph import START, END, StateGraph
 from typing import Any, List, Tuple, Dict, Optional, cast, Literal, Sequence, Union
 from typing_extensions import Annotated, TypedDict
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
-from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
-from langchain_aws import AmazonKnowledgeBasesRetriever
+
 from multiprocessing import Process, Pipe
 from urllib import parse
 from pydantic.v1 import BaseModel, Field
@@ -47,30 +44,26 @@ from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 #logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-#formatter = logging.Formatter('%(asctime)s | %(filename)s:%(lineno)d | %(levelname)s | %(message)s')
-#formatter = logging.Formatter('%(asctime)s | %(filename)s:%(lineno)d | %(message)s')
-formatter = logging.Formatter('%(message)s')
+logger = utils.CreateLogger("chat")
 
-stdout_handler = logging.StreamHandler(sys.stdout)
-stdout_handler.setLevel(logging.INFO)
-stdout_handler.setFormatter(formatter)
+try:
+    with open("/home/config.json", "r", encoding="utf-8") as f:
+        config = json.load(f)
+        logger.info(f"config: {config}")
 
-enableLoggerChat = False
-logger.info(f"enableLoggerChat: {enableLoggerChat}")
-
-enableLoggerApp = False
-def get_logger_state():
-    global enableLoggerApp
-    if not enableLoggerApp:
-        enableLoggerApp = True
-    return enableLoggerApp
+        logger.info("Ready to write log (chat)!")
+        
+except Exception:
+    logger.info(f"use local configuration")
+    with open("application/config.json", "r", encoding="utf-8") as f:
+        config = json.load(f)
+        logger.info(f"config: {config}")
 
 userId = "demo"
 map_chain = dict() 
 
 def initiate():
+    global enableLoggerChat
     global userId
     global memory_chain
 
@@ -85,34 +78,7 @@ def initiate():
         memory_chain = ConversationBufferWindowMemory(memory_key="chat_history", output_key='answer', return_messages=True, k=5)
         map_chain[userId] = memory_chain
     
-    if not enableLoggerChat:
-        logger.addHandler(stdout_handler)        
-
 initiate()
-
-try:
-    with open("/home/config.json", "r", encoding="utf-8") as f:
-        config = json.load(f)
-        logger.info(f"config: {config}")
-
-        if not enableLoggerChat:
-            logger.addHandler(stdout_handler)        
-            
-            file_handler = logging.FileHandler('/var/log/application/logs.log')
-            file_handler.setLevel(logging.INFO)
-            file_handler.setFormatter(formatter)
-            logger.addHandler(file_handler)
-
-            logger.info("Ready to write log (chat)!")
-
-            enableLoggerChat = True
-            logger.info(f"enableLoggerChat: {enableLoggerChat}")
-
-except Exception:
-    logger.info(f"use local configuration")
-    with open("application/config.json", "r", encoding="utf-8") as f:
-        config = json.load(f)
-        logger.info(f"config: {config}")
 
 bedrock_region = config["region"] if "region" in config else "us-west-2"
 
@@ -127,40 +93,13 @@ logger.info(f"region: {region}")
 
 s3_prefix = 'docs'
 
-knowledge_base_role = config["knowledge_base_role"] if "knowledge_base_role" in config else None
-if knowledge_base_role is None:
-    raise Exception ("No Knowledge Base Role")
-
-collectionArn = config["collectionArn"] if "collectionArn" in config else None
-if collectionArn is None:
-    raise Exception ("No collectionArn")
-
-vectorIndexName = projectName
-
-opensearch_url = config["opensearch_url"] if "opensearch_url" in config else None
-if opensearch_url is None:
-    raise Exception ("No OpenSearch URL")
-
 path = config["sharing_url"] if "sharing_url" in config else None
 if path is None:
     raise Exception ("No Sharing URL")
 
-credentials = boto3.Session().get_credentials()
-service = "aoss" 
-awsauth = AWSV4SignerAuth(credentials, region, service)
-
-s3_arn = config["s3_arn"] if "s3_arn" in config else None
-if s3_arn is None:
-    raise Exception ("No S3 ARN")
-
 s3_bucket = config["s3_bucket"] if "s3_bucket" in config else None
 if s3_bucket is None:
     raise Exception ("No storage!")
-
-parsingModelArn = f"arn:aws:bedrock:{region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
-embeddingModelArn = f"arn:aws:bedrock:{region}::foundation-model/amazon.titan-embed-text-v2:0"
-
-knowledge_base_name = projectName
 
 numberOfDocs = 4
 MSG_LENGTH = 100    
@@ -1204,379 +1143,6 @@ def revise_question(query, st):
             
     return revised_question    
 
-####################### LangChain #######################
-# General Conversation
-#########################################################
-
-def general_conversation(query):
-    chat = get_chat()
-
-    system = (
-        "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
-        "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다." 
-        "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-    )
-    
-    human = "Question: {input}"
-    
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system), 
-        MessagesPlaceholder(variable_name="history"), 
-        ("human", human)
-    ])
-                
-    history = memory_chain.load_memory_variables({})["chat_history"]
-
-    chain = prompt | chat | StrOutputParser()
-    try: 
-        stream = chain.stream(
-            {
-                "history": history,
-                "input": query,
-            }
-        )  
-            
-    except Exception:
-        err_msg = traceback.format_exc()
-        logger.info(f"error message: {err_msg}")        
-        raise Exception ("Not able to request to LLM: "+err_msg)
-        
-    return stream
-
-    
-####################### LangGraph #######################
-# RAG: Knowledge Base
-#########################################################
-
-os_client = OpenSearch(
-    hosts = [{
-        'host': opensearch_url.replace("https://", ""), 
-        'port': 443
-    }],
-    http_auth=awsauth,
-    use_ssl = True,
-    verify_certs = True,
-    connection_class=RequestsHttpConnection,
-)
-
-def is_not_exist(index_name):    
-    logger.info(f"index_name: {index_name}")
-        
-    if os_client.indices.exists(index_name):
-        logger.info(f"use exist index: {index_name}")
-        return False
-    else:
-        logger.info(f"no index: {index_name}")
-        return True
-    
-knowledge_base_id = ""
-data_source_id = ""
-def initiate_knowledge_base():
-    global knowledge_base_id, data_source_id
-    #########################
-    # opensearch index
-    #########################
-    if(is_not_exist(vectorIndexName)):
-        logger.info(f"creating opensearch index... {vectorIndexName}")   
-        body={ 
-            'settings':{
-                "index.knn": True,
-                "index.knn.algo_param.ef_search": 512,
-                'analysis': {
-                    'analyzer': {
-                        'my_analyzer': {
-                            'char_filter': ['html_strip'], 
-                            'tokenizer': 'nori',
-                            'filter': ['nori_number','lowercase','trim','my_nori_part_of_speech'],
-                            'type': 'custom'
-                        }
-                    },
-                    'tokenizer': {
-                        'nori': {
-                            'decompound_mode': 'mixed',
-                            'discard_punctuation': 'true',
-                            'type': 'nori_tokenizer'
-                        }
-                    },
-                    "filter": {
-                        "my_nori_part_of_speech": {
-                            "type": "nori_part_of_speech",
-                            "stoptags": [
-                                    "E", "IC", "J", "MAG", "MAJ",
-                                    "MM", "SP", "SSC", "SSO", "SC",
-                                    "SE", "XPN", "XSA", "XSN", "XSV",
-                                    "UNA", "NA", "VSV"
-                            ]
-                        }
-                    }
-                },
-            },
-            'mappings': {
-                'properties': {
-                    'vector_field': {
-                        'type': 'knn_vector',
-                        'dimension': 1024,
-                        'method': {
-                            "name": "hnsw",
-                            "engine": "faiss",
-                            "parameters": {
-                                "ef_construction": 512,
-                                "m": 16
-                            }
-                        }                  
-                    },
-                    "AMAZON_BEDROCK_METADATA": {"type": "text", "index": False},
-                    "AMAZON_BEDROCK_TEXT": {"type": "text"},
-                }
-            }
-        }
-
-        try: # create index
-            response = os_client.indices.create(
-                vectorIndexName,
-                body=body
-            )
-            logger.info(f"opensearch index was created: {response}")
-
-            # delay 5 seconds
-            time.sleep(5)
-        except Exception:
-            err_msg = traceback.format_exc()
-            logger.info(f"error message: {err_msg}")                
-            #raise Exception ("Not able to create the index")
-            
-    #########################
-    # knowledge base
-    #########################
-    logger.info(f"knowledge_base_name: {knowledge_base_name}")
-    logger.info(f"collectionArn: {collectionArn}")
-    logger.info(f"vectorIndexName: {vectorIndexName}")
-    logger.info(f"embeddingModelArn: {embeddingModelArn}")
-    logger.info(f"knowledge_base_role: {knowledge_base_role}")
-    try: 
-        client = boto3.client(
-            service_name='bedrock-agent',
-            region_name=bedrock_region
-        )   
-        response = client.list_knowledge_bases(
-            maxResults=10
-        )
-        logger.info(f"(list_knowledge_bases) response: {response}")
-        
-        if "knowledgeBaseSummaries" in response:
-            summaries = response["knowledgeBaseSummaries"]
-            for summary in summaries:
-                if summary["name"] == knowledge_base_name:
-                    knowledge_base_id = summary["knowledgeBaseId"]
-                    logger.info(f"prepknowledge_base_idare: {knowledge_base_id}")
-    except Exception:
-        err_msg = traceback.format_exc()
-        logger.info(f"error message: {err_msg}")
-                    
-    if not knowledge_base_id:
-        logger.info(f"creating knowledge base...")  
-        for atempt in range(20):
-            try:
-                response = client.create_knowledge_base(
-                    name=knowledge_base_name,
-                    description="Knowledge base based on OpenSearch",
-                    roleArn=knowledge_base_role,
-                    knowledgeBaseConfiguration={
-                        'type': 'VECTOR',
-                        'vectorKnowledgeBaseConfiguration': {
-                            'embeddingModelArn': embeddingModelArn,
-                            'embeddingModelConfiguration': {
-                                'bedrockEmbeddingModelConfiguration': {
-                                    'dimensions': 1024
-                                }
-                            }
-                        }
-                    },
-                    storageConfiguration={
-                        'type': 'OPENSEARCH_SERVERLESS',
-                        'opensearchServerlessConfiguration': {
-                            'collectionArn': collectionArn,
-                            'fieldMapping': {
-                                'metadataField': 'AMAZON_BEDROCK_METADATA',
-                                'textField': 'AMAZON_BEDROCK_TEXT',
-                                'vectorField': 'vector_field'
-                            },
-                            'vectorIndexName': vectorIndexName
-                        }
-                    }                
-                )   
-                logger.info(f"(create_knowledge_base) response: {response}")
-            
-                if 'knowledgeBaseId' in response['knowledgeBase']:
-                    knowledge_base_id = response['knowledgeBase']['knowledgeBaseId']
-                    break
-                else:
-                    knowledge_base_id = ""    
-            except Exception:
-                    err_msg = traceback.format_exc()
-                    logger.info(f"error message: {err_msg}")
-                    time.sleep(5)
-                    logger.info(f"retrying... {atempt}")
-                    #raise Exception ("Not able to create the knowledge base")      
-                
-    logger.info(f"knowledge_base_name: {knowledge_base_name}, knowledge_base_id: {knowledge_base_id}")    
-    
-    #########################
-    # data source      
-    #########################
-    data_source_name = s3_bucket  
-    try: 
-        response = client.list_data_sources(
-            knowledgeBaseId=knowledge_base_id,
-            maxResults=10
-        )        
-        logger.info(f"(list_data_sources) response: {response}")
-        
-        if 'dataSourceSummaries' in response:
-            for data_source in response['dataSourceSummaries']:
-                logger.info(f"data_source: {data_source}")
-                if data_source['name'] == data_source_name:
-                    data_source_id = data_source['dataSourceId']
-                    logger.info(f"data_source_id: {data_source_id}")
-                    break    
-    except Exception:
-        err_msg = traceback.format_exc()
-        logger.info(f"error message: {err_msg}")
-        
-    if not data_source_id:
-        logger.info(f"creating data source...")
-        try:
-            response = client.create_data_source(
-                dataDeletionPolicy='RETAIN',
-                dataSourceConfiguration={
-                    's3Configuration': {
-                        'bucketArn': s3_arn,
-                        'inclusionPrefixes': [ 
-                            s3_prefix+'/',
-                        ]
-                    },
-                    'type': 'S3'
-                },
-                description = f"S3 data source: {s3_bucket}",
-                knowledgeBaseId = knowledge_base_id,
-                name = data_source_name,
-                vectorIngestionConfiguration={
-                    'chunkingConfiguration': {
-                        'chunkingStrategy': 'HIERARCHICAL',
-                        'hierarchicalChunkingConfiguration': {
-                            'levelConfigurations': [
-                                {
-                                    'maxTokens': 1500
-                                },
-                                {
-                                    'maxTokens': 300
-                                }
-                            ],
-                            'overlapTokens': 60
-                        }
-                    },
-                    'parsingConfiguration': {
-                        'bedrockFoundationModelConfiguration': {
-                            'modelArn': parsingModelArn
-                        },
-                        'parsingStrategy': 'BEDROCK_FOUNDATION_MODEL'
-                    }
-                }
-            )
-            logger.info(f"create_data_source) response: {response}")
-            
-            if 'dataSource' in response:
-                if 'dataSourceId' in response['dataSource']:
-                    data_source_id = response['dataSource']['dataSourceId']
-                    logger.info(f"data_source_id: {data_source_id}")
-                    
-        except Exception:
-            err_msg = traceback.format_exc()
-            logger.info(f"error message: {err_msg}")
-            #raise Exception ("Not able to create the data source")
-    
-    logger.info(f"data_source_name: {data_source_name}, data_source_id: {data_source_id}")
-            
-initiate_knowledge_base()
-
-def retrieve_documents_from_knowledge_base(query, top_k):
-    relevant_docs = []
-    if knowledge_base_id:    
-        retriever = AmazonKnowledgeBasesRetriever(
-            knowledge_base_id=knowledge_base_id, 
-            retrieval_config={"vectorSearchConfiguration": {
-                "numberOfResults": top_k,
-                "overrideSearchType": "HYBRID"   # SEMANTIC
-            }},
-            region_name=bedrock_region
-        )
-        
-        try: 
-            documents = retriever.invoke(query)
-            # print('documents: ', documents)
-            logger.info(f"--> docs from knowledge base")
-            for i, doc in enumerate(documents):
-                print_doc(i, doc)
-        except Exception:
-            err_msg = traceback.format_exc()
-            logger.info(f"error message: {err_msg}")    
-            raise Exception ("Not able to request to LLM: "+err_msg)
-        
-        relevant_docs = []
-        for doc in documents:
-            content = ""
-            if doc.page_content:
-                content = doc.page_content
-            
-            score = doc.metadata["score"]
-            
-            link = ""
-            if "s3Location" in doc.metadata["location"]:
-                link = doc.metadata["location"]["s3Location"]["uri"] if doc.metadata["location"]["s3Location"]["uri"] is not None else ""
-                
-                # print('link:', link)    
-                pos = link.find(f"/{doc_prefix}")
-                name = link[pos+len(doc_prefix)+1:]
-                encoded_name = parse.quote(name)
-                # print('name:', name)
-                link = f"{path}/{doc_prefix}{encoded_name}"
-                
-            elif "webLocation" in doc.metadata["location"]:
-                link = doc.metadata["location"]["webLocation"]["url"] if doc.metadata["location"]["webLocation"]["url"] is not None else ""
-                name = "WEB"
-
-            url = link
-            logger.info(f"url: {url}")
-            
-            relevant_docs.append(
-                Document(
-                    page_content=content,
-                    metadata={
-                        'name': name,
-                        'score': score,
-                        'url': url,
-                        'from': 'RAG'
-                    },
-                )
-            )    
-    return relevant_docs
-
-def sync_data_source():
-    if knowledge_base_id and data_source_id:
-        try:
-            client = boto3.client(
-                service_name='bedrock-agent',
-                region_name=bedrock_region                
-            )
-            response = client.start_ingestion_job(
-                knowledgeBaseId=knowledge_base_id,
-                dataSourceId=data_source_id
-            )
-            logger.info(f"(start_ingestion_job) response: {response}")
-        except Exception:
-            err_msg = traceback.format_exc()
-            logger.info(f"error message: {err_msg}")
-
 def get_rag_prompt(text):
     # print("###### get_rag_prompt ######")
     chat = get_chat()
@@ -1640,6 +1206,50 @@ def get_rag_prompt(text):
 
     return rag_chain
 
+####################### LangChain #######################
+# General Conversation
+#########################################################
+
+def general_conversation(query):
+    chat = get_chat()
+
+    system = (
+        "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
+        "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다." 
+        "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+    )
+    
+    human = "Question: {input}"
+    
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system), 
+        MessagesPlaceholder(variable_name="history"), 
+        ("human", human)
+    ])
+                
+    history = memory_chain.load_memory_variables({})["chat_history"]
+
+    chain = prompt | chat | StrOutputParser()
+    try: 
+        stream = chain.stream(
+            {
+                "history": history,
+                "input": query,
+            }
+        )  
+            
+    except Exception:
+        err_msg = traceback.format_exc()
+        logger.info(f"error message: {err_msg}")        
+        raise Exception ("Not able to request to LLM: "+err_msg)
+        
+    return stream
+
+    
+####################### LangGraph #######################
+# RAG: Knowledge Base
+#########################################################
+
 def run_rag_with_knowledge_base(text, st):
     global contentList
     contentList = []
@@ -1651,7 +1261,7 @@ def run_rag_with_knowledge_base(text, st):
     if debug_mode == "Enable":
         st.info(f"RAG 검색을 수행합니다. 검색어: {text}")  
     
-    relevant_docs = retrieve_documents_from_knowledge_base(text, top_k=top_k)
+    relevant_docs = kb.retrieve_documents_from_knowledge_base(text, top_k=top_k)
     # relevant_docs += retrieve_documents_from_tavily(text, top_k=top_k)
 
     # grade   
@@ -1709,682 +1319,6 @@ def run_rag_with_knowledge_base(text, st):
         reference = get_references(filtered_docs)
 
     return msg+reference, filtered_docs
-
-####################### LangGraph #######################
-# Agentic Workflow: Tool Use
-#########################################################
-
-@tool 
-def get_book_list(keyword: str) -> str:
-    """
-    Search book list by keyword and then return book list
-    keyword: search keyword
-    return: book list
-    """
-    
-    keyword = keyword.replace('\'','')
-
-    answer = ""
-    url = f"https://search.kyobobook.co.kr/search?keyword={keyword}&gbCode=TOT&target=total"
-    response = requests.get(url)
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.text, "html.parser")
-        prod_info = soup.find_all("a", attrs={"class": "prod_info"})
-        
-        if len(prod_info):
-            answer = "추천 도서는 아래와 같습니다.\n"
-            
-        for prod in prod_info[:5]:
-            title = prod.text.strip().replace("\n", "")       
-            link = prod.get("href")
-            answer = answer + f"{title}, URL: {link}\n\n"
-    
-    return answer
-
-@tool
-def get_current_time(format: str=f"%Y-%m-%d %H:%M:%S")->str:
-    """Returns the current date and time in the specified format"""
-    # f"%Y-%m-%d %H:%M:%S"
-    
-    format = format.replace('\'','')
-    timestr = datetime.datetime.now(timezone('Asia/Seoul')).strftime(format)
-    logger.info(f"timestr: {timestr}")
-    
-    return timestr
-
-@tool
-def get_weather_info(city: str) -> str:
-    """
-    retrieve weather information by city name and then return weather statement.
-    city: the name of city to retrieve
-    return: weather statement
-    """    
-    
-    city = city.replace('\n','')
-    city = city.replace('\'','')
-    city = city.replace('\"','')
-                
-    chat = get_chat()
-    if isKorean(city):
-        place = traslation(chat, city, "Korean", "English")
-        logger.info(f"city (translated): {place}")
-    else:
-        place = city
-        city = traslation(chat, city, "English", "Korean")
-        logger.info(f"city (translated): {city}")
-        
-    logger.info(f"place: {place}")
-    
-    weather_str: str = f"{city}에 대한 날씨 정보가 없습니다."
-    if weather_api_key: 
-        apiKey = weather_api_key
-        lang = 'en' 
-        units = 'metric' 
-        api = f"https://api.openweathermap.org/data/2.5/weather?q={place}&APPID={apiKey}&lang={lang}&units={units}"
-        # print('api: ', api)
-                
-        try:
-            result = requests.get(api)
-            result = json.loads(result.text)
-            logger.info(f"result: {result}")
-        
-            if 'weather' in result:
-                overall = result['weather'][0]['main']
-                current_temp = result['main']['temp']
-                min_temp = result['main']['temp_min']
-                max_temp = result['main']['temp_max']
-                humidity = result['main']['humidity']
-                wind_speed = result['wind']['speed']
-                cloud = result['clouds']['all']
-                
-                #weather_str = f"{city}의 현재 날씨의 특징은 {overall}이며, 현재 온도는 {current_temp}도 이고, 최저온도는 {min_temp}도, 최고 온도는 {max_temp}도 입니다. 현재 습도는 {humidity}% 이고, 바람은 초당 {wind_speed} 미터 입니다. 구름은 {cloud}% 입니다."
-                weather_str = f"{city}의 현재 날씨의 특징은 {overall}이며, 현재 온도는 {current_temp} 입니다. 현재 습도는 {humidity}% 이고, 바람은 초당 {wind_speed} 미터 입니다. 구름은 {cloud}% 입니다."
-                #weather_str = f"Today, the overall of {city} is {overall}, current temperature is {current_temp} degree, min temperature is {min_temp} degree, highest temperature is {max_temp} degree. huminity is {humidity}%, wind status is {wind_speed} meter per second. the amount of cloud is {cloud}%."            
-        except Exception:
-            err_msg = traceback.format_exc()
-            logger.info(f"error message: {err_msg}")   
-            # raise Exception ("Not able to request to LLM")    
-        
-    logger.info(f"weather_str: {weather_str}")                        
-    return weather_str
-
-# Tavily Tool
-tavily_tool = TavilySearchResults(
-    max_results=3,
-    include_answer=True,
-    include_raw_content=True,
-    api_wrapper=tavily_api_wrapper,
-    search_depth="advanced", # "basic"
-    # include_domains=["google.com", "naver.com"]
-)
-     
-@tool    
-def search_by_knowledge_base(keyword: str) -> str:
-    """
-    Search technical information by keyword and then return the result as a string.
-    keyword: search keyword
-    return: the technical information of keyword
-    """    
-    logger.info(f"###### search_by_knowledge_base ######") 
-    
-    global reference_docs
- 
-    logger.info(f"keyword: {keyword}")
-    keyword = keyword.replace('\'','')
-    keyword = keyword.replace('|','')
-    keyword = keyword.replace('\n','')
-    logger.info(f"modified keyword: {keyword}")
-    
-    top_k = numberOfDocs
-    relevant_docs = []
-    if knowledge_base_id:    
-        retriever = AmazonKnowledgeBasesRetriever(
-            knowledge_base_id=knowledge_base_id, 
-            retrieval_config={"vectorSearchConfiguration": {
-                "numberOfResults": top_k,
-                "overrideSearchType": "HYBRID"   # SEMANTIC
-            }},
-        )
-        
-        docs = retriever.invoke(keyword)
-        # print('docs: ', docs)
-        logger.info(f"--> docs from knowledge base")
-        for i, doc in enumerate(docs):
-            # print_doc(i, doc)
-            
-            content = ""
-            if doc.page_content:
-                content = doc.page_content
-            
-            score = doc.metadata["score"]
-            
-            link = ""
-            if "s3Location" in doc.metadata["location"]:
-                link = doc.metadata["location"]["s3Location"]["uri"] if doc.metadata["location"]["s3Location"]["uri"] is not None else ""
-                
-                # print('link:', link)    
-                pos = link.find(f"/{doc_prefix}")
-                name = link[pos+len(doc_prefix)+1:]
-                encoded_name = parse.quote(name)
-                # print('name:', name)
-                link = f"{path}/{doc_prefix}{encoded_name}"
-                
-            elif "webLocation" in doc.metadata["location"]:
-                link = doc.metadata["location"]["webLocation"]["url"] if doc.metadata["location"]["webLocation"]["url"] is not None else ""
-                name = "WEB"
-
-            url = link
-            # print('url:', url)
-            
-            relevant_docs.append(
-                Document(
-                    page_content=content,
-                    metadata={
-                        'name': name,
-                        'score': score,
-                        'url': url,
-                        'from': 'RAG'
-                    },
-                )
-            )    
-    
-    # grading        
-    filtered_docs = grade_documents(keyword, relevant_docs)
-
-    filtered_docs = check_duplication(filtered_docs) # duplication checker
-
-    relevant_context = ""
-    for i, document in enumerate(filtered_docs):
-        logger.info(f"{i}: {document}")
-        if document.page_content:
-            relevant_context += document.page_content + "\n\n"        
-    logger.info(f"relevant_context: {relevant_context}")
-    
-    if len(filtered_docs):
-        reference_docs += filtered_docs
-        return relevant_context
-    else:        
-        # relevant_context = "No relevant documents found."
-        relevant_context = "관련된 정보를 찾지 못하였습니다."
-        logger.info(f"--> {relevant_context}")
-        return relevant_context
-    
-@tool
-def search_by_tavily(keyword: str) -> str:
-    """
-    Search general knowledge by keyword and then return the result as a string.
-    keyword: search keyword
-    return: the information of keyword
-    """    
-    global reference_docs    
-    answer = ""
-    
-    if tavily_key:
-        keyword = keyword.replace('\'','')
-        
-        search = TavilySearchResults(
-            max_results=3,
-            include_answer=True,
-            include_raw_content=True,
-            api_wrapper=tavily_api_wrapper,
-            search_depth="advanced", # "basic"
-            # include_domains=["google.com", "naver.com"]
-        )
-                    
-        try: 
-            output = search.invoke(keyword)
-            if output[:9] == "HTTPError":
-                logger.info(f"output: {output}")
-                raise Exception ("Not able to request to tavily")
-            else:        
-                logger.info(f"tavily outpu: {output}")
-                if output == "HTTPError('429 Client Error: Too Many Requests for url: https://api.tavily.com/search')":            
-                    raise Exception ("Not able to request to tavily")
-                
-                for result in output:
-                    logger.info(f"result: {result}")
-                    if result:
-                        content = result.get("content")
-                        url = result.get("url")
-                        
-                        reference_docs.append(
-                            Document(
-                                page_content=content,
-                                metadata={
-                                    'name': 'WWW',
-                                    'url': url,
-                                    'from': 'tavily'
-                                },
-                            )
-                        )                
-                        answer = answer + f"{content}, URL: {url}\n"        
-        except Exception:
-            err_msg = traceback.format_exc()
-            logger.info(f"error message: {err_msg}")           
-            # raise Exception ("Not able to request to tavily")  
-
-    if answer == "":
-        # answer = "No relevant documents found." 
-        answer = "관련된 정보를 찾지 못하였습니다."
-                     
-    return answer
-
-@tool
-def stock_data_lookup(ticker, country):
-    """
-    Retrieve accurate stock trends for a given ticker.
-    ticker: the ticker to retrieve price history for
-    country: the english country name of the stock
-    return: the information of ticker
-    """ 
-    com = re.compile('[a-zA-Z]') 
-    alphabet = com.findall(ticker)
-    logger.info(f"alphabet: {alphabet}")
-
-    logger.info(f"country: {country}")
-
-    if len(alphabet)==0:
-        if country == "South Korea":
-            ticker += ".KS"
-        elif country == "Japan":
-            ticker += ".T"
-    logger.info(f"ticker: {ticker}")
-    
-    stock = yf.Ticker(ticker)
-    
-    # get the price history for past 1 month
-    history = stock.history(period="1mo")
-    logger.info(f"history: {history}")
-    
-    result = f"## Trading History\n{history}"
-    #history.reset_index().to_json(orient="split", index=False, date_format="iso")    
-    
-    result += f"\n\n## Financials\n{stock.financials}"    
-    logger.info(f"financials: {stock.financials}")
-
-    result += f"\n\n## Major Holders\n{stock.major_holders}"
-    logger.info(f"major_holders: {stock.major_holders}")
-
-    logger.info(f"result: {result}")
-
-    return result
-
-tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup]        
-
-####################### LangGraph #######################
-# Chat Agent Executor
-#########################################################
-def run_agent_executor(query, st):
-    chatModel = get_chat()     
-    model = chatModel.bind_tools(tools)
-
-    class State(TypedDict):
-        # messages: Annotated[Sequence[BaseMessage], operator.add]
-        messages: Annotated[list, add_messages]
-
-    tool_node = ToolNode(tools)
-
-    def should_continue(state: State) -> Literal["continue", "end"]:
-        logger.info(f"###### should_continue ######")
-
-        logger.info(f"state: {state}")
-        messages = state["messages"]    
-
-        last_message = messages[-1]
-        logger.info(f"last_message: {last_message}")
-        
-        # print('last_message: ', last_message)
-        
-        # if not isinstance(last_message, ToolMessage):
-        #     return "end"
-        # else:                
-        #     return "continue"
-        if isinstance(last_message, ToolMessage) or last_message.tool_calls:
-            logger.info(f"tool_calls: {last_message.tool_calls}")
-
-            for message in last_message.tool_calls:
-                logger.info(f"tool name: {message['name']}, args: {message['args']}")
-                # update_state_message(f"calling... {message['name']}", config)
-
-            logger.info(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
-            return "continue"
-        
-        #if not last_message.tool_calls:
-        else:
-            logger.info(f"Final: {last_message.content}")
-            print("--- END ---")
-            logger.info(f"--- END ---")
-            return "end"
-           
-    def call_model(state: State, config):
-        logger.info(f"###### call_model ######")
-        logger.info(f"state: {state['messages']}")
-                
-        if isKorean(state["messages"][0].content)==True:
-            system = (
-                "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
-                "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
-                "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-                "한국어로 답변하세요."
-            )
-        else: 
-            system = (            
-                "You are a conversational AI designed to answer in a friendly way to a question."
-                "If you don't know the answer, just say that you don't know, don't try to make up an answer."
-            )
-
-        for attempt in range(3):   
-            logger.info(f"attempt: {attempt}")
-            try:
-                prompt = ChatPromptTemplate.from_messages(
-                    [
-                        ("system", system),
-                        MessagesPlaceholder(variable_name="messages"),
-                    ]
-                )
-                chain = prompt | model
-                    
-                response = chain.invoke(state["messages"])
-                logger.info(f"call_model response: {response}")
-
-                if isinstance(response.content, list):            
-                    for re in response.content:
-                        if "type" in re:
-                            if re['type'] == 'text':
-                                logger.info(f"--> {re['type']}: {re['text']}")
-
-                                status = re['text']
-                                logger.info(f"status: {status}")
-                                
-                                status = status.replace('`','')
-                                status = status.replace('\"','')
-                                status = status.replace("\'",'')
-                                
-                                logger.info(f"status: {status}")
-                                if status.find('<thinking>') != -1:
-                                    logger.info(f"Remove <thinking> tag.")
-                                    status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                                    logger.info(f"status without tag: {status}")
-
-                                if debug_mode=="Enable":
-                                    st.info(status)
-                                
-                            elif re['type'] == 'tool_use':                
-                                logger.info(f"--> {re['type']}: {re['name']}, {re['input']}")
-
-                                if debug_mode=="Enable":
-                                    st.info(f"{re['type']}: {re['name']}, {re['input']}")
-                            else:
-                                logger.info(re)
-                        else: # answer
-                            logger.info(fresponse.content)
-                break
-            except Exception:
-                response = AIMessage(content="답변을 찾지 못하였습니다.")
-
-                err_msg = traceback.format_exc()
-                logger.info(f"error message: {err_msg}")
-                # raise Exception ("Not able to request to LLM")
-
-        return {"messages": [response]}
-
-    def buildChatAgent():
-        workflow = StateGraph(State)
-
-        workflow.add_node("agent", call_model)
-        workflow.add_node("action", tool_node)
-        workflow.add_edge(START, "agent")
-        workflow.add_conditional_edges(
-            "agent",
-            should_continue,
-            {
-                "continue": "action",
-                "end": END,
-            },
-        )
-        workflow.add_edge("action", "agent")
-
-        return workflow.compile()
-
-    # initiate
-    global reference_docs, contentList
-    reference_docs = []
-    contentList = []
-
-    # workflow 
-    app = buildChatAgent()
-            
-    inputs = [HumanMessage(content=query)]
-    config = {
-        "recursion_limit": 50
-    }
-    
-    # msg = message.content
-    result = app.invoke({"messages": inputs}, config)
-    #print("result: ", result)
-
-    msg = result["messages"][-1].content
-    logger.info(f"msg: {msg}")
-
-    for i, doc in enumerate(reference_docs):
-        logger.info(f"--> {i}: {doc}")
-        
-    reference = ""
-    if reference_docs:
-        reference = get_references(reference_docs)
-
-    msg = extract_thinking_tag(msg, st)
-    
-    return msg+reference, reference_docs
-
-####################### LangGraph #######################
-# Agentic Workflow: Tool Use (partial tool을 활용)
-#########################################################
-
-def run_agent_executor2(query, st):        
-    class State(TypedDict):
-        messages: Annotated[list, add_messages]
-        answer: str
-
-    tool_node = ToolNode(tools)
-            
-    def create_agent(chat, tools):        
-        tool_names = ", ".join([tool.name for tool in tools])
-        logger.info(f"tool_names: {tool_names}")
-
-        system = (
-            "당신의 이름은 서연이고, 질문에 친근한 방식으로 대답하도록 설계된 대화형 AI입니다."
-            "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
-            "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-
-            "Use the provided tools to progress towards answering the question."
-            "If you are unable to fully answer, that's OK, another assistant with different tools "
-            "will help where you left off. Execute what you can to make progress."
-            "You have access to the following tools: {tool_names}."
-        )
-
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system",system),
-                MessagesPlaceholder(variable_name="messages"),
-            ]
-        )
-        
-        prompt = prompt.partial(tool_names=tool_names)
-        
-        return prompt | chat.bind_tools(tools)
-    
-    def agent_node(state, agent, name):
-        logger.info(f"###### agent_node:{name} ######")
-
-        last_message = state["messages"][-1]
-        logger.info(f"last_message: {last_message}")
-        if isinstance(last_message, ToolMessage) and last_message.content=="":    
-            logger.info(f"last_message is empty")
-            answer = get_basic_answer(state["messages"][0].content)  
-            return {
-                "messages": [AIMessage(content=answer)],
-                "answer": answer
-            }
-        
-        response = agent.invoke(state["messages"])
-        logger.info(f"response: {response}")
-
-        if "answer" in state:
-            answer = state['answer']
-        else:
-            answer = ""
-
-        if isinstance(response.content, list):      
-            for re in response.content:
-                if "type" in re:
-                    if re['type'] == 'text':
-                        logger.info(f"--> {re['type']}: {re['text']}")
-
-                        status = re['text']
-                        if status.find('<thinking>') != -1:
-                            logger.info(f"Remove <thinking> tag.")
-                            status = status[status.find('<thinking>')+11:status.find('</thinking>')]
-                            logger.info(f"'status without tag: {status}")
-
-                        if debug_mode=="Enable":
-                            st.info(status)
-
-                    elif re['type'] == 'tool_use':                
-                        logger.info(f"--> {re['type']}: name: {re['name']}, input: {re['input']}")
-
-                        if debug_mode=="Enable":
-                            st.info(f"{re['type']}: name: {re['name']}, input: {re['input']}")
-                    else:
-                        logger.info(re)
-                else: # answer
-                    answer += '\n'+response.content
-                    logger.info(response.content)
-                    break
-
-        response = AIMessage(**response.dict(exclude={"type", "name"}), name=name)     
-        logger.info(f"message: {response}")
-        
-        return {
-            "messages": [response],
-            "answer": answer
-        }
-    
-    def final_answer(state):
-        logger.info(f"###### final_answer ######")  
-
-        answer = ""        
-        if "answer" in state:
-            answer = state['answer']            
-        else:
-            answer = state["messages"][-1].content
-
-        if answer.find('<thinking>') != -1:
-            logger.info(f"Remove <thinking> tag.")
-            answer = answer[answer.find('</thinking>')+12:]
-        logger.info(f"answer: {answer}")
-        
-        return {
-            "answer": answer
-        }
-    
-    chat = get_chat()
-    
-    execution_agent = create_agent(chat, tools)
-    
-    execution_agent_node = functools.partial(agent_node, agent=execution_agent, name="execution_agent")
-    
-    def should_continue(state: State, config) -> Literal["continue", "end"]:
-        print("###### should_continue ######")
-        messages = state["messages"]    
-        # print('(should_continue) messages: ', messages)
-        
-        last_message = messages[-1]        
-        if not last_message.tool_calls:
-            logger.info(f"Final: {last_message.content}")
-            logger.info(f"-- END ---")
-            return "end"
-        else:      
-            logger.info(f"tool_calls: {last_message.tool_calls}")
-
-            for message in last_message.tool_calls:
-                logger.info(f"tool name: {message['name']}, args: {message['args']}")
-                # update_state_message(f"calling... {message['name']}", config)
-
-            logger.info(f"--- CONTINUE: {last_message.tool_calls[-1]['name']} ---")
-            return "continue"
-
-    def buildAgentExecutor():
-        workflow = StateGraph(State)
-
-        workflow.add_node("agent", execution_agent_node)
-        workflow.add_node("action", tool_node)
-        workflow.add_node("final_answer", final_answer)
-        
-        workflow.add_edge(START, "agent")
-        workflow.add_conditional_edges(
-            "agent",
-            should_continue,
-            {
-                "continue": "action",
-                "end": "final_answer",
-            },
-        )
-        workflow.add_edge("action", "agent")
-        workflow.add_edge("final_answer", END)
-
-        return workflow.compile()
-
-    app = buildAgentExecutor()
-            
-    inputs = [HumanMessage(content=query)]
-    config = {"recursion_limit": 50}
-    
-    msg = ""
-    # for event in app.stream({"messages": inputs}, config, stream_mode="values"):   
-    #     # print('event: ', event)
-        
-    #     if "answer" in event:
-    #         msg = event["answer"]
-    #     else:
-    #         msg = event["messages"][-1].content
-    #     # print('message: ', message)
-
-    output = app.invoke({"messages": inputs}, config)
-    logger.info(f"output: {output}")
-
-    msg = output['answer']
-
-    return msg, reference_docs
-
-def get_basic_answer(query):
-    logger.info(f"#### get_basic_answer ####")
-    chat = get_chat()
-
-    if isKorean(query)==True:
-        system = (
-            "당신의 이름은 서연이고, 질문에 대해 친절하게 답변하는 사려깊은 인공지능 도우미입니다."
-            "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다." 
-            "모르는 질문을 받으면 솔직히 모른다고 말합니다."
-        )
-    else: 
-        system = (
-            "You will be acting as a thoughtful advisor."
-            "Using the following conversation, answer friendly for the newest question." 
-            "If you don't know the answer, just say that you don't know, don't try to make up an answer."     
-        )    
-    
-    human = "Question: {input}"    
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system), 
-        ("human", human)
-    ])    
-    
-    chain = prompt | chat    
-    output = chain.invoke({"input": query})
-    logger.info(f"output.content: {output.content}")
-
-    return output.content
 
 ####################### LangGraph #######################
 # Agentic Workflow: Reflection
@@ -4648,7 +3582,7 @@ def solve_problems(conn, paragraph, problems, idx, total_idx, st):
     conn.close()
 
 def string_to_int(output):
-    com = re.compile('\d') 
+    com = re.compile('[0-9]') 
     value = com.findall(output)
     
     result = ""
