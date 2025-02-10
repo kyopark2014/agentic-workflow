@@ -10,8 +10,6 @@ import PyPDF2
 import csv
 import knowledge_base as kb
 import utils
-import csat
-import planning 
 import solver
 
 from io import BytesIO
@@ -22,15 +20,12 @@ from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_core.tools import tool
 from langchain.docstore.document import Document
-from tavily import TavilyClient  
-from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import HumanMessage
 
 from multiprocessing import Process, Pipe
 from urllib import parse
 from pydantic.v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
-from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 logger = utils.CreateLogger("chat")
