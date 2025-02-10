@@ -2,7 +2,6 @@ import utils
 import chat
 import traceback
 import knowledge_base as kb
-import tool_use
 import search
 
 from pydantic.v1 import BaseModel, Field
