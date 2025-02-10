@@ -1,7 +1,6 @@
 import traceback
 import boto3
 import json
-import knowledge_base as kb
 import utils
 import chat
 import tool_use
