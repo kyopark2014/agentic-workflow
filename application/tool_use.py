@@ -8,6 +8,7 @@ import knowledge_base as kb
 import chat
 import functools
 import utils
+import search
 
 from typing_extensions import Annotated, TypedDict
 from langgraph.graph.message import add_messages
@@ -19,13 +20,13 @@ from bs4 import BeautifulSoup
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain_aws import AmazonKnowledgeBasesRetriever
 from pytz import timezone
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain.docstore.document import Document
 from urllib import parse
 from langgraph.graph import START, END, StateGraph
 
 logger = utils.CreateLogger('tool_use')
+
+# load config
 try:
     with open("/home/config.json", "r", encoding="utf-8") as f:
         config = json.load(f)
@@ -70,42 +71,6 @@ try:
         logger.info(f"No secret found for weather api")
 
 except Exception as e:
-    raise e
-
-# api key to use Tavily Search
-tavily_key = tavily_api_wrapper = ""
-try:
-    get_tavily_api_secret = secretsmanager.get_secret_value(
-        SecretId=f"tavilyapikey-{projectName}"
-    )
-    #print('get_tavily_api_secret: ', get_tavily_api_secret)
-    secret = json.loads(get_tavily_api_secret['SecretString'])
-    #print('secret: ', secret)
-
-    if "tavily_api_key" in secret:
-        tavily_key = secret['tavily_api_key']
-        #print('tavily_api_key: ', tavily_api_key)
-
-        if tavily_key:
-            tavily_api_wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
-            #     os.environ["TAVILY_API_KEY"] = tavily_key
-
-            # Tavily Tool Test
-            # query = 'what is Amazon Nova Pro?'
-            # search = TavilySearchResults(
-            #     max_results=1,
-            #     include_answer=True,
-            #     include_raw_content=True,
-            #     api_wrapper=tavily_api_wrapper,
-            #     search_depth="advanced", # "basic"
-            #     # include_domains=["google.com", "naver.com"]
-            # )
-            # output = search.invoke(query)
-            # print('tavily output: ', output)    
-        else:
-            logger.info(f"tavily_key is required.")
-except Exception as e: 
-    logger.info(f"Tavily credential is required: {e}")
     raise e
 
 def get_basic_answer(query):
@@ -235,15 +200,15 @@ def get_weather_info(city: str) -> str:
     logger.info(f"weather_str: {weather_str}")                        
     return weather_str
 
-# Tavily Tool
-tavily_tool = TavilySearchResults(
-    max_results=3,
-    include_answer=True,
-    include_raw_content=True,
-    api_wrapper=tavily_api_wrapper,
-    search_depth="advanced", # "basic"
-    # include_domains=["google.com", "naver.com"]
-)
+# # Tavily Tool
+# tavily_tool = TavilySearchResults(
+#     max_results=3,
+#     include_answer=True,
+#     include_raw_content=True,
+#     api_wrapper=tavily_api_wrapper,
+#     search_depth="advanced", # "basic"
+#     # include_domains=["google.com", "naver.com"]
+# )
      
 @tool    
 def search_by_knowledge_base(keyword: str) -> str:
@@ -346,50 +311,18 @@ def search_by_tavily(keyword: str) -> str:
     global reference_docs    
     answer = ""
     
-    if tavily_key:
-        keyword = keyword.replace('\'','')
-        
-        search = TavilySearchResults(
-            max_results=3,
-            include_answer=True,
-            include_raw_content=True,
-            api_wrapper=tavily_api_wrapper,
-            search_depth="advanced", # "basic"
-            # include_domains=["google.com", "naver.com"]
-        )
-                    
-        try: 
-            output = search.invoke(keyword)
-            if output[:9] == "HTTPError":
-                logger.info(f"output: {output}")
-                raise Exception ("Not able to request to tavily")
-            else:        
-                logger.info(f"tavily outpu: {output}")
-                if output == "HTTPError('429 Client Error: Too Many Requests for url: https://api.tavily.com/search')":            
-                    raise Exception ("Not able to request to tavily")
-                
-                for result in output:
-                    logger.info(f"result: {result}")
-                    if result:
-                        content = result.get("content")
-                        url = result.get("url")
-                        
-                        reference_docs.append(
-                            Document(
-                                page_content=content,
-                                metadata={
-                                    'name': 'WWW',
-                                    'url': url,
-                                    'from': 'tavily'
-                                },
-                            )
-                        )                
-                        answer = answer + f"{content}, URL: {url}\n"        
-        except Exception:
-            err_msg = traceback.format_exc()
-            logger.info(f"error message: {err_msg}")           
-            # raise Exception ("Not able to request to tavily")  
+    keyword = keyword.replace('\'','')
+    relevant_documents = search.retrieve_documents_from_tavily(keyword, top_k=3)
 
+    answer = ""
+    for doc in reference_docs:
+        content = doc.page_content
+        url = doc.metadata['url']
+        answer += + f"{content}, URL: {url}\n" 
+
+    if len(relevant_documents):
+        reference_docs += relevant_documents
+    
     if answer == "":
         # answer = "No relevant documents found." 
         answer = "관련된 정보를 찾지 못하였습니다."

@@ -11,6 +11,7 @@ from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
 
 logger = utils.CreateLogger('knowledge_base')
 
+# load config
 try:
     with open("/home/config.json", "r", encoding="utf-8") as f:
         config = json.load(f)
@@ -22,7 +23,6 @@ except Exception:
         config = json.load(f)
         logger.info(f"config: {config}")
 
-# variables
 projectName = config["projectName"] if "projectName" in config else "langgraph-nova"
 
 vectorIndexName = projectName

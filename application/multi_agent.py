@@ -1,109 +1,18 @@
-import knowledge_base as kb
-import utils
-import chat
 import traceback
 import boto3
+import utils
+import chat
+import knowledge_base as kb
+import search
 
-from typing import Any, List, Tuple, Dict, Optional, cast, Literal, Sequence, Union
-from typing_extensions import Annotated, TypedDict
+from typing import List
+from typing_extensions import TypedDict
 from pydantic.v1 import BaseModel, Field
 from multiprocessing import Process, Pipe
-from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import START, END, StateGraph
 
 logger = utils.CreateLogger("multi-agent")
-
-def extract_reflection2(draft):
-    system = (
-        "주어진 문장을 향상시키기 위하여 아래와 같은 항목으로 개선사항을 추출합니다."
-        "missing: 작성된 글에 있어야하는데 빠진 내용이나 단점"
-        "advisable: 더 좋은 글이 되기 위해 추가하여야 할 내용"
-        "superfluous: 글의 길이나 스타일에 대한 비평"    
-        "<result> tag를 붙여주세요."
-    )
-    critique_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", system),
-            ("human", "{draft}"),
-        ]
-    )
-
-    reflection = ""
-    for attempt in range(5):
-        try:
-            llm = chat.get_chat()
-            chain = critique_prompt | llm
-            result = chain.invoke({
-                "draft": draft
-            })
-            logger.info(f"result: {result}")
-
-            output = result.content
-
-            if output.find('<result>') != -1:
-                output = output[output.find('<result>')+8:output.find('</result>')]
-            logger.info(f"output: {output}")
-
-            reflection = output            
-            break
-                
-        except Exception:
-            err_msg = traceback.format_exc()
-            logger.info(f"error message: {err_msg}") 
-
-    # search queries
-    search_queries = []
-    class Queries(BaseModel):
-        """Provide reflection and then follow up with search queries to improve the answer."""
-
-        search_queries: list[str] = Field(
-            description="1-3 search queries for researching improvements to address the critique of your current answer."
-        )
-    class QueriesKor(BaseModel):
-        """글쓰기를 개선하기 위한 검색어를 제공합니다."""
-
-        search_queries: list[str] = Field(
-            description="주어진 비평을 해결하기 위한 3개 이내의 검색어"            
-        )    
-
-    system = (
-        "당신은 주어진 Draft를 개선하여 더 좋은 글쓰기를 하고자 합니다."
-        "주어진 비평을 반영하여 초안을 개선하기 위한 3개 이내의 검색어를 추천합니다."
-    )
-    queries_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", system),
-            ("human", "Draft: {draft} \n\n Critiques: {reflection}"),
-        ]
-    )
-    for attempt in range(5):
-        try:
-            llm = chat.get_chat()
-            if chat.isKorean(draft):
-                structured_llm_queries = llm.with_structured_output(QueriesKor, include_raw=True)
-            else:
-                structured_llm_queries = llm.with_structured_output(Queries, include_raw=True)
-
-            retrieval_quries = queries_prompt | structured_llm_queries
-            
-            info = retrieval_quries.invoke({
-                "draft": draft,
-                "reflection": reflection
-            })
-            logger.info(f"attempt: {attempt}, info: {info}")
-                
-            if not info['parsed'] == None:
-                parsed_info = info['parsed']
-                logger.info(f"parsed_info: {parsed_info}")
-                search_queries = parsed_info.search_queries
-                logger.info(f"search_queries: {search_queries}")
-            break
-                
-        except Exception:
-            err_msg = traceback.format_exc()
-            logger.info(f"error message: {err_msg}") 
-
-    return reflection, search_queries
 
 ####################### LangGraph #######################
 # Agentic Workflow Multi-agent Collaboration 
@@ -254,7 +163,7 @@ def run_long_form_writing_agent(query, st):
             st.info(f"검색을 수행합니다. 검색어: {q}")
 
         relevant_docs = kb.retrieve_documents_from_knowledge_base(q, top_k=chat.numberOfDocs)
-        relevant_docs += chat.retrieve_documents_from_tavily(q, top_k=chat.numberOfDocs)
+        relevant_docs += search.retrieve_documents_from_tavily(q, top_k=chat.numberOfDocs)
 
         # translate
         # docs = []
@@ -315,7 +224,7 @@ def run_long_form_writing_agent(query, st):
                     st.info(f"검색을 수행합니다. 검색어: {q}")
 
                 relevant_docs = kb.retrieve_documents_from_knowledge_base(q, top_k=chat.numberOfDocs)
-                relevant_docs += chat.retrieve_documents_from_tavily(q, top_k=chat.numberOfDocs)
+                relevant_docs += search.retrieve_documents_from_tavily(q, top_k=chat.numberOfDocs)
             
                 # grade
                 docs += chat.grade_documents(q, relevant_docs) # grading
@@ -968,3 +877,96 @@ def run_long_form_writing_agent(query, st):
     logger.info(f"output: {output}")
     
     return output['final_doc'], reference_docs
+
+def extract_reflection2(draft):
+    system = (
+        "주어진 문장을 향상시키기 위하여 아래와 같은 항목으로 개선사항을 추출합니다."
+        "missing: 작성된 글에 있어야하는데 빠진 내용이나 단점"
+        "advisable: 더 좋은 글이 되기 위해 추가하여야 할 내용"
+        "superfluous: 글의 길이나 스타일에 대한 비평"    
+        "<result> tag를 붙여주세요."
+    )
+    critique_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", "{draft}"),
+        ]
+    )
+
+    reflection = ""
+    for attempt in range(5):
+        try:
+            llm = chat.get_chat()
+            chain = critique_prompt | llm
+            result = chain.invoke({
+                "draft": draft
+            })
+            logger.info(f"result: {result}")
+
+            output = result.content
+
+            if output.find('<result>') != -1:
+                output = output[output.find('<result>')+8:output.find('</result>')]
+            logger.info(f"output: {output}")
+
+            reflection = output            
+            break
+                
+        except Exception:
+            err_msg = traceback.format_exc()
+            logger.info(f"error message: {err_msg}") 
+
+    # search queries
+    search_queries = []
+    class Queries(BaseModel):
+        """Provide reflection and then follow up with search queries to improve the answer."""
+
+        search_queries: list[str] = Field(
+            description="1-3 search queries for researching improvements to address the critique of your current answer."
+        )
+    class QueriesKor(BaseModel):
+        """글쓰기를 개선하기 위한 검색어를 제공합니다."""
+
+        search_queries: list[str] = Field(
+            description="주어진 비평을 해결하기 위한 3개 이내의 검색어"            
+        )    
+
+    system = (
+        "당신은 주어진 Draft를 개선하여 더 좋은 글쓰기를 하고자 합니다."
+        "주어진 비평을 반영하여 초안을 개선하기 위한 3개 이내의 검색어를 추천합니다."
+    )
+    queries_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", "Draft: {draft} \n\n Critiques: {reflection}"),
+        ]
+    )
+    for attempt in range(5):
+        try:
+            llm = chat.get_chat()
+            if chat.isKorean(draft):
+                structured_llm_queries = llm.with_structured_output(QueriesKor, include_raw=True)
+            else:
+                structured_llm_queries = llm.with_structured_output(Queries, include_raw=True)
+
+            retrieval_quries = queries_prompt | structured_llm_queries
+            
+            info = retrieval_quries.invoke({
+                "draft": draft,
+                "reflection": reflection
+            })
+            logger.info(f"attempt: {attempt}, info: {info}")
+                
+            if not info['parsed'] == None:
+                parsed_info = info['parsed']
+                logger.info(f"parsed_info: {parsed_info}")
+                search_queries = parsed_info.search_queries
+                logger.info(f"search_queries: {search_queries}")
+            break
+                
+        except Exception:
+            err_msg = traceback.format_exc()
+            logger.info(f"error message: {err_msg}") 
+
+    return reflection, search_queries
+
