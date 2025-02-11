@@ -115,7 +115,8 @@ AWS Credential을 입력합니다.
 
 이때 실행된 결과는 아래와 같습니다.
 
-<img width="954" alt="image" src="https://github.com/user-attachments/assets/2a3dd9ac-4fd8-4aa0-aca0-62c8427ad2b9" />
+![image](https://github.com/user-attachments/assets/a85e44e1-d632-41b5-abfe-de319e8dd430)
+
 
 ## 실행환경 (선택)
 
