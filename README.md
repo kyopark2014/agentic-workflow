@@ -524,7 +524,55 @@ workflow.add_edge("reflect_node", "revise_draft")
 
 reflection_app = workflow.compile()
 ```
-    
+
+### Multi-Agent Supervisor
+
+[LangGraph Multi-Agent Supervisor](https://github.com/langchain-ai/langgraph-supervisor)을 이용하면 hierachical 구조를 만들때 도움이 됩니다.
+
+이를 위해 langgraph-supervisor을 설치합니다.
+
+```text
+pip install langgraph-supervisor
+```
+
+동작은 아래와 같습니다.
+
+![image](https://github.com/user-attachments/assets/b7ec2913-804b-4b4a-a1a9-d972ddb9a591)
+
+사용 예는 아래와 같습니다.
+
+```python
+# Create supervisor workflow
+workflow = create_supervisor(
+    [research_agent, math_agent],
+    model=model,
+    prompt=(
+        "You are a team supervisor managing a research expert and a math expert. "
+        "For current events, use research_agent. "
+        "For math problems, use math_agent."
+    )
+)
+
+# Compile and run
+app = workflow.compile()
+result = app.invoke({
+    "messages": [
+        {
+            "role": "user",
+            "content": "what's the combined headcount of the FAANG companies in 2024?"
+        }
+    ]
+})
+```
+
+output에서 response는 아래와 같이 full_history, last_message와 같이 선택가능합니다.
+
+```python
+workflow = create_supervisor(
+    agents=[agent1, agent2],
+    output_mode="full_history"
+)
+```    
 
 
 ### 활용 방법
@@ -645,3 +693,5 @@ RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주
 [Explore Agent Recipes](https://www.agentrecipes.com/)
 
 [AI Agent workflows from Anthropic](https://www.linkedin.com/posts/rakeshgohel01_these-ai-agent-workflows-from-anthropic-can-activity-7294724354221776897-pILx/?utm_source=share&utm_medium=member_android)
+
+[LangGraph Multi-Agent Supervisor](https://github.com/langchain-ai/langgraph-supervisor)
