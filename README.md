@@ -641,3 +641,7 @@ RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주
 [Nova Pro User Guide](https://docs.aws.amazon.com/pdfs/nova/latest/userguide/nova-ug.pdf)
 
 [Top Agentic AI Design Patterns](https://medium.com/@yugank.aman/top-agentic-ai-design-patterns-for-architecting-ai-systems-397798b44d5c)
+
+[Explore Agent Recipes](https://www.agentrecipes.com/)
+
+[AI Agent workflows from Anthropic](https://www.linkedin.com/posts/rakeshgohel01_these-ai-agent-workflows-from-anthropic-can-activity-7294724354221776897-pILx/?utm_source=share&utm_medium=member_android)
