@@ -576,7 +576,7 @@ workflow = create_supervisor(
 
 ## Code Interpreter
 
-여기에서는 LangGraph로 구현 Agent에 Tool로서 Code Interpreter를 구현하고 활용하는 방법에 대해 설명합니다. 언어모델에서 어려운 복잡한 계산이나 그래프를 그리는 일들은 Code를 통해 수행하는것이 효과적입니다. 
+여기에서는 Agent의 Tool로 Code Interpreter를 활용하는 방법에 대해 설명합니다. Code Interpreter를 이용하면, 언어모델에서 어려운 복잡한 계산이나 그래프를 그리는 일들은 수행할 수 있습니다. 
 
 Code Interpreter는 Sandbox 환경으로 코드를 수행할 수 있어야 합니다. 이를 위해 직접 container로 환경을 만들거나, [Jupyter Kernel Gateway](https://github.com/jupyter-server/kernel_gateway)을 이용하는 방안은 검토할 수 있으나 구현의 복잡성등으로 인해서, [Riza](https://docs.riza.io/introduction)나 [E2B](https://www.linkedin.com/feed/update/urn:li:activity:7191459920251109377/?commentUrn=urn%3Ali%3Acomment%3A(activity%3A7191459920251109377%2C7295624350970363904)&dashCommentUrn=urn%3Ali%3Afsd_comment%3A(7295624350970363904%2Curn%3Ali%3Aactivity%3A7191459920251109377))를 고려할 수 있습니다. 여기에서는 Riza를 이용해 Code Interpreter를 활용합니다.
 
