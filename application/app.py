@@ -220,8 +220,8 @@ if uploaded_file and clear_button==False:
         st.image(uploaded_file, caption="이미지 미리보기", use_container_width=True)
 
         file_name = uploaded_file.name
-        image_url = chat.upload_to_s3(uploaded_file.getvalue(), file_name)
-        logger.info(f"image_url: {image_url}")
+        url = chat.upload_to_s3(uploaded_file.getvalue(), file_name)
+        logger.info(f"url: {url}")
 
     elif uploaded_file.name and CSAT_evaluator=="Enable" and uploaded_file.name.lower().endswith((".json")):   
         guide = "CSAT Evaluation을 시작합니다."
