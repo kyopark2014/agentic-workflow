@@ -771,7 +771,7 @@ def code_interpreter(code):
 
 ### 실행 결과 
 
-LLM에 "strawberry에 R은 몇개야?"로 질문하면 tokenizer의 특징으로 R은 2개라고 답변합니다. 이 경우에 code interpreter를 사용하면 R이 3개라고 정확한 답변을 구할 수 있습니다. 메뉴에서 "Agent (Tool Use)"를 선택하고 아래와 같이 질문합니다. 
+LLM에 "strawberry에 R은 몇개야?"로 질문하면 tokenizer의 특징으로 R은 2개라고 잘못된 답변을 합니다. Code Interpreter를 사용하면 코드를 통해서 R이 3개라고 정확한 답변을 할 수 있습니다. 메뉴에서 "Agent (Tool Use)"를 선택하고 아래와 같이 질문합니다. 
 
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/5e5b6e8e-bbca-4401-b971-65a733c51f2f" />
 
