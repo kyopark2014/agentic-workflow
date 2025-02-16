@@ -631,13 +631,13 @@ if code_interpreter_api_key:
 
 ### Code Interpreter의 Tool 등록 및 활용
 
-Code Interpreter를 위해 code_interpreter와 code_drawer을 구현하였고, 아래와 같이 tools에 추가하여 활용합니다. code_interpreter는 python code를 실행하고, code_drawer는 python code를 실행하고 matplotlib을 이용해 얻어진 그래프를 Base64 이미지로 리턴합니다.
+Code Interpreter를 위해 code_interpreter와 code_drawer을 구현하였고, 아래와 같이 tools에 추가하여 활용합니다. code_interpreter는 python code를 실행한후 결과를 리턴하고, code_drawer는 matplotlib을 이용해 그래프를 만든 후에 Base64 이미지로 리턴합니다.
 
 ```python
 tools = [code_drawer, code_interpreter]
 ```
 
-Riza의 경우에 Code의 실행 결과가 stdout으로 전달되고 실행시 생성이 필요한 임시파일이나 이미지등을 루트에 저장할 수 없습니다. 따라서 아래와 같이 matplotlib을 위해 MPLCONFIGDIR을 설정하여야 합니다. 
+Riza의 경우에 Code의 실행 결과가 stdout으로 전달되고 실행시 생성이 필요한 임시파일이나 이미지등을 루트에 저장할 수 없습니다. 따라서 아래와 같이 matplotlib을 위해 MPLCONFIGDIR을 /tmp로 설정하여야 합니다. 
 
 ```python
 os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'\n
