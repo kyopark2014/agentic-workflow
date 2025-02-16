@@ -572,10 +572,230 @@ workflow = create_supervisor(
     agents=[agent1, agent2],
     output_mode="full_history"
 )
-```    
+```
+
+## Code Interpreter
+
+여기에서는 LangGraph로 구현 Agent에 Tool로서 Code Interpreter를 구현하고 활용하는 방법에 대해 설명합니다. 언어모델에서 어려운 복잡한 계산이나 그래프를 그리는 일들은 Code를 통해 수행하는것이 효과적입니다. 
+
+Code Interpreter는 Sandbox 환경으로 코드를 수행할 수 있어야 합니다. 이를 위해 직접 container로 환경을 만들거나, [Jupyter Kernel Gateway](https://github.com/jupyter-server/kernel_gateway)을 이용하는 방안은 검토할 수 있으나 구현의 복잡성등으로 인해서, [Riza](https://docs.riza.io/introduction)나 [E2B](https://www.linkedin.com/feed/update/urn:li:activity:7191459920251109377/?commentUrn=urn%3Ali%3Acomment%3A(activity%3A7191459920251109377%2C7295624350970363904)&dashCommentUrn=urn%3Ali%3Afsd_comment%3A(7295624350970363904%2Curn%3Ali%3Aactivity%3A7191459920251109377))를 고려할 수 있습니다. 여기에서는 Riza를 이용해 Code Interpreter를 활용합니다.
+
+### Riza 사용 준비
+
+[Riza - dashboard](https://dashboard.riza.io/)에 접속해서 credential을 발급 받습니다. Riza의 경우에 초기에는 무료로 이용할 수 있고, 트래픽이 늘어나면 유료로 활용 가능합니다. 이후 아래와 같은 패키지를 설치합니다. 
+
+```text
+pip install --upgrade --quiet langchain-community rizaio
+```
+
+Riza 환경에 추가로 패키지 필요한 경우에는 Custom Runtimes을 설정하여야 합니다. [Riza - dashboard](https://dashboard.riza.io/)에서 Custom Runtimes를 선택하여 아래와 같이 필요한 패키지를 설정합니다. 여기서는 pandas, numpy, matplotlib을 지정하였습니다. Runtime의 Revision ID는 코드에서 활용합니다. 
+
+![image](https://github.com/user-attachments/assets/3763c905-bbf2-4e41-b86c-b0af6b818f5d)
+
+Riza의 Credential과 Revision ID는 [cdk-agentic-workflow-stack.ts](./cdk-agentic-workflow/lib/cdk-agentic-workflow-stack.ts)와 같이 [secrets manager](https://aws.amazon.com/ko/secrets-manager/)에 등록하여 관리합니다. 
+
+```java
+const codeInterpreterSecret = new secretsmanager.Secret(this, `code-interpreter-secret-for-${projectName}`, {
+  description: 'secret for code interpreter api key', // code interpreter
+  removalPolicy: cdk.RemovalPolicy.DESTROY,
+  secretName: `code-interpreter-${projectName}`,
+  secretObjectValue: {
+    project_name: cdk.SecretValue.unsafePlainText(projectName),
+    code_interpreter_api_key: cdk.SecretValue.unsafePlainText(''),
+    code_interpreter_id: cdk.SecretValue.unsafePlainText(''),
+  },
+});
+codeInterpreterSecret.grantRead(ec2Role) 
+```
+
+이후 [chat.py](./application/chat.py)와 같이 읽어서 RIZA_API_KEY로 등록해서 활용합니다.
+
+```python
+secretsmanager = boto3.client(
+    service_name='secretsmanager',
+    region_name=bedrock_region
+)
+
+code_interpreter_api_key = ""
+get_code_interpreter_api_secret = secretsmanager.get_secret_value(
+    SecretId=f"code-interpreter-{projectName}"
+)
+secret = json.loads(get_code_interpreter_api_secret['SecretString'])
+code_interpreter_api_key = secret['code_interpreter_api_key']
+code_interpreter_project = secret['project_name']
+code_interpreter_id = secret['code_interpreter_id']
+
+if code_interpreter_api_key:
+    os.environ["RIZA_API_KEY"] = code_interpreter_api_key
+```
+
+### Code Interpreter의 Tool 등록 및 활용
+
+Code Interpreter를 위해 code_interpreter와 code_drawer을 구현하였고, 아래와 같이 tools에 추가하여 활용합니다. code_interpreter는 python code를 실행하고, code_drawer는 python code를 실행하고 matplotlib을 이용해 얻어진 그래프를 Base64 이미지로 리턴합니다.
+
+```python
+tools = [code_drawer, code_interpreter]
+```
+
+Riza의 경우에 Code의 실행 결과가 stdout으로 전달되고 실행시 생성이 필요한 임시파일이나 이미지등을 루트에 저장할 수 없습니다. 따라서 아래와 같이 matplotlib을 위해 MPLCONFIGDIR을 설정하여야 합니다. 
+
+```python
+os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'\n
+```
+
+또한 plt.savefig이 자동으로 생성되면 실행에 문제가 되므로 아래와 같이 제거합니다. 그래프를 파일로 저장하지 않더라도, buffer에 저장후 stdout으로 리턴할 수 있습니다.
+
+code_drawer는 아래와 같이 구현할 수 있습니다. Riza가 제공하는 sandbox환경에서 외부 API 사용이 제한되므로 docstring엣 필요한 데이터는 code로 넣으라고 가이드하여야 합니다. 또한 matplotlib을 그림으로 저장시 한국어가 깨지는 문제점이 있으므로 아래와 같이 English를 사용하도록 가이드합니다. code_drawer에서는 얻어진 이미지를 S3에 저장한 후에 CloudFront의 도메인을 이용하여 URL 형태로 가공하고, 이후 streamlit에서 활용합니다. 
 
 
-### 활용 방법
+```python
+from rizaio import Riza
+@tool
+def code_drawer(code):
+    """
+    Execute a Python script for draw a graph.
+    Since Python runtime cannot use external APIs, necessary data must be included in the code.
+    The graph should use English exclusively for all textual elements.
+    When a comparison is made, all arrays must be of the same length.
+    code: the Python code was written in English
+    return: the url of graph
+    """ 
+        
+    code = re.sub(r"seaborn", "classic", code)
+    code = re.sub(r"plt.savefig", "#plt.savefig", code)
+    
+    pre = f"os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'\n"  # matplatlib
+    post = """\n
+import io
+import base64
+buffer = io.BytesIO()
+plt.savefig(buffer, format='png')
+buffer.seek(0)
+image_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+print(image_base64)
+"""
+    code = pre + code + post    
+    logger.info(f"code: {code}")
+    
+    result = ""
+    client = Riza()
+
+    resp = client.command.exec(
+        runtime_revision_id=chat.code_interpreter_id,
+        language="python",
+        code=code,
+        env={
+            "DEBUG": "true",
+        }
+    )
+    output = dict(resp)
+
+    print(f"output: {output}") # includling exit_code, stdout, stderr
+
+    if resp.exit_code > 0:
+        logger.debug(f"non-zero exit code {resp.exit_code}")
+
+    base64Img = resp.stdout
+
+    byteImage = BytesIO(base64.b64decode(base64Img))
+
+    image_name = generate_short_uuid()+'.png'
+    url = chat.upload_to_s3(byteImage, image_name)
+    logger.info(f"url: {url}")
+
+    file_name = url[url.rfind('/')+1:]
+    print(f"file_name: {file_name}")
+
+    global image_url
+    image_url.append(path+'/'+s3_image_prefix+'/'+parse.quote(file_name))
+    print(f"image_url: {image_url}")
+
+    result = f"생성된 그래프의 URL: {image_url}"
+    return result
+```
+
+복잡한 작업을 코드로 수행하는 code_interpreter는 아래와 같이 구현합니다. 마찬가지로 English를 기본으로 사용하고 필요한 데이터는 코드에 포함하도록 요청합니다. 
+
+```python
+@tool
+def code_interpreter(code):
+    """
+    Execute a Python script to solve a complex question.    
+    Since Python runtime cannot use external APIs, necessary data must be included in the code.
+    The Python runtime does not have filesystem access, but does include the entire standard library.
+    Make HTTP requests with the httpx or requests libraries.
+    Read input from stdin and write output to stdout."        
+    code: the Python code was written in English
+    return: the stdout value
+    """ 
+        
+    code = re.sub(r"seaborn", "classic", code)
+    code = re.sub(r"plt.savefig", "#plt.savefig", code)
+    
+    pre = f"os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'\n"  # matplatlib
+    post = """"""
+    # code = pre + code + post    
+    code = pre + code
+    logger.info(f"code: {code}")
+    
+    result = ""
+    try:     
+        client = Riza()
+
+        resp = client.command.exec(
+            runtime_revision_id=code_interpreter_id,
+            language="python",
+            code=code,
+            env={
+                "DEBUG": "true",
+            }
+        )
+        output = dict(resp)
+        print(f"output: {output}") # includling exit_code, stdout, stderr
+
+        if resp.exit_code > 0:
+            logger.debug(f"non-zero exit code {resp.exit_code}")
+
+        resp.stdout        
+        result = f"프로그램 실행 결과: {resp.stdout}"
+
+    except Exception:
+        result = "프로그램 실행에 실패했습니다. 다시 시도해주세요."
+        err_msg = traceback.format_exc()
+        logger.info(f"error message: {err_msg}")
+
+    logger.info(f"result: {result}")
+    return result
+```
+
+### 실행 결과 
+
+LLM에 "strawberry에 R은 몇개야?"로 질문하면 tokenizer의 특징으로 R은 2개라고 답변합니다. 이 경우에 code interpreter를 사용하면 R이 3개라고 정확한 답변을 구할 수 있습니다. 메뉴에서 "Agent (Tool Use)"를 선택하고 아래와 같이 질문합니다. 
+
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/5e5b6e8e-bbca-4401-b971-65a733c51f2f" />
+
+Agent의 정확한 동작을 LangSmith 로그를 이용해 확인합니다. Agent는 아래와 같은 code를 생성하여 code_interpreter를 실행시켰고, 결과적으로 정답인 3을 얻을 수 있었습니다.
+
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/f8f79e0a-710d-4db2-b201-03ee393f10d6" />
+
+
+
+메뉴에서 "Agent"를 선택하고 "2000년 이후에 한국의 GDP 변화를 일본과 비교해서 그래프로 그려주세요. 그래프는 영어로 작성합니다."라고 입력하고 결과를 확인합니다. 이때 agent는 인터넷을 검색하여 얻어온 GDP정보를 code interpreter를 이용해 그래프로 표시합니다.
+
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/c8b6f42a-4b4c-4b1a-ae6e-66adce7956cd" />
+
+
+메뉴에서 "Agent"를 선택하고 "네이버와 카카오의 주가 동향을 비교하여 그래프를 그려주세요. 그래프는 영어로 작성하고 향후 투자 방법에 대해서도 조언해주세요"라고 입력후 결과를 확인하면 아래와 같습니다.
+
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/26ea6bc9-3dcb-48e7-81ec-0c535d98c3a8" />
+
+
+       
+
+
+
+## 활용 방법
 
 EC2는 Private Subnet에 있으므로 SSL로 접속할 수 없습니다. 따라서, [Console-EC2](https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#Instances:)에 접속하여 "app-for-llm-streamlit"를 선택한 후에 Connect에서 sesseion manager를 선택하여 접속합니다. 
 
