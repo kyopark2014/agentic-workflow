@@ -282,6 +282,26 @@ if langsmith_api_key:
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
     os.environ["LANGCHAIN_PROJECT"] = langchain_project
 
+# secret of code interpreter
+code_interpreter_api_key = ""
+try:
+    get_code_interpreter_api_secret = secretsmanager.get_secret_value(
+        SecretId=f"code-interpreter-{projectName}"
+    )
+    #print('get_code_interpreter_api_secret: ', get_code_interpreter_api_secret)
+    secret = json.loads(get_code_interpreter_api_secret['SecretString'])
+    #print('secret: ', secret)
+    code_interpreter_api_key = secret['code_interpreter_api_key']
+    code_interpreter_project = secret['project_name']
+    code_interpreter_id = secret['code_interpreter_id']
+
+    # logger.info(f"code_interpreter_id: {code_interpreter_id}")
+except Exception as e:
+    raise e
+
+if code_interpreter_api_key:
+    os.environ["RIZA_API_KEY"] = code_interpreter_api_key
+
 def isKorean(text):
     # check korean
     pattern_hangul = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')
