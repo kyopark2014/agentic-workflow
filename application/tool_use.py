@@ -11,6 +11,7 @@ import utils
 import search
 import base64
 import uuid
+import yfinance as yf
 
 from typing_extensions import Annotated, TypedDict
 from langgraph.graph.message import add_messages
