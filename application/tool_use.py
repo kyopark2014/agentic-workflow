@@ -386,7 +386,8 @@ def code_drawer(code):
     """
     Execute a Python script for draw a graph.
     Since Python runtime cannot use external APIs, necessary data must be included in the code.
-    Graphs can only be written in English.
+    The graph should use English exclusively for all textual elements.
+    When a comparison is made, all arrays must be of the same length.
     code: the Python code was written in English
     return: the url of graph
     """ 
@@ -458,7 +459,57 @@ print(image_base64)
 
     return result
 
-tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup, code_drawer]        
+@tool
+def code_interpreter(code):
+    """
+    Execute a Python script to solve a complex question.    
+    Since Python runtime cannot use external APIs, necessary data must be included in the code.
+    The Python runtime does not have filesystem access, but does include the entire standard library.
+    Make HTTP requests with the httpx or requests libraries.
+    Read input from stdin and write output to stdout."        
+    code: the Python code was written in English
+    return: the stdout value
+    """ 
+        
+    code = re.sub(r"seaborn", "classic", code)
+    code = re.sub(r"plt.savefig", "#plt.savefig", code)
+    
+    pre = f"os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'\n"  # matplatlib
+    post = """"""
+    # code = pre + code + post    
+    code = pre + code
+    logger.info(f"code: {code}")
+    
+    result = ""
+    try:     
+        client = Riza()
+
+        resp = client.command.exec(
+            runtime_revision_id=chat.code_interpreter_id,
+            language="python",
+            code=code,
+            env={
+                "DEBUG": "true",
+            }
+        )
+        output = dict(resp)
+        print(f"output: {output}") # includling exit_code, stdout, stderr
+
+        if resp.exit_code > 0:
+            logger.debug(f"non-zero exit code {resp.exit_code}")
+
+        resp.stdout        
+        result = f"프로그램 실행 결과: {resp.stdout}"
+
+    except Exception:
+        result = "프로그램 실행에 실패했습니다. 다시 시도해주세요."
+        err_msg = traceback.format_exc()
+        logger.info(f"error message: {err_msg}")
+
+    logger.info(f"result: {result}")
+    return result
+
+tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup, code_drawer, code_interpreter]        
 
 ####################### LangGraph #######################
 # Chat Agent Executor
