@@ -12,8 +12,7 @@
 
 전체적인 architecture는 아래와 같습니다. Streamlit이 설치된 EC2는 private subnet에 있고, CloudFront-ALB를 이용해 외부와 연결됩니다. RAG는 Knowledge base를 이용해 손쉽게 동기화 및 문서관리가 가능합니다. 이때 Knowledge base의 data source로는 OpenSearch를 활용하고 있습니다. 인터넷 검색은 tavily를 사용하고 날씨 API를 추가로 활용합니다.
 
-<img width="800" alt="image" src="https://github.com/user-attachments/assets/ac1dc2a8-3bb8-4d77-8d15-cf708e3541ab" />
-
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/9d48c4d0-554b-4211-812b-329571f36b97" />
 
 ## 상세 구현
 
