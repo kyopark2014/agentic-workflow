@@ -786,12 +786,9 @@ Agent의 정확한 동작을 LangSmith 로그를 이용해 확인합니다. Agen
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/c8b6f42a-4b4c-4b1a-ae6e-66adce7956cd" />
 
 
-메뉴에서 "Agent"를 선택하고 "네이버와 카카오의 주가 동향을 비교하여 그래프를 그려주세요. 그래프는 영어로 작성하고 향후 투자 방법에 대해서도 조언해주세요"라고 입력후 결과를 확인하면 아래와 같습니다.
+메뉴에서 "Agent"를 선택하고 "네이버와 카카오의 일별 주식 가격 변화량을 그래프로 비교해 주세요. 향후 투자 방법에 대한 가이드도 부탁드립니다."라고 입력후 결과를 확인하면 아래와 같습니다.
 
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/26ea6bc9-3dcb-48e7-81ec-0c535d98c3a8" />
-
-
-       
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/517237e4-3c7b-4649-b84e-940bc1fd34dd" />
 
 
 
