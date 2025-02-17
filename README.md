@@ -781,9 +781,9 @@ Agent의 정확한 동작을 LangSmith 로그를 이용해 확인합니다. Agen
 
 
 
-메뉴에서 "Agent"를 선택하고 "2000년 이후에 한국의 GDP 변화를 일본과 비교해서 그래프로 그려주세요. 그래프는 영어로 작성합니다."라고 입력하고 결과를 확인합니다. 이때 agent는 인터넷을 검색하여 얻어온 GDP정보를 code interpreter를 이용해 그래프로 표시합니다.
+메뉴에서 "Agent"를 선택하고 "2000년 이후에 한국의 GDP 변화를 일본과 비교하는 그래프를 그려주세요."라고 입력하고 결과를 확인합니다. 이때 agent는 인터넷을 검색하여 얻어온 GDP정보를 code interpreter를 이용해 그래프로 표시합니다.
 
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/c8b6f42a-4b4c-4b1a-ae6e-66adce7956cd" />
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/e2807786-5cda-4e4c-a645-252c397af97b" />
 
 
 메뉴에서 "Agent"를 선택하고 "네이버와 카카오의 일별 주식 가격 변화량을 그래프로 비교해 주세요. 향후 투자 방법에 대한 가이드도 부탁드립니다."라고 입력후 결과를 확인하면 아래와 같습니다.
