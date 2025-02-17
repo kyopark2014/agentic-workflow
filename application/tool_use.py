@@ -471,12 +471,7 @@ def code_interpreter(code):
     return: the stdout value
     """ 
         
-    code = re.sub(r"seaborn", "classic", code)
-    code = re.sub(r"plt.savefig", "#plt.savefig", code)
-    
     pre = f"os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'\n"  # matplatlib
-    post = """"""
-    # code = pre + code + post    
     code = pre + code
     logger.info(f"code: {code}")
     
@@ -493,7 +488,7 @@ def code_interpreter(code):
             }
         )
         output = dict(resp)
-        print(f"output: {output}") # includling exit_code, stdout, stderr
+        logger.info(f"output: {output}") # includling exit_code, stdout, stderr
 
         if resp.exit_code > 0:
             logger.debug(f"non-zero exit code {resp.exit_code}")
