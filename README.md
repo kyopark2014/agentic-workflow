@@ -691,25 +691,16 @@ print(image_base64)
     )
     output = dict(resp)
 
-    print(f"output: {output}") # includling exit_code, stdout, stderr
-
-    if resp.exit_code > 0:
-        logger.debug(f"non-zero exit code {resp.exit_code}")
-
     base64Img = resp.stdout
-
     byteImage = BytesIO(base64.b64decode(base64Img))
 
     image_name = generate_short_uuid()+'.png'
     url = chat.upload_to_s3(byteImage, image_name)
-    logger.info(f"url: {url}")
 
     file_name = url[url.rfind('/')+1:]
-    print(f"file_name: {file_name}")
 
     global image_url
     image_url.append(path+'/'+s3_image_prefix+'/'+parse.quote(file_name))
-    print(f"image_url: {image_url}")
 
     result = f"생성된 그래프의 URL: {image_url}"
     return result
@@ -734,38 +725,28 @@ def code_interpreter(code):
     code = re.sub(r"plt.savefig", "#plt.savefig", code)
     
     pre = f"os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'\n"  # matplatlib
-    post = """"""
-    # code = pre + code + post    
     code = pre + code
     logger.info(f"code: {code}")
     
-    result = ""
-    try:     
-        client = Riza()
+    client = Riza()
 
-        resp = client.command.exec(
-            runtime_revision_id=code_interpreter_id,
-            language="python",
-            code=code,
-            env={
-                "DEBUG": "true",
-            }
-        )
-        output = dict(resp)
-        print(f"output: {output}") # includling exit_code, stdout, stderr
+    resp = client.command.exec(
+        runtime_revision_id=code_interpreter_id,
+        language="python",
+        code=code,
+        env={
+            "DEBUG": "true",
+        }
+    )
+    output = dict(resp)
+    print(f"output: {output}") # includling exit_code, stdout, stderr
 
-        if resp.exit_code > 0:
-            logger.debug(f"non-zero exit code {resp.exit_code}")
+    if resp.exit_code > 0:
+        logger.debug(f"non-zero exit code {resp.exit_code}")
 
-        resp.stdout        
-        result = f"프로그램 실행 결과: {resp.stdout}"
+    resp.stdout        
+    result = f"프로그램 실행 결과: {resp.stdout}"
 
-    except Exception:
-        result = "프로그램 실행에 실패했습니다. 다시 시도해주세요."
-        err_msg = traceback.format_exc()
-        logger.info(f"error message: {err_msg}")
-
-    logger.info(f"result: {result}")
     return result
 ```
 
