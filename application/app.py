@@ -24,9 +24,6 @@ mode_descriptions = {
     "Agent (Tool Use)": [
         "Tool Use 방식의 Workflow를 수행하는 Agent를 구현합니다. 여기에서는 날씨, 시간, 도서추천, RAG, 인터넷 검색을 제공합니다."
     ],
-    "Agent Chat (Tool Use)": [
-        "Agent를 이용해 RAG의 성능을 향상시킵니다. 이전 채팅 히스토리를 반영한 대화가 가능합니다."
-    ],
     "Agent (Reflection)": [
         "Reflection Workflow를 수행하는 Agent 구현합니다."
     ],
@@ -62,13 +59,13 @@ with st.sidebar:
     
     # radio selection
     mode = st.radio(
-        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기", "이미지 분석", "이미지 문제 풀이"], index=0
+        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기", "이미지 분석", "이미지 문제 풀이"], index=0
     )   
     st.info(mode_descriptions[mode][0])    
     # print('mode: ', mode)
 
     # model selection box
-    if mode == '이미지 분석' or mode=="이미지 문제 풀이":
+    if mode == '이미지 분석' or mode=="이미지 문제 풀이" or mode=="Agent (Tool Use)":
         index = 3        
     else:
         index = 0   
@@ -274,30 +271,6 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                         file_name = url[url.rfind('/')+1:]
                         st.image(url, caption=file_name, use_container_width=True)
 
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response,
-                    "images": image_url if image_url else []
-                })
-
-                chat.save_chat_history(prompt, response)
-            
-            show_references(reference_docs) 
-
-        elif mode == 'Agent Chat (Tool Use)':
-            with st.status("thinking...", expanded=True, state="running") as status:
-                revise_prompt = chat.revise_question(prompt, st)
-                response, image_url, reference_docs = tool_use.run_agent_executor(revise_prompt, st)
-                st.write(response)
-                logger.info(f"response: {response}")
-
-                if len(image_url):
-                    for url in image_url:
-                        logger.info(f"url: {url}")
-
-                        file_name = url[url.rfind('/')+1:]
-                        st.image(url, caption=file_name, use_container_width=True)
-                
                 st.session_state.messages.append({
                     "role": "assistant", 
                     "content": response,
