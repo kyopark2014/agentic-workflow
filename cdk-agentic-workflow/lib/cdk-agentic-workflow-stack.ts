@@ -299,6 +299,17 @@ export class CdkAgenticWorkflowStack extends cdk.Stack {
       }),
     );     
 
+    // Cost Explorer Policy
+    const costExplorerPolicy = new iam.PolicyStatement({  
+      resources: ['*'],
+      actions: ['ce:GetCostAndUsage'],
+    });        
+    ec2Role.attachInlinePolicy( // add costExplorerPolicy
+      new iam.Policy(this, `cost-explorer-policy-for-${projectName}`, {
+        statements: [costExplorerPolicy],
+      }),
+    );      
+
     const ec2Policy = new iam.PolicyStatement({  
       resources: ['arn:aws:ec2:*:*:instance/*'],
       actions: ['ec2:*'],
