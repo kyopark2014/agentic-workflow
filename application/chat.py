@@ -27,6 +27,8 @@ from urllib import parse
 from pydantic.v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.store.memory import InMemoryStore
 
 logger = utils.CreateLogger("chat")
 
@@ -46,20 +48,38 @@ except Exception:
 userId = "demo"
 map_chain = dict() 
 
+checkpointers = dict() 
+memorystores = dict() 
+
+checkpointer = MemorySaver()
+memorystore = InMemoryStore()
+
+checkpointers[userId] = checkpointer
+memorystores[userId] = memorystore
+
 def initiate():
     global userId
-    global memory_chain
+    global map_chain, memory_chain, checkpointers, memorystores, checkpointer, memorystore
 
     userId = uuid.uuid4().hex
     logger.info(f"userId: {userId}")
 
     if userId in map_chain:  
-            # print('memory exist. reuse it!')
-            memory_chain = map_chain[userId]
+        # print('memory exist. reuse it!')
+        memory_chain = map_chain[userId]
+
+        checkpointer = checkpointers[userId]
+        memorystore = memorystores[userId]
     else: 
         # print('memory does not exist. create new one!')        
         memory_chain = ConversationBufferWindowMemory(memory_key="chat_history", output_key='answer', return_messages=True, k=5)
         map_chain[userId] = memory_chain
+
+        checkpointer = MemorySaver()
+        memorystore = InMemoryStore()
+
+        checkpointers[userId] = checkpointer
+        memorystores[userId] = memorystore
     
 initiate()
 
