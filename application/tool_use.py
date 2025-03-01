@@ -439,11 +439,11 @@ print(image_base64)
         logger.info(f"url: {url}")
 
         file_name = url[url.rfind('/')+1:]
-        print(f"file_name: {file_name}")
+        logger.info(f"file_name: {file_name}")
 
         global image_url
         image_url.append(path+'/'+s3_image_prefix+'/'+parse.quote(file_name))
-        print(f"image_url: {image_url}")
+        logger.info(f"image_url: {image_url}")
 
         result = f"생성된 그래프의 URL: {image_url}"
 
