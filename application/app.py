@@ -74,12 +74,12 @@ with st.sidebar:
 
     # model selection box
     if mode == '이미지 분석' or mode=="이미지 문제 풀이" or mode=="Agent (Tool Use)":
-        index = 3        
+        index = 2
     else:
         index = 0   
     modelName = st.selectbox(
         '🖊️ 사용 모델을 선택하세요',
-        ('Nova Pro', 'Nova Lite', 'Claude 3.5 Sonnet v1', 'Claude 3.5 Sonnet v2', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku'), index=index
+        ('Nova Pro', 'Nova Lite', 'Claude 3.7 Sonnet', 'Claude 3.5 Sonnet v1', 'Claude 3.5 Sonnet v2', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku'), index=index
     )
     uploaded_file = None
     if mode=='이미지 분석' or mode=="이미지 문제 풀이":
