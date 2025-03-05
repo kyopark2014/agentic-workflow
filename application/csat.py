@@ -218,7 +218,7 @@ def solve_problems(conn, paragraph, problems, idx, total_idx, st):
         #     class Selection(BaseModel):
         #         select: int = Field(description="선택지의 번호")
             
-        #     chat = get_chat()
+        #     chat = get_chat(extended_thinking="Disable")
         #     structured_llm = chat.with_structured_output(Selection, include_raw=True)
             
         #     info = structured_llm.invoke(output)
@@ -361,7 +361,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 ("human", human),
             ]
         )
-        llm = chat.get_chat()
+        llm = chat.get_chat(extended_thinking="Disable")
         planner = planner_prompt | llm
         response = planner.invoke({
             "paragraph": paragraph,
@@ -510,7 +510,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         result = ""
         for attempt in range(3):
             try:
-                llm = chat.get_chat()
+                llm = chat.get_chat(extended_thinking="Disable")
                 chain = prompt | llm                        
                 response = chain.invoke({
                     "paragraph": state["paragraph"],
@@ -676,7 +676,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
                 ("human", human),
             ]
         )        
-        llm = chat.get_chat()
+        llm = chat.get_chat(extended_thinking="Disable")
         replanner = replanner_prompt | llm        
 
         # plans = '\n'.join(state["plan"])
@@ -846,7 +846,7 @@ def solve_CSAT_Korean(paragraph, question, question_plus, choices, idx, nth, cor
         answer = 0
         for attempt in range(3):
             try:
-                llm = chat.get_chat()
+                llm = chat.get_chat(extended_thinking="Disable")
                 chain = prompt | llm                
                 response = chain.invoke(
                     {

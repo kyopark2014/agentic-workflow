@@ -70,7 +70,7 @@ def run_self_planning(question, st):
                 ("human", human),
             ]
         )
-        llm = chat.get_chat()
+        llm = chat.get_chat(extended_thinking="Disable")
         planner = planner_prompt | llm
         response = planner.invoke({
             "question": question
@@ -180,7 +180,7 @@ def run_self_planning(question, st):
         result = ""
         for attempt in range(3):
             try:
-                llm = chat.get_chat()
+                llm = chat.get_chat(extended_thinking="Disable")
                 chain = prompt | llm                        
                 response = chain.invoke({
                     "question": state["question"],
@@ -319,7 +319,7 @@ def run_self_planning(question, st):
                 ("human", human),
             ]
         )        
-        llm = chat.get_chat()
+        llm = chat.get_chat(extended_thinking="Disable")
         replanner = replanner_prompt | llm        
 
         # plans = '\n'.join(state["plan"])
@@ -436,7 +436,7 @@ def run_self_planning(question, st):
         answer = 0
         for attempt in range(3):
             try:
-                llm = chat.get_chat()
+                llm = chat.get_chat(extended_thinking="Disable")
                 chain = prompt | llm                
                 response = chain.invoke(
                     {

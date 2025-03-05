@@ -100,12 +100,17 @@ with st.sidebar:
     multiRegion = 'Enable' if select_multiRegion else 'Disable'
     #print('multiRegion: ', multiRegion)
 
+    # extended thinking of claude 3.7 sonnet
+    select_reasoning = st.checkbox('Reasonking (only Claude 3.7 Sonnet)', value=False)
+    reasoningMode = 'Enable' if select_reasoning and modelName=='Claude 3.7 Sonnet' else 'Disable'
+    logger.info(f"reasoningMode: {reasoningMode}")
+
     # chart checkbox 
     selected_chart = st.checkbox('Chart', value=True)
     chart = 'Enable' if selected_chart else 'Disable'
     #print('chart: ', chart)
 
-    chat.update(modelName, debugMode, multiRegion)
+    chat.update(modelName, debugMode, multiRegion, reasoningMode)
     
     # code interpreter checkbox
     select_csat_evaluator = st.checkbox('CSAT evaluator', value=False)
@@ -277,8 +282,18 @@ if prompt := st.chat_input("메시지를 입력하세요."):
     
     with st.chat_message("assistant"):
         if mode == '일상적인 대화':
-            stream = chat.general_conversation(prompt)
-            response = st.write_stream(stream)
+            output = chat.general_conversation(prompt)            
+            if reasoningMode=="Enable":
+                with st.status("thinking...", expanded=True, state="running") as status:    
+                    # extended thinking
+                    if debugMode=="Enable":
+                        chat.show_extended_thinking(st, output)
+
+                    response = output.content
+                    st.write(response)
+                
+            else:
+                response = st.write_stream(output)
             logger.info(f"response: {response}")
             st.session_state.messages.append({"role": "assistant", "content": response})
             # st.rerun()

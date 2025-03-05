@@ -81,7 +81,7 @@ except Exception as e:
 
 def get_basic_answer(query):
     logger.info(f"#### get_basic_answer ####")
-    llm = chat.get_chat()
+    llm = chat.get_chat(extended_thinking="Disable")
 
     if chat.isKorean(query)==True:
         system = (
@@ -163,7 +163,7 @@ def get_weather_info(city: str) -> str:
     city = city.replace('\'','')
     city = city.replace('\"','')
                 
-    llm = chat.get_chat()
+    llm = chat.get_chat(extended_thinking="Disable")
     if chat.isKorean(city):
         place = chat.traslation(llm, city, "Korean", "English")
         logger.info(f"city (translated): {place}")
@@ -511,7 +511,7 @@ tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, se
 def run_agent_executor(query, historyMode, st):
     logger.info(f"###### run_agent_executor ######")
     logger.info(f"historyMode: {historyMode}")
-    chatModel = chat.get_chat()     
+    chatModel = chat.get_chat(chat.reasoning_mode)     
     model = chatModel.bind_tools(tools)
 
     class State(TypedDict):
@@ -589,6 +589,10 @@ def run_agent_executor(query, historyMode, st):
                     
                 response = chain.invoke(state["messages"])
                 logger.info(f"call_model response: {response}")
+
+                # extended thinking
+                if chat.debug_mode=="Enable":
+                    chat.show_extended_thinking(st, response)
 
                 if isinstance(response.content, list):            
                     for re in response.content:
@@ -720,6 +724,7 @@ def run_agent_executor(query, historyMode, st):
 # Agentic Workflow: Tool Use (partial tool을 활용)
 #########################################################
 
+"""
 def run_agent_executor2(query, st):        
     class State(TypedDict):
         messages: Annotated[list, add_messages]
@@ -827,7 +832,7 @@ def run_agent_executor2(query, st):
             "answer": answer
         }
     
-    llm = chat.get_chat()
+    llm = chat.get_chat(extended_thinking="Disable")
     
     execution_agent = create_agent(llm, tools)
     
@@ -895,3 +900,4 @@ def run_agent_executor2(query, st):
     msg = output['answer']
 
     return msg, reference_docs
+"""

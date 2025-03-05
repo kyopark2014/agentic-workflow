@@ -66,7 +66,7 @@ def run_long_form_writing_agent(query, st):
         reflection = []
         search_queries = []
         for attempt in range(20):
-            llm = chat.get_chat()
+            llm = chat.get_chat(extended_thinking="Disable")
             if chat.isKorean(draft):
                 structured_llm = llm.with_structured_output(ResearchKor, include_raw=True)
             else:
@@ -92,7 +92,7 @@ def run_long_form_writing_agent(query, st):
                     if chat.isKorean(draft):
                         translated_search = []
                         for q in search_queries:
-                            llm = chat.get_chat()
+                            llm = chat.get_chat(extended_thinking="Disable")
                             if chat.isKorean(q):
                                 search = chat.traslation(llm, q, "Korean", "English")
                             else:
@@ -139,7 +139,7 @@ def run_long_form_writing_agent(query, st):
         if chat.isKorean(draft):
             translated_search = []
             for q in search_queries:
-                llm = chat.get_chat()
+                llm = chat.get_chat(extended_thinking="Disable")
                 if chat.isKorean(q):
                     search = chat.traslation(llm, q, "Korean", "English")
                 else:
@@ -168,7 +168,7 @@ def run_long_form_writing_agent(query, st):
         # translate
         # docs = []
         # for doc in relevant_docs:
-        #     chat = get_chat()
+        #     chat = get_chat(extended_thinking="Disable")
         #     if not isKorean(doc.page_content):
         #         translated_content = traslation(chat, doc.page_content, "English", "Korean")
         #         doc.page_content = translated_content
@@ -274,7 +274,7 @@ def run_long_form_writing_agent(query, st):
             ('human', human)
         ])
 
-        llm = chat.get_chat()
+        llm = chat.get_chat(extended_thinking="Disable")
         reflect_chain = revise_prompt | llm
 
         return reflect_chain
@@ -448,7 +448,7 @@ def run_long_form_writing_agent(query, st):
             ('human', human) 
         ])
                 
-        llm = chat.get_chat()
+        llm = chat.get_chat(extended_thinking="Disable")
         
         planner = planner_prompt | llm
     
@@ -547,7 +547,7 @@ def run_long_form_writing_agent(query, st):
         drafts = []
         for idx, step in enumerate(planning_steps):            
             # Invoke the write_chain
-            llm = chat.get_chat()
+            llm = chat.get_chat(extended_thinking="Disable")
             write_chain = write_prompt | llm     
 
             plan = ""
@@ -664,7 +664,7 @@ def run_long_form_writing_agent(query, st):
         prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
         # print('prompt: ', prompt)
         
-        llm = chat.get_chat()
+        llm = chat.get_chat(extended_thinking="Disable")
         chain = prompt | llm    
         try: 
             result = chain.invoke(
@@ -896,7 +896,7 @@ def extract_reflection2(draft):
     reflection = ""
     for attempt in range(5):
         try:
-            llm = chat.get_chat()
+            llm = chat.get_chat(extended_thinking="Disable")
             chain = critique_prompt | llm
             result = chain.invoke({
                 "draft": draft
@@ -943,7 +943,7 @@ def extract_reflection2(draft):
     )
     for attempt in range(5):
         try:
-            llm = chat.get_chat()
+            llm = chat.get_chat(extended_thinking="Disable")
             if chat.isKorean(draft):
                 structured_llm_queries = llm.with_structured_output(QueriesKor, include_raw=True)
             else:
