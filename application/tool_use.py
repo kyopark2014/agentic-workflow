@@ -464,12 +464,12 @@ def code_interpreter(code):
     """
     Execute a Python script to solve a complex question.    
     Since Python runtime cannot use external APIs, necessary data must be included in the code.
-    The Python runtime does not have filesystem access, but does include the entire standard library.
-    Make HTTP requests with the httpx or requests libraries.
-    Read input from stdin and write output to stdout."        
+    The Python runtime does not have filesystem access, but does include the entire standard library.    
     code: the Python code was written in English
     return: the stdout value
     """ 
+    # Make HTTP requests with the httpx or requests libraries.
+    # Read input from stdin and write output to stdout."            
         
     pre = f"os.environ[ 'MPLCONFIGDIR' ] = '/tmp/'\n"  # matplatlib
     code = pre + code
