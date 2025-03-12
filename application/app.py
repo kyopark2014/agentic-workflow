@@ -106,7 +106,7 @@ with st.sidebar:
     logger.info(f"reasoningMode: {reasoningMode}")
 
     # chart checkbox 
-    selected_chart = st.checkbox('Chart', value=True)
+    selected_chart = st.checkbox('Chart', value=False)
     chart = 'Enable' if selected_chart else 'Disable'
     #print('chart: ', chart)
 
