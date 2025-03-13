@@ -771,6 +771,13 @@ Agent의 정확한 동작을 LangSmith 로그를 이용해 확인합니다. Agen
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/517237e4-3c7b-4649-b84e-940bc1fd34dd" />
 
 
+## Multi-agent Collaboration
+
+### Supervisor
+
+### SWARM
+
+[LangGraph Multi-Agent Swarm](https://github.com/langchain-ai/langgraph-swarm-py/tree/main)와 같이 때로는 agent가 직접 메시지 및 history를 공유함으로써 multi-agent를 구성하는것이 좋을수도 있습니다. 추후 case study.
 
 ## 활용 방법
 
