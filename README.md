@@ -892,3 +892,5 @@ RAG를 테스트 하였을때에 사용한 "Bedrock Agent와 S3를 비교해 주
 [AI Agent workflows from Anthropic](https://www.linkedin.com/posts/rakeshgohel01_these-ai-agent-workflows-from-anthropic-can-activity-7294724354221776897-pILx/?utm_source=share&utm_medium=member_android)
 
 [LangGraph Multi-Agent Supervisor](https://github.com/langchain-ai/langgraph-supervisor)
+
+[Multi-agent swarms with LangGraph](https://www.youtube.com/watch?v=JeyDrn1dSUQ)
