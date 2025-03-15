@@ -562,7 +562,7 @@ primaryColor="#fff700"
 EOF'`,
       `json='${JSON.stringify(environment)}' && echo "$json">/home/config.json`,
       `runuser -l ec2-user -c 'cd && git clone https://github.com/kyopark2014/${projectName}'`,
-      `runuser -l ec2-user -c 'pip install langchain_aws langchain langchain_community langgraph langgraph-supervisor'`,
+      `runuser -l ec2-user -c 'pip install langchain_aws langchain langchain_community langgraph'`,
       `runuser -l ec2-user -c 'pip install boto3 opensearch-py'`,      
       `runuser -l ec2-user -c 'pip install streamlit streamlit_chat beautifulsoup4 pytz tavily-python'`,        
       `runuser -l ec2-user -c 'pip install PyPDF2 yfinance rizaio plotly_express'`,
