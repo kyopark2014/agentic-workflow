@@ -71,7 +71,8 @@ with st.sidebar:
     
     # radio selection
     mode = st.radio(
-        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent with Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "Supervisor", "번역하기", "이미지 분석", "이미지 문제 풀이", "비용 분석"], index=0
+        # label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent with Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "Supervisor", "번역하기", "이미지 분석", "이미지 문제 풀이", "비용 분석"], index=0
+        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent with Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기", "이미지 분석", "이미지 문제 풀이", "비용 분석"], index=0
     )   
     st.info(mode_descriptions[mode][0])    
     # print('mode: ', mode)
@@ -418,28 +419,28 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             
             show_references(reference_docs) 
 
-        elif mode == 'Supervisor':
-            with st.status("thinking...", expanded=True, state="running") as status:
-                response, image_url, reference_docs = superviser.run_supervisor(prompt, st)
-                st.write(response)
-                logger.info(f"response: {response}")
+        # elif mode == 'Supervisor':
+        #     with st.status("thinking...", expanded=True, state="running") as status:
+        #         response, image_url, reference_docs = superviser.run_supervisor(prompt, st)
+        #         st.write(response)
+        #         logger.info(f"response: {response}")
 
-                if len(image_url):
-                    for url in image_url:
-                        logger.info(f"url: {url}")
+        #         if len(image_url):
+        #             for url in image_url:
+        #                 logger.info(f"url: {url}")
 
-                        file_name = url[url.rfind('/')+1:]
-                        st.image(url, caption=file_name, use_container_width=True)
+        #                 file_name = url[url.rfind('/')+1:]
+        #                 st.image(url, caption=file_name, use_container_width=True)
 
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": response,
-                    "images": image_url if image_url else []
-                })
+        #         st.session_state.messages.append({
+        #             "role": "assistant", 
+        #             "content": response,
+        #             "images": image_url if image_url else []
+        #         })
 
-                chat.save_chat_history(prompt, response)
+        #         chat.save_chat_history(prompt, response)
             
-            show_references(reference_docs) 
+        #     show_references(reference_docs) 
 
         elif mode == '번역하기':
             response = chat.translate_text(prompt, modelName)
