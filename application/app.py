@@ -7,6 +7,7 @@ import reflection
 import planning
 import multi_agent
 import csat
+import superviser
 
 import cost_analysis as cost
 
@@ -38,6 +39,9 @@ mode_descriptions = {
     "Agent (Multi-agent Collaboration)": [
         "Planning/Reflection agent들을 이용하여 Multi-agent Collaboration Workflow을 수행합니다. 여기서 Reflection agent들은 병렬처리하여 수행시간을 단축합니다."
     ],
+    "Supervisor": [
+        "Supervisor 패턴의 multi-agent를 이용해 다양한 형태의 대화를 구현합니다."
+    ],
     "번역하기": [
         "한국어와 영어에 대한 번역을 제공합니다. 한국어로 입력하면 영어로, 영어로 입력하면 한국어로 번역합니다."        
     ],
@@ -67,7 +71,7 @@ with st.sidebar:
     
     # radio selection
     mode = st.radio(
-        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent with Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기", "이미지 분석", "이미지 문제 풀이", "비용 분석"], index=0
+        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent with Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "Supervisor", "번역하기", "이미지 분석", "이미지 문제 풀이", "비용 분석"], index=0
     )   
     st.info(mode_descriptions[mode][0])    
     # print('mode: ', mode)
@@ -76,7 +80,7 @@ with st.sidebar:
     if mode == '이미지 분석' or mode=="이미지 문제 풀이" or mode=="Agent (Tool Use)":
         index = 2
     else:
-        index = 0   
+        index = 2   
     modelName = st.selectbox(
         '🖊️ 사용 모델을 선택하세요',
         ('Nova Pro', 'Nova Lite', 'Claude 3.7 Sonnet', 'Claude 3.5 Sonnet v1', 'Claude 3.5 Sonnet v2', 'Claude 3.0 Sonnet', 'Claude 3.5 Haiku'), index=index
@@ -409,6 +413,29 @@ if prompt := st.chat_input("메시지를 입력하세요."):
                 st.session_state.messages.append({"role": "assistant", "content": response})
                 if debugMode != "Enable":
                     st.rerun()
+
+                chat.save_chat_history(prompt, response)
+            
+            show_references(reference_docs) 
+
+        elif mode == 'Supervisor':
+            with st.status("thinking...", expanded=True, state="running") as status:
+                response, image_url, reference_docs = superviser.run_supervisor(prompt, st)
+                st.write(response)
+                logger.info(f"response: {response}")
+
+                if len(image_url):
+                    for url in image_url:
+                        logger.info(f"url: {url}")
+
+                        file_name = url[url.rfind('/')+1:]
+                        st.image(url, caption=file_name, use_container_width=True)
+
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": response,
+                    "images": image_url if image_url else []
+                })
 
                 chat.save_chat_history(prompt, response)
             

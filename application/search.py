@@ -93,15 +93,15 @@ def retrieve_documents_from_tavily(query, top_k):
                     
     try: 
         output = search.invoke(query)
-        logger.info(f"tavily output: {output}")
+        # logger.info(f"tavily output: {output}")
 
         if output[:9] == "HTTPError":
             logger.info(f"output: {output}")
             raise Exception ("Not able to request to tavily")
         else:        
-            logger.info(f"-> tavily query: {query}")
+            # logger.info(f"-> tavily query: {query}")
             for i, result in enumerate(output):
-                logger.info(f"{i}: {result}")
+                # logger.info(f"{i}: {result}")
                 if result:
                     content = result.get("content")
                     url = result.get("url")
@@ -125,7 +125,7 @@ def retrieve_documents_from_tavily(query, top_k):
     return relevant_documents 
 
 def retrieve_contents_from_tavily(queries, top_k):
-    logger.info(f"###### retrieve_documents_from_tavily ######")
+    logger.info(f"###### retrieve_contents_from_tavily ######")
 
     contents = []       
     search = TavilySearchResults(

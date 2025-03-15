@@ -6,7 +6,6 @@ import requests
 import datetime
 import knowledge_base as kb
 import chat
-import functools
 import utils
 import search
 import base64
@@ -155,7 +154,7 @@ def get_current_time(format: str=f"%Y-%m-%d %H:%M:%S")->str:
 def get_weather_info(city: str) -> str:
     """
     retrieve weather information by city name and then return weather statement.
-    city: the name of city to retrieve
+    city: the English name of city to retrieve
     return: weather statement
     """    
     
@@ -320,12 +319,13 @@ def search_by_tavily(keyword: str) -> str:
     
     keyword = keyword.replace('\'','')
     relevant_documents = search.retrieve_documents_from_tavily(keyword, top_k=3)
+    logger.info(f"--> {len(relevant_documents)} docs from tavily")
 
     answer = ""
-    for doc in reference_docs:
+    for doc in relevant_documents:
         content = doc.page_content
         url = doc.metadata['url']
-        answer += + f"{content}, URL: {url}\n" 
+        answer += f"{content}, URL: {url}\n" 
 
     if len(relevant_documents):
         reference_docs += relevant_documents
@@ -529,15 +529,10 @@ def run_agent_executor(query, historyMode, st):
 
         last_message = messages[-1]
         logger.info(f"last_message: {last_message}")
-        
-        # print('last_message: ', last_message)
-        
-        # if not isinstance(last_message, ToolMessage):
-        #     return "end"
-        # else:                
-        #     return "continue"
-        if isinstance(last_message, ToolMessage) or last_message.tool_calls:
-            logger.info(f"tool_calls: {last_message.tool_calls}")
+
+        if isinstance(last_message, AIMessage) and last_message.tool_calls:
+            logger.info(f"{last_message.content}")
+            st.info(f"{last_message.content}")
 
             for message in last_message.tool_calls:
                 args = message['args']
