@@ -5,7 +5,7 @@ import tool_use
 import utils
 import reflection
 import planning
-import multi_agent
+import deep_research
 import csat
 import superviser
 
@@ -36,8 +36,8 @@ mode_descriptions = {
     "Agent (Planning)": [
         "Planning Workflow를 수행하는 Agent 구현합니다."
     ],
-    "Agent (Multi-agent Collaboration)": [
-        "Planning/Reflection agent들을 이용하여 Multi-agent Collaboration Workflow을 수행합니다. 여기서 Reflection agent들은 병렬처리하여 수행시간을 단축합니다."
+    "Deep Research Agent": [
+        "Multi-agent Collaboration을 이용하여 Deep Research Agent를 구현합니다."
     ],
     "Supervisor": [
         "Supervisor 패턴의 multi-agent를 이용해 다양한 형태의 대화를 구현합니다."
@@ -71,8 +71,8 @@ with st.sidebar:
     
     # radio selection
     mode = st.radio(
-        # label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent with Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "Supervisor", "번역하기", "이미지 분석", "이미지 문제 풀이", "비용 분석"], index=0
-        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent with Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Agent (Multi-agent Collaboration)", "번역하기", "이미지 분석", "이미지 문제 풀이", "비용 분석"], index=0
+        label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent with Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Deep Research Agent", "번역하기", "이미지 분석", "이미지 문제 풀이", "비용 분석"], index=0
+        # label="원하는 대화 형태를 선택하세요. ",options=["일상적인 대화", "RAG", "Agent (Tool Use)", "Agent with Chat (Tool Use)", "Agent (Reflection)", "Agent (Planning)", "Deep Research Agent", "Supervisor", "번역하기", "이미지 분석", "이미지 문제 풀이", "비용 분석"], index=0
     )   
     st.info(mode_descriptions[mode][0])    
     # print('mode: ', mode)
@@ -193,7 +193,7 @@ if chart == 'Enable':
         col1, col2, col3 = st.columns([0.2, 0.3, 0.2])
         url = "https://raw.githubusercontent.com/kyopark2014/agentic-workflow/main/contents/planning.png"
         col2.image(url)
-    elif mode == 'Agent (Multi-agent Collaboration)':
+    elif mode == 'Deep Research Agent':
         col1, col2, col3 = st.columns([0.1, 2.0, 0.1])    
         url = "https://raw.githubusercontent.com/kyopark2014/agentic-workflow/main/contents/multi_agent_collaboration.png"
         col2.image(url)
@@ -400,9 +400,9 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             
             show_references(reference_docs) 
 
-        elif mode == 'Agent (Multi-agent Collaboration)':
+        elif mode == 'Deep Research Agent':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, reference_docs = multi_agent.run_long_form_writing_agent(prompt, st)
+                response, reference_docs = multi_agent.run_deep_research_agent(prompt, st)
                 st.write(response)
                 logger.info(f"response: {response}")
 
@@ -419,28 +419,28 @@ if prompt := st.chat_input("메시지를 입력하세요."):
             
             show_references(reference_docs) 
 
-        # elif mode == 'Supervisor':
-        #     with st.status("thinking...", expanded=True, state="running") as status:
-        #         response, image_url, reference_docs = superviser.run_supervisor(prompt, st)
-        #         st.write(response)
-        #         logger.info(f"response: {response}")
+        elif mode == 'Supervisor':
+            with st.status("thinking...", expanded=True, state="running") as status:
+                response, image_url, reference_docs = superviser.run_supervisor(prompt, st)
+                st.write(response)
+                logger.info(f"response: {response}")
 
-        #         if len(image_url):
-        #             for url in image_url:
-        #                 logger.info(f"url: {url}")
+                if len(image_url):
+                    for url in image_url:
+                        logger.info(f"url: {url}")
 
-        #                 file_name = url[url.rfind('/')+1:]
-        #                 st.image(url, caption=file_name, use_container_width=True)
+                        file_name = url[url.rfind('/')+1:]
+                        st.image(url, caption=file_name, use_container_width=True)
 
-        #         st.session_state.messages.append({
-        #             "role": "assistant", 
-        #             "content": response,
-        #             "images": image_url if image_url else []
-        #         })
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": response,
+                    "images": image_url if image_url else []
+                })
 
-        #         chat.save_chat_history(prompt, response)
+                chat.save_chat_history(prompt, response)
             
-        #     show_references(reference_docs) 
+            show_references(reference_docs) 
 
         elif mode == '번역하기':
             response = chat.translate_text(prompt, modelName)

@@ -174,7 +174,7 @@
 #     logger.info(f"###### run_supervisor ######")
 #     logger.info(f"query: {query}")
 
-#     global search_agent, stock_agent, supervisor_agent, isInitiated
+#     global search_agent, stock_agent, supervisor_agent, weather_agent, code_agent, isInitiated
 #     if not isInitiated:
 #         # creater search agent
 #         search_agent = create_collaborator(
@@ -186,9 +186,19 @@
 #             [tool_use.stock_data_lookup], 
 #             "stock_agent", st
 #         )
+#         # creater weather agent
+#         weather_agent = create_collaborator(
+#             [tool_use.get_weather_info], 
+#             "weather_agent", st
+#         )
+#         # creater code agent
+#         code_agent = create_collaborator(
+#             [tool_use.code_drawer, tool_use.code_interpreter], 
+#             "code_agent", st
+#         )
 
 #         workflow = create_supervisor(
-#             [search_agent, stock_agent],
+#             [search_agent, stock_agent, weather_agent, code_agent],
 #             model=chat.get_chat(extended_thinking="Disable"),
 #             prompt=(
 #                 "You are a team supervisor managing a search expert and a stock expert. "

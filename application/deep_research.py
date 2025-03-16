@@ -12,12 +12,12 @@ from multiprocessing import Process, Pipe
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import START, END, StateGraph
 
-logger = utils.CreateLogger("multi-agent")
+logger = utils.CreateLogger("deep-research-agent")
 
 ####################### LangGraph #######################
 # Agentic Workflow Multi-agent Collaboration 
 #########################################################
-def run_long_form_writing_agent(query, st):
+def run_deep_research_agent(query, st):
     # Workflow - Reflection
     class ReflectionState(TypedDict):
         draft : str
