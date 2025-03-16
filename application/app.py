@@ -7,9 +7,8 @@ import reflection
 import planning
 import deep_research
 import csat
-import superviser
-
 import cost_analysis as cost
+import supervisor
 
 # logging
 logger = utils.CreateLogger("streamlit")
@@ -402,7 +401,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Deep Research Agent':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, reference_docs = multi_agent.run_deep_research_agent(prompt, st)
+                response, reference_docs = deep_research.run_deep_research_agent(prompt, st)
                 st.write(response)
                 logger.info(f"response: {response}")
 
@@ -421,7 +420,7 @@ if prompt := st.chat_input("메시지를 입력하세요."):
 
         elif mode == 'Supervisor':
             with st.status("thinking...", expanded=True, state="running") as status:
-                response, image_url, reference_docs = superviser.run_supervisor(prompt, st)
+                response, image_url, reference_docs = supervisor.run_supervisor(prompt, st)
                 st.write(response)
                 logger.info(f"response: {response}")
 
