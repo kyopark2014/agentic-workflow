@@ -526,7 +526,7 @@ reflection_app = workflow.compile()
 
 ## Multi-Agent 
 
-## Router
+### Router
 
 [Multi-agent supervisor](https://langchain-ai.github.io/langgraph/tutorials/multi_agent/agent_supervisor/)에 따라 supervisor를 구현합니다.
 
@@ -682,7 +682,7 @@ tools = [repl_coder, repl_drawer]
 ```
 
 
-### Riza 사용 준비
+### Sandbox에서 실행하기
 
 Sandbox 환경에서 Code Interpreter를 이용할 때에는 직접 container로 환경을 만들거나, [Jupyter Kernel Gateway](https://github.com/jupyter-server/kernel_gateway)을 이용하는 방안은 검토할 수 있으나 구현의 복잡성 등으로 인해서, [Riza](https://docs.riza.io/introduction)나 [E2B](https://www.linkedin.com/feed/update/urn:li:activity:7191459920251109377/?commentUrn=urn%3Ali%3Acomment%3A(activity%3A7191459920251109377%2C7295624350970363904)&dashCommentUrn=urn%3Ali%3Afsd_comment%3A(7295624350970363904%2Curn%3Ali%3Aactivity%3A7191459920251109377))와 같은 API를 활용할 수 있고, 아래에서는 Riza를 이용해 Code Interpreter를 활용하는 방법을 설명합니다. 
 
@@ -732,8 +732,6 @@ code_interpreter_id = secret['code_interpreter_id']
 if code_interpreter_api_key:
     os.environ["RIZA_API_KEY"] = code_interpreter_api_key
 ```
-
-### Sandbox환경으로 Code Interpreter의 Tool 등록 및 활용
 
 Code Interpreter를 위해 code_interpreter와 code_drawer을 구현하였고, 아래와 같이 tools에 추가하여 활용합니다. code_interpreter는 python code를 실행한후 결과를 리턴하고, code_drawer는 matplotlib을 이용해 그래프를 만든 후에 Base64 이미지로 리턴합니다.
 
