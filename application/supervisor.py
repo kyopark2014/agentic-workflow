@@ -215,7 +215,7 @@ def run_supervisor(query, st):
     }
     
     result = supervisor_agent.invoke({"messages": inputs}, config)
-    logger.info(f"messages: {result["messages"]}")
+    logger.info(f"messages: {result['messages']}")
     
     length = len(result["messages"])
     for i in range(length):
