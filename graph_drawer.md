@@ -37,3 +37,10 @@ import io
 pimg = PIL.Image.open(io.BytesIO(graphImage.data))
 pimg.save('graph-file.png')
 ```
+
+## Reference
+
+[How to visualize your graph](https://langchain-ai.github.io/langgraph/how-tos/visualization/)
+
+[How to view or save an <IPython.core.display.Image object> using plain python (not ipython)](https://stackoverflow.com/questions/53424314/how-to-view-or-save-an-ipython-core-display-image-object-using-plain-python-n)
+
