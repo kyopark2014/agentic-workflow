@@ -26,6 +26,7 @@ from langchain.docstore.document import Document
 from urllib import parse
 from langgraph.graph import START, END, StateGraph
 from io import BytesIO
+from langchain_experimental.tools import PythonAstREPLTool
 
 logger = utils.CreateLogger('tool_use')
 
@@ -504,7 +505,10 @@ def code_interpreter(code):
     logger.info(f"result: {result}")
     return result
 
-tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup, code_drawer, code_interpreter]        
+python_repl = PythonAstREPLTool()
+
+# tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup, code_drawer, code_interpreter]        
+tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup, code_drawer, python_repl]        
 
 ####################### LangGraph #######################
 # Chat Agent Executor
