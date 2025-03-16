@@ -577,9 +577,23 @@ workflow = create_supervisor(
 
 여기에서는 Agent의 Tool로 Code Interpreter를 활용하는 방법에 대해 설명합니다. Code Interpreter를 이용하면, 언어모델에서 어려운 복잡한 계산이나 그래프를 그리는 일들을 수행할 수 있습니다. 
 
-Code Interpreter는 Sandbox 환경으로 코드를 수행할 수 있어야 합니다. 이를 위해 직접 container로 환경을 만들거나, [Jupyter Kernel Gateway](https://github.com/jupyter-server/kernel_gateway)을 이용하는 방안은 검토할 수 있으나 구현의 복잡성 등으로 인해서, [Riza](https://docs.riza.io/introduction)나 [E2B](https://www.linkedin.com/feed/update/urn:li:activity:7191459920251109377/?commentUrn=urn%3Ali%3Acomment%3A(activity%3A7191459920251109377%2C7295624350970363904)&dashCommentUrn=urn%3Ali%3Afsd_comment%3A(7295624350970363904%2Curn%3Ali%3Aactivity%3A7191459920251109377))와 같은 API를 활용할 수 있고, 아래에서는 Riza를 이용해 Code Interpreter를 활용하는 방법을 설명합니다. 
+
+### Python REPL 
+
+LangChain에서 제공하는 Python REPL (read-eval-print loop)을 이용하면 Python 코드를 실행할 수 있습니다. 
+
+[PythonAstREPLTool](https://python.langchain.com/api_reference/experimental/tools/langchain_experimental.tools.python.tool.PythonAstREPLTool.html#langchain_experimental.tools.python.tool.PythonAstREPLTool)로 아래와 같이 tool을 등록해 활용할 수 있습니다.
+
+```python
+from langchain_experimental.tools import PythonAstREPLTool
+python_repl = PythonAstREPLTool()
+
+tools = [python_repl]
+```
 
 ### Riza 사용 준비
+
+Sandbox 환경에서 Code Interpreter를 이용할 때에는 직접 container로 환경을 만들거나, [Jupyter Kernel Gateway](https://github.com/jupyter-server/kernel_gateway)을 이용하는 방안은 검토할 수 있으나 구현의 복잡성 등으로 인해서, [Riza](https://docs.riza.io/introduction)나 [E2B](https://www.linkedin.com/feed/update/urn:li:activity:7191459920251109377/?commentUrn=urn%3Ali%3Acomment%3A(activity%3A7191459920251109377%2C7295624350970363904)&dashCommentUrn=urn%3Ali%3Afsd_comment%3A(7295624350970363904%2Curn%3Ali%3Aactivity%3A7191459920251109377))와 같은 API를 활용할 수 있고, 아래에서는 Riza를 이용해 Code Interpreter를 활용하는 방법을 설명합니다. 
 
 [Riza - dashboard](https://dashboard.riza.io/)에 접속해서 credential을 발급 받습니다. Riza의 경우에 초기에는 무료로 이용할 수 있고, 트래픽이 늘어나면 유료로 활용 가능합니다. 이후 아래와 같은 패키지를 설치합니다. 
 
@@ -628,7 +642,7 @@ if code_interpreter_api_key:
     os.environ["RIZA_API_KEY"] = code_interpreter_api_key
 ```
 
-### Code Interpreter의 Tool 등록 및 활용
+### Sandbox환경으로 Code Interpreter의 Tool 등록 및 활용
 
 Code Interpreter를 위해 code_interpreter와 code_drawer을 구현하였고, 아래와 같이 tools에 추가하여 활용합니다. code_interpreter는 python code를 실행한후 결과를 리턴하고, code_drawer는 matplotlib을 이용해 그래프를 만든 후에 Base64 이미지로 리턴합니다.
 
