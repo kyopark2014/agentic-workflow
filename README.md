@@ -590,14 +590,99 @@ workflow = create_supervisor(
 
 LangChain에서 제공하는 Python REPL (read-eval-print loop)을 이용하면 Python 코드를 실행할 수 있습니다. 
 
-[PythonAstREPLTool](https://python.langchain.com/api_reference/experimental/tools/langchain_experimental.tools.python.tool.PythonAstREPLTool.html#langchain_experimental.tools.python.tool.PythonAstREPLTool)로 아래와 같이 tool을 등록해 활용할 수 있습니다.
+[PythonAstREPLTool](https://python.langchain.com/api_reference/experimental/tools/langchain_experimental.tools.python.tool.PythonAstREPLTool.html#langchain_experimental.tools.python.tool.PythonAstREPLTool)을 이용해 구현합니다. 
+
+PythonAstREPLTool을 위해서 langchain_experimental을 설치합니다.
+
+```text
+pip install langchain_experimental
+```
+
+code를 실행하기 위해 repl_coder를 정의합니다. 
 
 ```python
 from langchain_experimental.tools import PythonAstREPLTool
-python_repl = PythonAstREPLTool()
+repl = PythonAstREPLTool()
 
-tools = [python_repl]
+@tool
+def repl_coder(code):
+    """
+    Use this to execute python code and do math. 
+    If you want to see the output of a value, you should print it out with `print(...)`. This is visible to the user.
+    code: the Python code was written in English
+    """
+    try:
+        result = repl.run(code)
+    except BaseException as e:
+        return f"Failed to execute. Error: {repr(e)}"
+    
+    if result is None:
+        result = "It didn't return anything."
+
+    return result
 ```
+
+그래프를 그리기 위한 라이브러리를 설치합니다.
+
+```text
+pip install numpy matplotlib
+```
+
+그래프는 stdout으로 받아서 이미지로 저장후 활용합니다.
+
+```python
+@tool
+def repl_drawer(code):
+    """
+    Execute a Python script for draw a graph.
+    Since Python runtime cannot use external APIs, necessary data must be included in the code.
+    The graph should use English exclusively for all textual elements.
+    Do not save pictures locally bacause the runtime does not have filesystem.
+    When a comparison is made, all arrays must be of the same length.
+    code: the Python code was written in English
+    return: the url of graph
+    """ 
+        
+    code = re.sub(r"seaborn", "classic", code)
+    code = re.sub(r"plt.savefig", "#plt.savefig", code)
+    code = re.sub(r"plt.show", "#plt.show", code)
+
+    post = """\n
+import io
+import base64
+buffer = io.BytesIO()
+plt.savefig(buffer, format='png')
+buffer.seek(0)
+image_base64 = base64.b64encode(buffer.getvalue()).decode()
+print(image_base64)
+"""
+    code = code + post
+
+    result = ""
+    resp = repl.run(code)
+    base64Img = resp
+    
+    if base64Img:
+        byteImage = BytesIO(base64.b64decode(base64Img))
+
+        image_name = generate_short_uuid()+'.png'
+        url = chat.upload_to_s3(byteImage, image_name)
+
+        file_name = url[url.rfind('/')+1:]
+
+        global image_url
+        image_url.append(path+'/'+s3_image_prefix+'/'+parse.quote(file_name))
+        result = f"생성된 그래프의 URL: {image_url}"
+
+    return result
+```
+
+아래와 같이 repl_coder와 repl_drawer는 tool에 등록해서 agent에서 활용합니다.
+
+```python
+tools = [repl_coder, repl_drawer]
+```
+
 
 ### Riza 사용 준비
 
