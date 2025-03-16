@@ -11,7 +11,7 @@ CONTENT_PATTERN = re.compile(r"<content>(.*?)</content>", re.DOTALL)
 AgentNameMode = Literal["inline"]
 
 
-def _is_content_blocks_content(content: list[dict] | str) -> bool:
+def _is_content_blocks_content(content: list[dict] | str):
     return (
         isinstance(content, list)
         and len(content) > 0
