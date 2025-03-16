@@ -524,7 +524,15 @@ workflow.add_edge("reflect_node", "revise_draft")
 reflection_app = workflow.compile()
 ```
 
-### Multi-Agent Supervisor
+## Multi-Agent 
+
+## Router
+
+[Multi-agent supervisor](https://langchain-ai.github.io/langgraph/tutorials/multi_agent/agent_supervisor/)에 따라 supervisor를 구현합니다.
+
+
+
+### LangGraph Supervisor
 
 [LangGraph Multi-Agent Supervisor](https://github.com/langchain-ai/langgraph-supervisor)을 이용하면 hierachical 구조를 만들때 도움이 됩니다.
 
