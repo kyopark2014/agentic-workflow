@@ -11,13 +11,13 @@ CONTENT_PATTERN = re.compile(r"<content>(.*?)</content>", re.DOTALL)
 AgentNameMode = Literal["inline"]
 
 
-def _is_content_blocks_content(content: list[dict] | str):
-    return (
-        isinstance(content, list)
-        and len(content) > 0
-        and isinstance(content[0], dict)
-        and "type" in content[0]
-    )
+# def _is_content_blocks_content(content: list[dict] | str) -> bool:
+#     return (
+#         isinstance(content, list)
+#         and len(content) > 0
+#         and isinstance(content[0], dict)
+#         and "type" in content[0]
+#     )
 
 
 def add_inline_agent_name(message: BaseMessage) -> BaseMessage:
@@ -35,16 +35,16 @@ def add_inline_agent_name(message: BaseMessage) -> BaseMessage:
         return message
 
     formatted_message = message.model_copy()
-    if _is_content_blocks_content(formatted_message.content):
-        text_blocks = [block for block in message.content if block["type"] == "text"]
-        non_text_blocks = [block for block in message.content if block["type"] != "text"]
-        content = text_blocks[0]["text"] if text_blocks else ""
-        formatted_content = f"<name>{message.name}</name><content>{content}</content>"
-        formatted_message.content = non_text_blocks + [{"type": "text", "text": formatted_content}]
-    else:
-        formatted_message.content = (
-            f"<name>{message.name}</name><content>{formatted_message.content}</content>"
-        )
+    #if _is_content_blocks_content(formatted_message.content):
+    text_blocks = [block for block in message.content if block["type"] == "text"]
+    non_text_blocks = [block for block in message.content if block["type"] != "text"]
+    content = text_blocks[0]["text"] if text_blocks else ""
+    formatted_content = f"<name>{message.name}</name><content>{content}</content>"
+    formatted_message.content = non_text_blocks + [{"type": "text", "text": formatted_content}]
+    # else:
+    #     formatted_message.content = (
+    #         f"<name>{message.name}</name><content>{formatted_message.content}</content>"
+    #     )
     return formatted_message
 
 
