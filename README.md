@@ -590,9 +590,7 @@ workflow = create_supervisor(
 
 LangChain에서 제공하는 Python REPL (read-eval-print loop)을 이용하면 Python 코드를 실행할 수 있습니다. 
 
-[PythonAstREPLTool](https://python.langchain.com/api_reference/experimental/tools/langchain_experimental.tools.python.tool.PythonAstREPLTool.html#langchain_experimental.tools.python.tool.PythonAstREPLTool)을 이용해 구현합니다. 
-
-PythonAstREPLTool을 위해서 langchain_experimental을 설치합니다.
+[PythonAstREPLTool](https://python.langchain.com/api_reference/experimental/tools/langchain_experimental.tools.python.tool.PythonAstREPLTool.html#langchain_experimental.tools.python.tool.PythonAstREPLTool)을 이용해 구현합니다. PythonAstREPLTool을 활용하기 위해서 langchain_experimental을 아래와 같이 설치합니다.
 
 ```text
 pip install langchain_experimental
