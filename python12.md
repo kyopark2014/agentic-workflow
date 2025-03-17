@@ -66,6 +66,12 @@ Python 3.12.1
 python3.12 -m pip install langgraph-supervisor
 ```
 
+streamlit 환경에서는 아래와 같이 패키지를 설치합니다.
+
+```text
+sudo runuser -l ec2-user -c 'python3.12 -m pip install langgraph-supervisor'
+```
+
 
 ## Reference
 
