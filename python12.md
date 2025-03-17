@@ -66,11 +66,19 @@ Python 3.12.1
 python3.12 -m pip install langgraph-supervisor
 ```
 
+아래와 같이 python3로 모두 업데이트 합니다.
+
+```python
+sudo rm /usr/bin/python3
+sudo ln -s /usr/local/bin/python3.12 python3
+```
+
 streamlit 환경에서는 아래와 같이 패키지를 설치합니다.
 
 ```text
 sudo runuser -l ec2-user -c 'python3.12 -m pip install langgraph-supervisor'
 ```
+
 
 
 ## Reference
@@ -84,3 +92,5 @@ sudo runuser -l ec2-user -c 'python3.12 -m pip install langgraph-supervisor'
 [How To Install Python 3.10 on Amazon Linux 2](https://computingpost.medium.com/how-to-install-python-3-10-on-amazon-linux-2-43ddcd511784)
 
 [python 3.12 on Amazon Linux 2023](https://repost.aws/questions/QULIsYrNNAQoiy59gkn8h1jg/python-3-12-on-amazon-linux-2023)
+
+
