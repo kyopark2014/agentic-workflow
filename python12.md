@@ -11,18 +11,26 @@ sh-5.2$ python3 --version
 Python 3.9.20
 ```
 
+아래 명령어로 필요한 프로그램을 설치합니다. 
+
+```text
+sudo yum groupinstall "Development Tools" -y
+sudo yum erase openssl-devel -y
+sudo yum install openssl11 openssl11-devel libffi-devel bzip2-devel wget -y
+```
+
 ## OpenSSL
 
 Python 3.12를 설치하기 위해서는 OpenSSL을 설치하여야 합니다.
 
 ```text
 cd /usr/local/src
-sudo wget https://www.openssl.org/source/openssl-1.1.1t.tar.gz
-sudo tar xvf openssl-1.1.1t.tar.gz
+wget https://www.openssl.org/source/openssl-1.1.1t.tar.gz
+tar xvf openssl-1.1.1t.tar.gz
 
 cd openssl-1.1.1t/
 sudo ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib
-sudo make
+make
 sudo make install
 
 export LDFLAGS="-L/usr/local/ssl/lib"
@@ -30,14 +38,6 @@ export CPPFLAGS="-I/usr/local/ssl/include"
 ```
 
 ## Python 3.12
-
-아래 명령어로 필요한 프로그램을 설치합니다. 경우에 따라 skip 할 수 있습니다.
-
-```text
-sudo yum groupinstall "Development Tools" -y
-sudo yum erase openssl-devel -y
-sudo yum install openssl11 openssl11-devel libffi-devel bzip2-devel wget -y
-```
 
 아래 명령어로 업그레이드 합니다.
 
