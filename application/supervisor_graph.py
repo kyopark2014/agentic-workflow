@@ -10,9 +10,11 @@ from langgraph.prebuilt import ToolNode
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langgraph.graph import START, END, StateGraph
-from langgraph_supervisor import create_collaborator
 
-logger = utils.CreateLogger('tool_use')
+from langgraph.graph import MessagesState, END
+from langgraph.types import Command        
+
+logger = utils.CreateLogger('supervisor')
 
 ####################### LangGraph #######################
 # Chat Agent Executor
@@ -38,6 +40,7 @@ def create_collaborator(tools, name, st):
 
         last_message = messages[-1]
         logger.info(f"last_message: {last_message}")
+        st.info(f"{last_message}")
 
         if last_message.tool_calls:
             for message in last_message.tool_calls:
@@ -172,64 +175,117 @@ def run_supervisor(query, st):
     logger.info(f"###### run_supervisor ######")
     logger.info(f"query: {query}")
 
-    global search_agent, stock_agent, supervisor_agent, weather_agent, code_agent, isInitiated
-    if not isInitiated:
-        # creater search agent
-        search_agent = create_collaborator(
-            [tool_use.search_by_tavily, tool_use.search_by_knowledge_base], 
-            "search_agent", st
+    class State(MessagesState):
+        next: str
+        answer: str
+
+    members = ["search_agent", "code_agent"]
+
+    class Router(TypedDict):
+        """Worker to route to next. If no workers needed, route to FINISH."""
+
+        next: Literal["search_agent", "code_agent", "FINISH"]
+
+    llm = chat.get_chat(extended_thinking="Disable")
+
+    system_prompt = (
+        "You are a supervisor tasked with managing a conversation between the"
+        f" following workers: {members}."
+        "Given the following user request, respond with the worker to act next." 
+        "Each worker will perform a task and respond with their results and status. "
+        "When finished, respond with FINISH."
+    )
+
+    def supervisor_node(state: State):
+        logger.info(f"###### supervisor_node ######")
+        logger.info(f"state: {state}")
+
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
         )
-        # creater stock agent
-        stock_agent = create_collaborator(
-            [tool_use.stock_data_lookup], 
-            "stock_agent", st
-        )
-        # creater weather agent
-        weather_agent = create_collaborator(
-            [tool_use.get_weather_info], 
-            "weather_agent", st
-        )
-        # creater code agent
-        code_agent = create_collaborator(
-            [tool_use.code_drawer, tool_use.code_interpreter], 
-            "code_agent", st
+        structured_llm = llm.with_structured_output(Router, include_raw=True)
+        
+        chain = prompt | structured_llm
+        response = chain.invoke({"messages": state["messages"]})
+        logger.info(f"response: {response}")
+        parsed = response.get("parsed")
+
+        goto = parsed["next"]
+        if goto == "FINISH":            
+            goto = END
+        logger.info(f"goto: {goto}")
+        st.info(f"next: {goto}")
+                
+        return Command(goto=goto, update={"next": goto})
+
+    # creater search agent
+    search_agent = create_collaborator(
+        [tool_use.search_by_tavily, tool_use.search_by_knowledge_base], 
+        "search_agent", st
+    )
+    # creater stock agent
+    stock_agent = create_collaborator(
+        [tool_use.stock_data_lookup], 
+        "stock_agent", st
+    )
+    # creater weather agent
+    weather_agent = create_collaborator(
+        [tool_use.get_weather_info], 
+        "weather_agent", st
+    )
+    # creater code agent
+    code_agent = create_collaborator(
+        [tool_use.repl_coder, tool_use.repl_drawer], 
+        "code_agent", st
+    )
+
+    def search_node(state: State) -> Command[Literal["supervisor"]]:
+        result = search_agent.invoke(state)
+        return Command(
+            update={
+                "messages": [
+                    AIMessage(content=result["messages"][-1].content, name="search_agent")
+                ]
+            },
+            goto="supervisor",
         )
 
-        workflow = create_supervisor(
-            [search_agent, stock_agent, weather_agent, code_agent],
-            model=chat.get_chat(extended_thinking="Disable"),
-            prompt=(
-                "You are a team supervisor managing a search expert and a stock expert. "
-                "For current events, use search_agent. "
-                "For stock problems, use stock_agent."
-            )
-        )        
-        supervisor_agent = workflow.compile(name="superviser")
-        isInitiated = True
+    def code_node(state: State) -> Command[Literal["supervisor"]]:
+        result = code_agent.invoke(state)
+        return Command(
+            update={
+                "messages": [
+                    AIMessage(content=result["messages"][-1].content, name="code_agent")
+                ]
+            },
+            goto="supervisor",
+        )
 
+    workflow = StateGraph(State)
+    workflow.add_edge(START, "supervisor")
+    workflow.add_node("supervisor", supervisor_node)
+    workflow.add_node("search_agent", search_node)
+    workflow.add_node("code_agent", code_node)
+    app = workflow.compile()
+
+    # for s in app.stream(
+    #     {"messages": [("user",query)]}, subgraphs=True,
+    # ):
+    #     print(s)
+    #     print("----")
+    
     inputs = [HumanMessage(content=query)]
     config = {
         "recursion_limit": 50
-    }
-    
-    result = supervisor_agent.invoke({"messages": inputs}, config)
+    }    
+    result = app.invoke({"messages": inputs}, config)
     logger.info(f"messages: {result['messages']}")
+
+    msg = result['messages'][-1].content
     
-    length = len(result["messages"])
-    for i in range(length):
-        index = length-i-1
-        message = result["messages"][index]
-        logger.info(f"message[{index}]: {message}")
-
-        stop_reason = ""
-        if "stop_reason" in message.response_metadata:
-            stop_reason = message.response_metadata["stop_reason"]
-
-        if isinstance(message, AIMessage) and message.content and stop_reason=="end_turn":
-            msg = message.content
-            break    
-    logger.info(f"msg: {msg}")
-
     for i, doc in enumerate(reference_docs):
         logger.info(f"--> {i}: {doc}")
         
@@ -237,6 +293,7 @@ def run_supervisor(query, st):
     if reference_docs:
         reference = chat.get_references(reference_docs)
 
-    msg = chat.extract_thinking_tag(msg, st)
+    # msg = chat.extract_thinking_tag(msg, st)
+    image_url = ""
 
     return msg, image_url, reference
