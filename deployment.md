@@ -116,8 +116,17 @@ AWS Credential을 입력합니다.
 
 ![noname](https://github.com/user-attachments/assets/bd372ce9-9e9b-403c-8d87-220cec1b1b90)
 
+7) LangGraph Supervisor을 설치합니다.
 
-7) Output의 albUrlforlanggraphnova을 이용하여 아래와 같이 접속합니다. 처음 접속시에는 Knowledge base 생성등의 초기화를 하므로 수초에서 수십초 정도 기다릴 수 있습니다.
+[Python 3.12](https://github.com/kyopark2014/agentic-workflow/blob/main/python12.md)으로 업그레이드합니다.
+
+Console에 접속해서 아래와 같이 langgraph-supervisor를 설치합니다.
+
+```python
+sudo runuser -l ec2-user -c 'python3.12 -m pip install langgraph-supervisor'
+``` 
+
+8) Output의 albUrlforlanggraphnova을 이용하여 아래와 같이 접속합니다. 처음 접속시에는 Knowledge base 생성등의 초기화를 하므로 수초에서 수십초 정도 기다릴 수 있습니다.
 
 ![noname](https://github.com/user-attachments/assets/48824379-b2ad-4377-916b-82988be90182)
 
