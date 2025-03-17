@@ -10,7 +10,7 @@ from langgraph.prebuilt import ToolNode
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langgraph.graph import START, END, StateGraph
-from langgraph_supervisor import create_collaborator
+from langgraph_supervisor import create_supervisor
 
 logger = utils.CreateLogger('tool_use')
 
