@@ -23,7 +23,7 @@ def create_collaborator(tools, name, st):
     chatModel = chat.get_chat(chat.reasoning_mode)
     model = chatModel.bind_tools(tools)
 
-    class State(TypedDict):
+    class State(TypedDict): 
         # messages: Annotated[Sequence[BaseMessage], operator.add]
         messages: Annotated[list, add_messages]
         name: str
