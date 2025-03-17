@@ -24,12 +24,12 @@ sudo yum install openssl11 openssl11-devel libffi-devel bzip2-devel wget -y
 Python 3.12를 설치하기 위해서는 OpenSSL을 설치하여야 합니다.
 
 ```text
-cd /usr/local/src
+cd 
 wget https://www.openssl.org/source/openssl-1.1.1t.tar.gz
 tar xvf openssl-1.1.1t.tar.gz
 
 cd openssl-1.1.1t/
-sudo ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib
+./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib
 make
 sudo make install
 
