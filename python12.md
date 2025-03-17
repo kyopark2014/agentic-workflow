@@ -60,6 +60,7 @@ sh-5.2$ python3.12 --version
 Python 3.12.1
 ```
 
+<!--
 이제 필요한 패키지를 설치합니다.
 
 ```text
@@ -72,6 +73,7 @@ python3.12 -m pip install langgraph-supervisor
 sudo rm /usr/bin/python3
 sudo ln -s /usr/local/bin/python3.12 python3
 ```
+-->
 
 streamlit 환경에서는 아래와 같이 패키지를 설치합니다.
 
