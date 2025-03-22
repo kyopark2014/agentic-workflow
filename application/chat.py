@@ -627,7 +627,10 @@ def extract_thinking_tag(response, st):
 
 # load csv documents from s3
 def load_csv_document(s3_file_name):
-    s3r = boto3.resource("s3")
+    s3r = boto3.resource(
+        service_name='s3',
+        region_name=bedrock_region
+    )
     key = s3_prefix+'/'+s3_file_name
     logger.info(f"bucket: {s3_bucket}, key: {key}")
     doc = s3r.Object(s3_bucket, key)
@@ -701,7 +704,10 @@ def get_summary(docs):
 
 # load documents from s3 for pdf and txt
 def load_document(file_type, s3_file_name):
-    s3r = boto3.resource("s3")
+    s3r = boto3.resource(
+        service_name='s3',
+        region_name=bedrock_region
+    )
     doc = s3r.Object(s3_bucket, s3_prefix+'/'+s3_file_name)
     
     contents = ""
@@ -897,7 +903,10 @@ def get_summary_of_uploaded_file(file_name, st):
             msg = "문서 로딩에 실패하였습니다."
         
     elif file_type == 'py' or file_type == 'js':
-        s3r = boto3.resource("s3")
+        s3r = boto3.resource(
+            service_name='s3',
+            region_name=bedrock_region
+        )
         doc = s3r.Object(s3_bucket, s3_prefix+'/'+file_name)
         
         contents = doc.get()['Body'].read().decode('utf-8')
