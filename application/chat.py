@@ -32,18 +32,7 @@ from langgraph.store.memory import InMemoryStore
 
 logger = utils.CreateLogger("chat")
 
-try:
-    with open("/home/config.json", "r", encoding="utf-8") as f:
-        config = json.load(f)
-        logger.info(f"config: {config}")
-
-        logger.info("Ready to write log (chat)!")
-        
-except Exception:
-    logger.info(f"use local configuration")
-    with open("application/config.json", "r", encoding="utf-8") as f:
-        config = json.load(f)
-        logger.info(f"config: {config}")
+config = utils.load_config()
 
 userId = "demo"
 map_chain = dict() 

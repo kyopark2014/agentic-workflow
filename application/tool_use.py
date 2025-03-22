@@ -31,16 +31,7 @@ from langchain_experimental.tools import PythonAstREPLTool
 logger = utils.CreateLogger('tool_use')
 
 # load config
-try:
-    with open("/home/config.json", "r", encoding="utf-8") as f:
-        config = json.load(f)
-        logger.info(f"config: {config}")
-
-except Exception:
-    logger.info(f"use local configuration")
-    with open("application/config.json", "r", encoding="utf-8") as f:
-        config = json.load(f)
-        logger.info(f"config: {config}")
+config = utils.load_config()
 
 # variables
 bedrock_region = config["region"] if "region" in config else "us-west-2"
