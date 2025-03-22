@@ -234,68 +234,8 @@ def search_by_knowledge_base(keyword: str) -> str:
     keyword = keyword.replace('\n','')
     logger.info(f"modified keyword: {keyword}")
     
-    top_k = numberOfDocs
-    relevant_docs = []
+    relevant_docs = kb.retrieve_documents_from_knowledge_base(keyword, top_k=numberOfDocs)
 
-    logger.info(f"knowledge_base_id: {kb.knowledge_base_id}")
-    if kb.knowledge_base_id:    
-        boto3_bedrock = boto3.client(
-            service_name='bedrock-agent-runtime',
-            region_name=bedrock_region
-        )
-
-        retriever = AmazonKnowledgeBasesRetriever(
-            knowledge_base_id=kb.knowledge_base_id, 
-            client = boto3_bedrock,
-            retrieval_config={
-                "vectorSearchConfiguration": {
-                    "numberOfResults": top_k,
-                    "overrideSearchType": "HYBRID"   # SEMANTIC
-                }
-            }
-        )
-        
-        docs = retriever.invoke(keyword)
-        logger.info(f"--> docs from knowledge base: {docs}")
-        for i, doc in enumerate(docs):
-            # print_doc(i, doc)
-            
-            content = ""
-            if doc.page_content:
-                content = doc.page_content
-            
-            score = doc.metadata["score"]
-            
-            link = ""
-            if "s3Location" in doc.metadata["location"]:
-                link = doc.metadata["location"]["s3Location"]["uri"] if doc.metadata["location"]["s3Location"]["uri"] is not None else ""
-                
-                # print('link:', link)    
-                pos = link.find(f"/{doc_prefix}")
-                name = link[pos+len(doc_prefix)+1:]
-                encoded_name = parse.quote(name)
-                # print('name:', name)
-                link = f"{path}/{doc_prefix}{encoded_name}"
-                
-            elif "webLocation" in doc.metadata["location"]:
-                link = doc.metadata["location"]["webLocation"]["url"] if doc.metadata["location"]["webLocation"]["url"] is not None else ""
-                name = "WEB"
-
-            url = link
-            # print('url:', url)
-            
-            relevant_docs.append(
-                Document(
-                    page_content=content,
-                    metadata={
-                        'name': name,
-                        'score': score,
-                        'url': url,
-                        'from': 'RAG'
-                    },
-                )
-            )    
-    
     # grading        
     filtered_docs = chat.grade_documents(keyword, relevant_docs)
 
