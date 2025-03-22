@@ -240,7 +240,7 @@ def search_by_knowledge_base(keyword: str) -> str:
     logger.info(f"knowledge_base_id: {kb.knowledge_base_id}")
     if kb.knowledge_base_id:    
         boto3_bedrock = boto3.client(
-            service_name='bedrock-runtime',
+            service_name='bedrock-agent',
             region_name=bedrock_region
         )
 
