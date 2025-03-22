@@ -246,13 +246,13 @@ def search_by_knowledge_base(keyword: str) -> str:
 
         retriever = AmazonKnowledgeBasesRetriever(
             knowledge_base_id=kb.knowledge_base_id, 
-            clinet = boto3_bedrock
+            clinet = boto3_bedrock,
             retrieval_config={
                 "vectorSearchConfiguration": {
                     "numberOfResults": top_k,
                     "overrideSearchType": "HYBRID"   # SEMANTIC
                 }
-            },            
+            }
         )
         
         docs = retriever.invoke(keyword)
