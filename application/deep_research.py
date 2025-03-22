@@ -163,7 +163,8 @@ def run_deep_research_agent(query, st):
             st.info(f"검색을 수행합니다. 검색어: {q}")
 
         relevant_docs = kb.retrieve_documents_from_knowledge_base(q, top_k=chat.numberOfDocs)
-        relevant_docs += search.retrieve_documents_from_tavily(q, top_k=chat.numberOfDocs)
+        if chat.internet_mode=="Enable":
+            relevant_docs += search.retrieve_documents_from_tavily(q, top_k=chat.numberOfDocs)
 
         # translate
         # docs = []
@@ -224,7 +225,9 @@ def run_deep_research_agent(query, st):
                     st.info(f"검색을 수행합니다. 검색어: {q}")
 
                 relevant_docs = kb.retrieve_documents_from_knowledge_base(q, top_k=chat.numberOfDocs)
-                relevant_docs += search.retrieve_documents_from_tavily(q, top_k=chat.numberOfDocs)
+
+                if chat.internet_mode=="Enable":
+                    relevant_docs += search.retrieve_documents_from_tavily(q, top_k=chat.numberOfDocs)
             
                 # grade
                 docs += chat.grade_documents(q, relevant_docs) # grading

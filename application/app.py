@@ -30,10 +30,10 @@ mode_descriptions = {
         "대화이력을 포함하여 Tool Use 방식의 Workflow를 수행하는 Agent를 구현합니다."
     ],
     "Agent (Reflection)": [
-        "Reflection Workflow를 수행하는 Agent 구현합니다."
+        "Reflection Workflow를 수행하는 Agent을 구현합니다."
     ],
     "Agent (Planning)": [
-        "Planning Workflow를 수행하는 Agent 구현합니다."
+        "Planning Workflow를 수행하는 Agent을 구현합니다."
     ],
     "Deep Research Agent": [
         "Multi-agent Collaboration을 이용하여 Deep Research Agent를 구현합니다."
@@ -104,6 +104,11 @@ with st.sidebar:
     multiRegion = 'Enable' if select_multiRegion else 'Disable'
     #print('multiRegion: ', multiRegion)
 
+    # internet checkbox
+    select_internet = st.checkbox('Internet', value=True)
+    internetMode = 'Enable' if select_internet else 'Disable'
+    #print('internetMode: ', internetMode)
+
     # extended thinking of claude 3.7 sonnet
     select_reasoning = st.checkbox('Reasonking (only Claude 3.7 Sonnet)', value=False)
     reasoningMode = 'Enable' if select_reasoning and modelName=='Claude 3.7 Sonnet' else 'Disable'
@@ -114,7 +119,7 @@ with st.sidebar:
     chart = 'Enable' if selected_chart else 'Disable'
     #print('chart: ', chart)
 
-    chat.update(modelName, debugMode, multiRegion, reasoningMode)
+    chat.update(modelName, debugMode, multiRegion, internetMode, reasoningMode)
     
     # code interpreter checkbox
     select_csat_evaluator = st.checkbox('CSAT evaluator', value=False)

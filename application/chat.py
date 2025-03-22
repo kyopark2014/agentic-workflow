@@ -113,7 +113,8 @@ doc_prefix = s3_prefix+'/'
 
 model_name = "Nova Pro"
 model_type = "nova"
-multi_region = 'Enable'
+multi_region = "Enable"
+internet_mode = "Enable"
 debug_mode = "Enable"
 
 models = info.get_model_info(model_name)
@@ -121,8 +122,8 @@ number_of_models = len(models)
 selected_chat = 0
 
 reasoning_mode = 'Disable'
-def update(modelName, debugMode, multiRegion, reasoningMode):    
-    global model_name, debug_mode, multi_region     
+def update(modelName, debugMode, multiRegion, internetMode, reasoningMode):    
+    global model_name, debug_mode, multi_region, internet_mode     
     global selected_chat, models, number_of_models, reasoning_mode
     
     if model_name != modelName:
@@ -143,6 +144,7 @@ def update(modelName, debugMode, multiRegion, reasoningMode):
         
         selected_chat = 0
     
+    internet_mode = "Enable" if internetMode=="Enable" else "Disable"
     reasoning_mode = "Enable" if reasoningMode=="Enable" else "Disable"
     logger.info(f"reasoning_mode: {reasoning_mode}")
         

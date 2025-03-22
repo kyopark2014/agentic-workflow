@@ -1,8 +1,8 @@
-import knowledge_base as kb
-import operator
-import traceback
-import chat
+import rag_opensearch as rag
 import utils
+import operator
+import chat
+import traceback
 import search
 
 from typing_extensions import Annotated, TypedDict
@@ -21,6 +21,7 @@ def run_planning(query, st):
         plan: list[str]
         past_steps: Annotated[List[Tuple], operator.add]
         info: Annotated[List[Tuple], operator.add]
+        response: list[str]
         answer: str
 
     def plan_node(state: State, config):
@@ -130,14 +131,13 @@ def run_planning(query, st):
         plan = state["plan"]
         logger.info(f"plan: {plan}")
         
-        llm = chat.get_chat(extended_thinking="Disable")
-
         if chat.debug_mode=="Enable":
             st.info(f"검색을 수행합니다. 검색어 {plan[0]}")
         
         # retrieve
-        relevant_docs = kb.retrieve_documents_from_knowledge_base(plan[0], top_k=4)
-        relevant_docs += search.retrieve_documents_from_tavily(plan[0], top_k=4)
+        relevant_docs = rag.retrieve_documents_from_opensearch(plan[0], top_k=4)   
+        if chat.internet_mode == "Enable":  
+            relevant_docs += search.retrieve_documents_from_tavily(plan[0], top_k=4)
         
         # grade   
         if chat.debug_mode == "Enable":
@@ -160,7 +160,7 @@ def run_planning(query, st):
         result = generate_answer(relevant_docs, plan[0])
         
         logger.info(f"task: {plan[0]}")
-        logger.info(f"executor outpu: {result}")
+        logger.info(f"executor output: {result}")
 
         if chat.debug_mode=="Enable":
             st.info(f"현 단계의 결과 {result}")
@@ -180,7 +180,8 @@ def run_planning(query, st):
 
         if len(state["plan"]) == 1:
             logger.info(f"last plan: {state['plan']}")
-            return {"response":state["info"][-1]}
+            logger.info(f"final info: {state['info'][-1]}")
+            return {"response":state['info'][-1]}
         
         if chat.debug_mode=="Enable":
             st.info(f"새로운 계획을 생성합니다.")
@@ -247,7 +248,7 @@ def run_planning(query, st):
         
     def should_end(state: State) -> Literal["continue", "end"]:
         logger.info(f"#### should_end ####")
-        # print('state: ', state)
+        logger.info(f"state: {state}")
         
         if "response" in state and state["response"]:
             logger.info(f"response: {state['response']}")
@@ -255,7 +256,7 @@ def run_planning(query, st):
         else:
             logger.info(f"plan: {state['plan']}")
             next = "continue"
-        logger.info(f"hould_end response: {next}")
+        logger.info(f"should_end response: {next}")
         
         return next
         
@@ -309,6 +310,10 @@ def run_planning(query, st):
                 }
             )
             result = response.content
+
+            # extended thinking
+            if chat.debug_mode=="Enable":
+                chat.show_extended_thinking(st, response)
 
             if result.find('<result>')==-1:
                 output = result

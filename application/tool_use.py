@@ -320,16 +320,19 @@ def search_by_tavily(keyword: str) -> str:
     
     keyword = keyword.replace('\'','')
     relevant_documents = search.retrieve_documents_from_tavily(keyword, top_k=3)
-    logger.info(f"--> {len(relevant_documents)} docs from tavily")
+    # logger.info(f"--> {len(relevant_documents)} docs from tavily")
+
+    # grade  
+    filtered_docs = chat.grade_documents(keyword, relevant_documents)
 
     answer = ""
-    for doc in relevant_documents:
+    for doc in filtered_docs:
         content = doc.page_content
         url = doc.metadata['url']
         answer += f"{content}, URL: {url}\n" 
 
-    if len(relevant_documents):
-        reference_docs += relevant_documents
+    if len(filtered_docs):
+        reference_docs += filtered_docs
     
     if answer == "":
         # answer = "No relevant documents found." 
@@ -585,8 +588,7 @@ print(image_base64)
     logger.info(f"result: {result}")
     return result
 
-# tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup, code_drawer, code_interpreter]        
-tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup, repl_drawer, repl_coder]        
+       
 
 ####################### LangGraph #######################
 # Chat Agent Executor
@@ -594,13 +596,19 @@ tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, se
 def run_agent_executor(query, historyMode, st):
     logger.info(f"###### run_agent_executor ######")
     logger.info(f"historyMode: {historyMode}")
-    chatModel = chat.get_chat(chat.reasoning_mode)     
-    model = chatModel.bind_tools(tools)
-
+    
     class State(TypedDict):
         # messages: Annotated[Sequence[BaseMessage], operator.add]
         messages: Annotated[list, add_messages]
 
+    if chat.internet_mode == "Eanble":
+        # tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup, code_drawer, code_interpreter]        
+        tools = [get_current_time, get_book_list, get_weather_info, search_by_tavily, search_by_knowledge_base, stock_data_lookup, repl_drawer, repl_coder] 
+    else:
+        tools = [get_current_time, get_book_list, get_weather_info, search_by_knowledge_base, stock_data_lookup, repl_drawer, repl_coder] 
+
+    chatModel = chat.get_chat(chat.reasoning_mode)     
+    model = chatModel.bind_tools(tools)
     tool_node = ToolNode(tools)
 
     def should_continue(state: State) -> Literal["continue", "end"]:

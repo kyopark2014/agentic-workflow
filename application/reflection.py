@@ -1,7 +1,8 @@
 import utils
 import chat
 import traceback
-import knowledge_base as kb
+import rag_opensearch as rag
+import tool_use
 import search
 
 from pydantic.v1 import BaseModel, Field
@@ -9,7 +10,9 @@ from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from typing_extensions import Annotated, TypedDict
 from langgraph.graph import START, END, StateGraph
 from langgraph.graph.message import add_messages
-from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.prebuilt import ToolNode
+from typing import Literal
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 logger = utils.CreateLogger("reflection")
 
@@ -185,11 +188,12 @@ def run_reflection(query, st):
 
         # grade   
         if chat.debug_mode == "Enable":
-            st.info(f"초안(draft)를 생성하기 위하여, RAG와 인터넷을 조회합니다.") 
+            st.info(f"초안(draft)를 생성하기 위하여, 정보를 조회합니다.") 
 
         top_k = 4
-        relevant_docs = kb.retrieve_documents_from_knowledge_base(query, top_k=top_k)
-        relevant_docs += search.retrieve_documents_from_tavily(query, top_k=top_k)
+        relevant_docs = rag.retrieve_documents_from_opensearch(query, top_k=top_k)  
+        if chat.internet_mode == "Enable":
+            relevant_docs += search.retrieve_documents_from_tavily(query, top_k=top_k)
     
         # grade   
         if chat.debug_mode == "Enable":
@@ -316,8 +320,10 @@ def run_reflection(query, st):
             if chat.debug_mode=="Enable":
                 st.info(f"검색을 수행합니다. 검색어: {q}")
         
-            relevant_docs = kb.retrieve_documents_from_knowledge_base(q, top_k)
-            relevant_docs += search.retrieve_documents_from_tavily(q, top_k)
+            relevant_docs = rag.retrieve_documents_from_opensearch(q, top_k)     
+
+            if chat.internet_mode=="Enable":
+                relevant_docs += search.retrieve_documents_from_tavily(q, top_k)
 
             # grade   
             if chat.debug_mode == "Enable":
@@ -443,6 +449,117 @@ def run_reflection(query, st):
 ####################### LangGraph #######################
 # Agentic Workflow: Reflection (run_knowledge_guru)
 #########################################################
+
+def init_enhanced_search(st):
+    llm = chat.get_chat(extended_thinking="Disable") 
+
+    model = llm.bind_tools(tool_use.tools)
+
+    class State(TypedDict):
+        messages: Annotated[list, add_messages]
+
+    tool_node = ToolNode(tool_use.tools)
+
+    def should_continue(state: State) -> Literal["continue", "end"]:
+        messages = state["messages"]    
+        # print('(should_continue) messages: ', messages)
+            
+        last_message = messages[-1]
+        if not last_message.tool_calls:
+            return "end"
+        else:                
+            return "continue"
+
+    def call_model(state: State, config):
+        logger.info(f"##### call_model #####")
+
+        messages = state["messages"]
+        # print('messages: ', messages)
+
+        last_message = messages[-1]
+        logger.info(f"last_message: {last_message}")
+
+        if isinstance(last_message, ToolMessage) and last_message.content=="":              
+            logger.info(f"last_message is empty")
+            logger.info(f"question: {state['messages'][0].content}")
+            answer = chat.get_basic_answer(state['messages'][0].content)          
+            return {"messages": [AIMessage(content=answer)]}
+            
+        if chat.isKorean(messages[0].content)==True:
+            system = (
+                "당신은 질문에 답변하기 위한 정보를 수집하는 연구원입니다."
+                "상황에 맞는 구체적인 세부 정보를 충분히 제공합니다."
+                "모르는 질문을 받으면 솔직히 모른다고 말합니다."
+                "최종 답변에는 조사한 내용을 반드시 포함하여야 하고, <result> tag를 붙여주세요."
+            )
+        else: 
+            system = (            
+                "You are a researcher charged with providing information that can be used when making answer."
+                "If you don't know the answer, just say that you don't know, don't try to make up an answer."
+                "You will be acting as a thoughtful advisor."
+                "Put it in <result> tags."
+            )
+                
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
+        )
+        chain = prompt | model
+                
+        response = chain.invoke(messages)
+        logger.info(f"call_model response: {response}")
+              
+        # state messag
+        if response.tool_calls:
+            logger.info(f"tool_calls response: {response.tool_calls}")
+
+            toolinfo = response.tool_calls[-1]            
+            if toolinfo['type'] == 'tool_call':
+                logger.info(f"tool name: {toolinfo['name']}")    
+
+            if chat.debug_mode=="Enable":
+                st.info(f"{response.tool_calls[-1]['name']}: {response.tool_calls[-1]['args']}")
+                   
+        return {"messages": [response]}
+
+    def buildChatAgent():
+        workflow = StateGraph(State)
+
+        workflow.add_node("agent", call_model)
+        workflow.add_node("action", tool_node)
+            
+        workflow.set_entry_point("agent")
+        workflow.add_conditional_edges(
+            "agent",
+            should_continue,
+            {
+                "continue": "action",
+                "end": END,
+            },
+        )
+        workflow.add_edge("action", "agent")
+        return workflow.compile()
+    
+    return buildChatAgent()
+
+def enhanced_search(query, config, st):
+    logger.info(f"###### enhanced_search ######")
+    inputs = [HumanMessage(content=query)]
+
+    app_enhanced_search = init_enhanced_search(st)        
+    result = app_enhanced_search.invoke({"messages": inputs}, config)   
+    logger.info(f"result: {result}")
+            
+    message = result["messages"][-1]
+    logger.info(f"enhanced_search: {message}")
+
+    if message.content.find('<result>')==-1:
+        return message.content
+    else:
+        return message.content[message.content.find('<result>')+8:message.content.find('</result>')]
+    
 def run_knowledge_guru(query, st):
     class State(TypedDict):
         messages: Annotated[list, add_messages]
@@ -457,7 +574,7 @@ def run_knowledge_guru(query, st):
         if chat.debug_mode=="Enable":
             st.info(f"검색을 수행합니다. 검색어: {state['messages'][0].content}")
         
-        draft = search.enhanced_search(state['messages'][0].content, st)        
+        draft = enhanced_search(state['messages'][0].content, config, st)  
         logger.info(f"draft: {draft}")
 
         if chat.debug_mode=="Enable":
