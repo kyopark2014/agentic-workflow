@@ -237,7 +237,7 @@ def search_by_knowledge_base(keyword: str) -> str:
     top_k = numberOfDocs
     relevant_docs = []
 
-    logger.info(f"kb.knowledge_base_id: {kb.knowledge_base_id}")
+    logger.info(f"knowledge_base_id: {kb.knowledge_base_id}")
     if kb.knowledge_base_id:    
         retriever = AmazonKnowledgeBasesRetriever(
             knowledge_base_id=kb.knowledge_base_id, 
@@ -248,8 +248,7 @@ def search_by_knowledge_base(keyword: str) -> str:
         )
         
         docs = retriever.invoke(keyword)
-        # print('docs: ', docs)
-        logger.info(f"--> docs from knowledge base")
+        logger.info(f"--> docs from knowledge base: {docs}")
         for i, doc in enumerate(docs):
             # print_doc(i, doc)
             

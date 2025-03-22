@@ -38,9 +38,10 @@ export class CdkAgenticWorkflowStack extends cdk.Stack {
         // `arn:aws:bedrock:${region}::foundation-model/amazon.titan-embed-text-v1`,
         // `arn:aws:bedrock:${region}::foundation-model/amazon.titan-embed-text-v2:0`,
         // `arn:aws:bedrock:${region}::foundation-model/amazon.nova-pro-v1:0`
-        `arn:aws:bedrock:us-west-2::foundation-model/*`,
-        `arn:aws:bedrock:us-east-1::foundation-model/*`,
-        `arn:aws:bedrock:us-east-2::foundation-model/*`
+        // `arn:aws:bedrock:us-west-2::foundation-model/*`,
+        // `arn:aws:bedrock:us-east-1::foundation-model/*`,
+        // `arn:aws:bedrock:us-east-2::foundation-model/*`,
+        `arn:aws:bedrock:*::foundation-model/*`
       ],
       // resources: ['*'],
       actions: [
@@ -230,6 +231,12 @@ export class CdkAgenticWorkflowStack extends cdk.Stack {
     ec2Role.attachInlinePolicy( // for isengard
       new iam.Policy(this, `secret-manager-policy-ec2-for-${projectName}`, {
         statements: [secreatManagerPolicy],
+      }),
+    );  
+
+    ec2Role.attachInlinePolicy( 
+      new iam.Policy(this, `bedrock-invoke-policy-of-ec2-for-${projectName}`, {
+        statements: [bedrockInvokePolicy],
       }),
     );  
 
