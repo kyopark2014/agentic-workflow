@@ -235,10 +235,10 @@ export class CdkAgenticWorkflowStack extends cdk.Stack {
     );  
 
     ec2Role.attachInlinePolicy( 
-      new iam.Policy(this, `bedrock-invoke-policy-of-ec2-for-${projectName}`, {
-        statements: [bedrockInvokePolicy],
+      new iam.Policy(this, `ec2-role-of-opensearch-policy-for-${projectName}`, {
+        statements: [knowledgeBaseOpenSearchPolicy],
       }),
-    );  
+    ); 
 
     // Secret
     const weatherApiSecret = new secretsmanager.Secret(this, `weather-api-secret-for-${projectName}`, {
