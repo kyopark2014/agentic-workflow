@@ -328,13 +328,18 @@ initiate_knowledge_base()
 def retrieve_documents_from_knowledge_base(query, top_k):
     relevant_docs = []
     if knowledge_base_id:    
+        boto3_bedrock = boto3.client(
+            service_name='bedrock-agent-runtime',
+            region_name=bedrock_region
+        )
+
         retriever = AmazonKnowledgeBasesRetriever(
             knowledge_base_id=knowledge_base_id, 
+            client = boto3_bedrock,
             retrieval_config={"vectorSearchConfiguration": {
                 "numberOfResults": top_k,
                 "overrideSearchType": "HYBRID"   # SEMANTIC
-            }},
-            region_name=bedrock_region
+            }}
         )
         
         try: 
