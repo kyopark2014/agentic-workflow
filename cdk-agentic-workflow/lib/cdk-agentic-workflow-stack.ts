@@ -234,12 +234,6 @@ export class CdkAgenticWorkflowStack extends cdk.Stack {
       }),
     );  
 
-    ec2Role.attachInlinePolicy( 
-      new iam.Policy(this, `ec2-role-of-opensearch-policy-for-${projectName}`, {
-        statements: [knowledgeBaseOpenSearchPolicy],
-      }),
-    ); 
-
     // Secret
     const weatherApiSecret = new secretsmanager.Secret(this, `weather-api-secret-for-${projectName}`, {
       description: 'secret for weather api key', // openweathermap

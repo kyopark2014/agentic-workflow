@@ -239,12 +239,20 @@ def search_by_knowledge_base(keyword: str) -> str:
 
     logger.info(f"knowledge_base_id: {kb.knowledge_base_id}")
     if kb.knowledge_base_id:    
+        boto3_bedrock = boto3.client(
+            service_name='bedrock-runtime',
+            region_name=bedrock_region
+        )
+
         retriever = AmazonKnowledgeBasesRetriever(
             knowledge_base_id=kb.knowledge_base_id, 
-            retrieval_config={"vectorSearchConfiguration": {
-                "numberOfResults": top_k,
-                "overrideSearchType": "HYBRID"   # SEMANTIC
-            }},
+            clinet = boto3_bedrock
+            retrieval_config={
+                "vectorSearchConfiguration": {
+                    "numberOfResults": top_k,
+                    "overrideSearchType": "HYBRID"   # SEMANTIC
+                }
+            },            
         )
         
         docs = retriever.invoke(keyword)
