@@ -1,4 +1,4 @@
-import rag_opensearch as rag
+import knowledge_base as kb
 import utils
 import operator
 import chat
@@ -135,7 +135,7 @@ def run_planning(query, st):
             st.info(f"검색을 수행합니다. 검색어 {plan[0]}")
         
         # retrieve
-        relevant_docs = rag.retrieve_documents_from_opensearch(plan[0], top_k=4)   
+        relevant_docs = kb.retrieve_documents_from_knowledge_base(plan[0], top_k=4)
         if chat.internet_mode == "Enable":  
             relevant_docs += search.retrieve_documents_from_tavily(plan[0], top_k=4)
         
