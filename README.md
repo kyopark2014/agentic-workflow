@@ -470,7 +470,7 @@ plans = result.strip().replace('\n\n', '\n')
 planning_steps = plans.split('\n')
 ```        
 
-### Agentic Workflow: Multi-agent Collaboration
+### Agentic Workflow: Multi-agent Collaboration (Deep Research Agent)
 
 여기서 설명하는 multi-agent collaboration은 planning과 reflection을 수행하는 agent를 이용하여 구현됩니다. 
 
