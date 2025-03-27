@@ -413,6 +413,7 @@ def run_deep_research_agent(query, st):
                 "각 하위 작업이 명확하고 구체적인지, 그리고 모든 하위 작업이 작문 지시 사항의 전체 내용을 다루고 있는지 확인하세요."
                 "과제를 너무 세분화하지 마세요. 각 하위 과제의 문단은 500단어 이상 3000단어 이하여야 합니다."
                 "다른 내용은 출력하지 마십시오. 이것은 진행 중인 작업이므로 열린 결론이나 다른 수사학적 표현을 생략하십시오."     
+                "최종 결과는 한국어로 작성하고 <result> tag를 붙여주세요."
             )
             human = (
                 "글쓰기 지시 사항은 아래와 같습니다."
@@ -433,6 +434,7 @@ def run_deep_research_agent(query, st):
                 "Make sure that each subtask is clear and specific, and that all subtasks cover the entire content of the writing instruction."
                 "Do not split the subtasks too finely; each subtask's paragraph should be no less than 500 words and no more than 3000 words."
                 "Do not output any other content. As this is an ongoing work, omit open-ended conclusions or other rhetorical hooks."
+                "Provide the final answer with <result> tag."
             )
             human = (                
                 "The writing instruction is as follows:"
@@ -457,8 +459,12 @@ def run_deep_research_agent(query, st):
     
         response = planner.invoke({"instruction": instruction})
         logger.info(f"response: {response.content}")
+
+        output = response.content
+        result = output[output.find('<result>')+8:output.find('</result>')]
+        logger.info(f"result: {result}")
     
-        plan = response.content.strip().replace('\n\n', '\n')
+        plan = result.content.strip().replace('\n\n', '\n')
         planning_steps = plan.split('\n')        
         logger.info(f"planning_steps: {planning_steps}")
 
