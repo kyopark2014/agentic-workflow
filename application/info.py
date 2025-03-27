@@ -52,7 +52,7 @@ nova_micro_models = [   # Nova Micro
     }
 ]
 
-claude_3_7_sonnet_models = [   # Sonnet 3.7
+claude_3_7_sonnet_models = [   # Sonnet 3.7,
     {
         "bedrock_region": "us-west-2", # Oregon
         "model_type": "claude",
@@ -69,9 +69,19 @@ claude_3_7_sonnet_models = [   # Sonnet 3.7
         "model_id": "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
     },
     {
-        "bedrock_region": "us-east-2", # Ohio
+        "bedrock_region": "eu-central-1", # Frankfurt
         "model_type": "claude",
-        "model_id": "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+        "model_id": "eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
+    },
+    {
+        "bedrock_region": "eu-west-1", # Ireland
+        "model_type": "claude",
+        "model_id": "eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
+    },
+    {
+        "bedrock_region": "eu-west-3", # Paris
+        "model_type": "claude",
+        "model_id": "eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
     }
 ]
 

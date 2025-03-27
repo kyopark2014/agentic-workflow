@@ -464,7 +464,7 @@ def run_deep_research_agent(query, st):
         result = output[output.find('<result>')+8:output.find('</result>')]
         logger.info(f"result: {result}")
     
-        plan = result.content.strip().replace('\n\n', '\n')
+        plan = result.strip().replace('\n\n', '\n')
         planning_steps = plan.split('\n')        
         logger.info(f"planning_steps: {planning_steps}")
 
