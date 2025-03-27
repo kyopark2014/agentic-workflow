@@ -158,7 +158,12 @@ def run_deep_research_agent(query, st):
 
     def retrieve_for_writing(conn, q, config):
         idx = config.get("configurable", {}).get("idx") 
-         
+
+        if q.find('<article>') != -1:
+            logger.info(f"remove tag (before): {q}")
+            q = q[q.find('<article>')+9:q.find('</article>')]
+            logger.info(f"remove tag (after): {q}") 
+            
         if chat.debug_mode=="Enable":
             st.info(f"검색을 수행합니다. 검색어: {q}")
 
@@ -221,8 +226,14 @@ def run_deep_research_agent(query, st):
             docs = parallel_retriever(search_queries, config)
         else:
             for q in search_queries:      
+                if q.find('<article>') != -1:
+                    logger.info(f"remove tag (before): {q}")
+                    q = q[q.find('<article>')+9:q.find('</article>')]
+                    logger.info(f"remove tag (after): {q}")
+
                 if chat.debug_mode=="Enable":
                     st.info(f"검색을 수행합니다. 검색어: {q}")
+                    logger.info(f"검색을 수행합니다. 검색어: {q}")
 
                 relevant_docs = kb.retrieve_documents_from_knowledge_base(q, top_k=chat.numberOfDocs)
 

@@ -94,7 +94,7 @@ s3_bucket = config["s3_bucket"] if "s3_bucket" in config else None
 if s3_bucket is None:
     raise Exception ("No storage!")
 
-numberOfDocs = 4
+numberOfDocs = 3
 MSG_LENGTH = 100    
 grade_state = "LLM" # LLM, OTHERS
 
