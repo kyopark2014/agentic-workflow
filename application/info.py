@@ -163,9 +163,9 @@ def get_model_info(model_name):
         models = nova_micro_models
     elif model_name == "Claude 3.7 Sonnet":
         models = claude_3_7_sonnet_models
-    elif model_name == "Claude 3.0 Sonnet":
+    elif model_name == "Claude 3.5 Sonnet v1":
         models = claude_3_0_sonnet_models
-    elif model_name == "Claude 3.5 Sonnet":
+    elif model_name == "Claude 3.5 Sonnet v2":
         models = claude_3_5_sonnet_v2_models
     elif model_name == "Claude 3.5 Haiku":
         models = claude_3_5_haiku_models
