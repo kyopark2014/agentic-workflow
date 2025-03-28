@@ -454,7 +454,7 @@ def grade_documents_using_parallel_processing(question, documents):
         parent_connections = []
 
         for i in range(number_of_models):
-            logger.info(f"grading doc[{i}]: {documents[index].page_content}")        
+            logger.info(f"grading doc[{i}]: {documents[index].page_content}")
             
             parent_conn, child_conn = Pipe()
             parent_connections.append(parent_conn)
