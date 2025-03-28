@@ -630,44 +630,52 @@ def run_deep_research_agent(query, st):
         
     def reflect_drafts_using_parallel_processing(drafts, config):
         revised_drafts = drafts
-        
-        processes = []
-        parent_connections = []
         references = []
         
         reflection_app = buildReflection()
+
+        index = 0
+        while index < len(drafts):
+            logger.info(f"index: {index}")
+
+            processes = []
+            parent_connections = []
+
+            for i in range(chat.number_of_models):
+                logger.info(f"i:{i} --> draft:{drafts[index]}")
         
-        for idx, draft in enumerate(drafts):
-            parent_conn, child_conn = Pipe()
-            parent_connections.append(parent_conn)
-            
-            logger.info(f"idx:{idx} --> draft:{draft}")
-            
-            app_config = {
-                "recursion_limit": 50,
-                "max_revisions": MAX_REVISIONS,
-                "idx": idx,
-                "parallel_retrieval": "enable"
-            }
-            process = Process(target=reflect_draft, args=(child_conn, reflection_app, idx, app_config, draft))
-            processes.append(process)
-            
-        for process in processes:
-            process.start()
+                parent_conn, child_conn = Pipe()
+                parent_connections.append(parent_conn)
                 
-        for parent_conn in parent_connections:
-            result = parent_conn.recv()
+                app_config = {
+                    "recursion_limit": 50,
+                    "max_revisions": MAX_REVISIONS,
+                    "idx": index,
+                    "parallel_retrieval": "enable"
+                }
+                process = Process(target=reflect_draft, args=(child_conn, reflection_app, index, app_config, drafts[index]))
+                processes.append(process)
 
-            if result is not None:
-                logger.info(f"result: {result}")
-                revised_drafts[result['idx']] = result['revised_draft']
-
-                if result['reference']:
-                    references += result['reference']
-
-        for process in processes:
-            process.join()
+                index = index + 1
+                if index >= len(drafts):
+                    break
                 
+            for process in processes:
+                process.start()
+                    
+            for parent_conn in parent_connections:
+                result = parent_conn.recv()
+
+                if result is not None:
+                    logger.info(f"result: {result}")
+                    revised_drafts[result['idx']] = result['revised_draft']
+
+                    if result['reference']:
+                        references += result['reference']
+
+            for process in processes:
+                process.join()
+                    
         final_doc = ""   
         for revised_draft in revised_drafts:
             final_doc += revised_draft + '\n\n'
