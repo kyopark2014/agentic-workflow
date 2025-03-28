@@ -163,7 +163,7 @@ def run_deep_research_agent(query, st):
             logger.info(f"remove tag (before): {q}")
             q = q[q.find('<article>')+9:q.find('</article>')]
             logger.info(f"remove tag (after): {q}") 
-            
+
         if chat.debug_mode=="Enable":
             st.info(f"검색을 수행합니다. 검색어: {q}")
 
@@ -803,6 +803,11 @@ def run_deep_research_agent(query, st):
         
         logger.info(f"len(references): {len(references)}")
         
+        if subject.find('<answer>') != -1:
+            logger.info(f"subject (before): {subject}")
+            subject = subject[subject.find('<answer>')+8:subject.find('</answer>')]
+            logger.info(f"subject (after): {subject}")
+
         # markdown file
         markdown_key = 'markdown/'+f"{subject}.md"
         # print('markdown_key: ', markdown_key)
