@@ -80,7 +80,7 @@ with st.sidebar:
     if mode == '이미지 분석' or mode=="이미지 문제 풀이" or mode=="Agent (Tool Use)":
         index = 2
     elif mode == "Deep Research Agent":
-        index = 1
+        index = 6
     else:
         index = 2   
     modelName = st.selectbox(
