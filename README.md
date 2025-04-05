@@ -524,63 +524,6 @@ workflow.add_edge("reflect_node", "revise_draft")
 reflection_app = workflow.compile()
 ```
 
-## Multi-Agent 
-
-### Router
-
-[Multi-agent supervisor](https://langchain-ai.github.io/langgraph/tutorials/multi_agent/agent_supervisor/)에 따라 supervisor를 구현합니다.
-
-
-
-### LangGraph Supervisor
-
-[LangGraph Multi-Agent Supervisor](https://github.com/langchain-ai/langgraph-supervisor)을 이용하면 hierachical 구조를 만들때 도움이 됩니다.
-
-이를 위해 langgraph-supervisor을 설치합니다.
-
-```text
-pip install langgraph-supervisor
-```
-
-동작은 아래와 같습니다.
-
-![image](https://github.com/user-attachments/assets/b7ec2913-804b-4b4a-a1a9-d972ddb9a591)
-
-사용 예는 아래와 같습니다.
-
-```python
-# Create supervisor workflow
-workflow = create_supervisor(
-    [research_agent, math_agent],
-    model=model,
-    prompt=(
-        "You are a team supervisor managing a research expert and a math expert. "
-        "For current events, use research_agent. "
-        "For math problems, use math_agent."
-    )
-)
-
-# Compile and run
-app = workflow.compile()
-result = app.invoke({
-    "messages": [
-        {
-            "role": "user",
-            "content": "what's the combined headcount of the FAANG companies in 2024?"
-        }
-    ]
-})
-```
-
-output에서 response는 아래와 같이 full_history, last_message와 같이 선택가능합니다.
-
-```python
-workflow = create_supervisor(
-    agents=[agent1, agent2],
-    output_mode="full_history"
-)
-```
-
 ## Code Interpreter
 
 여기에서는 Agent의 Tool로 Code Interpreter를 활용하는 방법에 대해 설명합니다. Code Interpreter를 이용하면, 언어모델에서 어려운 복잡한 계산이나 그래프를 그리는 일들을 수행할 수 있습니다. 
@@ -872,44 +815,6 @@ Agent의 정확한 동작을 LangSmith 로그를 이용해 확인합니다. Agen
 메뉴에서 "Agent"를 선택하고 "네이버와 카카오의 일별 주식 가격 변화량을 그래프로 비교해 주세요. 향후 투자 방법에 대한 가이드도 부탁드립니다."라고 입력후 결과를 확인하면 아래와 같습니다.
 
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/517237e4-3c7b-4649-b84e-940bc1fd34dd" />
-
-
-## Multi-agent Collaboration
-
-### Supervisor
-
-[LangGraph Multi-Agent Supervisor](https://github.com/langchain-ai/langgraph-supervisor-py)
-
-```python
-pip install langgraph-supervisor
-```
-
-### Swarm
-
-[LangGraph Multi-Agent Swarm](https://github.com/langchain-ai/langgraph-swarm-py/tree/main)와 같이 때로는 agent가 직접 메시지 및 history를 공유함으로써 multi-agent를 구성하는것이 좋을수도 있습니다. [Swarm](https://github.com/openai/swarm)은 agent간에 handoff가 가능합니다. 아래에서는 [LangGraph Swarm](https://www.youtube.com/watch?v=iqXn6Oiis4Q)을 참조하여 multi-agent를 구성하는 것을 설명합니다.
-
-아래와 같이 LangGraph의 Swarm을 설치합니다.
-
-```text
-pip install langgraph-swarm
-```
-
-아래는 추후 구현 예정입니다. 
-
-```python
-from langgraph_swarm import create_handoff_tool, create_swarm
-
-checkpointer = InMemorySaver()
-store = InMemoryStore()
-workflow = create_swarm(
-    [search, stock, code_interpreter],
-    default_active_agent="search"
-)
-app = workflow.compile(
-    checkpointer=checkpointer,
-    store=store
-)
-```
 
 ## 활용 방법
 
